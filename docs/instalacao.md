@@ -4,11 +4,11 @@ O CRM roda em **um** computador que fica sempre ligado (o servidor). Os demais c
 
 ## 1. Preparar o servidor
 
-Recomendado: um mini PC com **Ubuntu Server 24.04 LTS**, cabo de rede e nobreak.
+Recomendado a longo prazo: um mini PC dedicado com **Ubuntu Server 24.04 LTS**, cabo de rede e nobreak. Para começar, dá para usar um computador **Windows** do escritório (veja [Servidor Windows](#servidor-windows-provisório) no fim deste guia).
 
-1. Instale o Docker: <https://docs.docker.com/engine/install/ubuntu/>
+1. Instale o Docker: no Ubuntu, <https://docs.docker.com/engine/install/ubuntu/>; no Windows, o [Docker Desktop](https://www.docker.com/products/docker-desktop/).
 2. Dê ao servidor um **IP fixo** na rede (no roteador, reserve o IP pelo endereço MAC).
-3. Instale o Git e baixe o projeto:
+3. Instale o Git e baixe o projeto (os comandos são iguais no PowerShell do Windows):
 
    ```bash
    git clone https://github.com/Lohrel/crm-ines-rossi.git
@@ -128,3 +128,48 @@ docker compose up -d --build
 As migrações do banco são aplicadas automaticamente ao iniciar.
 
 Uma vez por mês, atualize também o sistema operacional (`sudo apt update && sudo apt upgrade`) e as imagens (`docker compose pull`).
+
+## Servidor Windows (provisório)
+
+Enquanto não houver uma máquina dedicada, o sistema pode rodar num PC Windows 10/11 com o Docker Desktop. Tudo acima vale igual; os cuidados extras são:
+
+**Manter o sistema no ar**
+
+- No Docker Desktop, em *Settings → General*, marque **Start Docker Desktop when you sign in to your computer**.
+- O Docker Desktop só roda com um usuário **logado** no Windows. Depois de reiniciar, alguém precisa entrar no Windows (pode deixar a tela bloqueada, mas não deslogar).
+- Em *Configurações → Sistema → Energia*, coloque **Suspensão: Nunca** quando conectado à energia. Um PC suspenso derruba o CRM para todos.
+- Em *Windows Update*, ajuste o **Horário ativo** para o expediente, para o Windows não reiniciar sozinho durante o trabalho.
+- Ligue o PC num nobreak, se possível.
+
+**Liberar o acesso dos outros computadores**
+
+- Na primeira vez, o Windows pode perguntar se o Docker pode usar a rede: permita em **Redes privadas**.
+- A rede do escritório deve estar marcada como **Privada** (*Configurações → Rede e Internet → propriedades da conexão*).
+- Se os outros PCs não conseguirem abrir o sistema, libere as portas 80 e 443 no Firewall do Windows (PowerShell como administrador):
+
+  ```powershell
+  New-NetFirewallRule -DisplayName "CRM HTTPS" -Direction Inbound -Protocol TCP -LocalPort 80,443 -Action Allow -Profile Private
+  ```
+
+**Segurança do PC servidor**
+
+- Ative o **BitLocker** no disco (*Configurações → Privacidade e segurança → Criptografia do dispositivo*), porque o banco com dados de saúde fica nele.
+- Use uma conta do Windows com senha forte, e não deixe outras pessoas usarem esse PC com a mesma conta.
+- A pasta do projeto (com o `.env` e a pasta `backups`) não deve ficar compartilhada na rede.
+
+**Cópia dos backups para o HD externo**
+
+Crie uma tarefa no **Agendador de Tarefas** do Windows que roda todo dia após o horário do backup:
+
+```powershell
+robocopy C:\caminho\crm-ines-rossi\backups E:\backups-crm /MIR /R:2 /W:5
+```
+
+(troque `C:\caminho\...` pela pasta do projeto e `E:` pela letra do HD externo)
+
+**Mudar para a máquina dedicada depois**
+
+1. Faça um backup agora: `docker compose exec backup fazer-backup.sh`.
+2. Instale a máquina nova seguindo os passos 1 a 3 com **o mesmo `.env`**.
+3. Copie o arquivo de backup para a pasta `backups/` da máquina nova e restaure: `docker compose exec backup restaurar.sh diario/<arquivo>`.
+4. Aponte `crm.local` para o IP da máquina nova (roteador ou arquivo `hosts`) e desligue o sistema no PC antigo com `docker compose down`.
