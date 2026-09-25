@@ -1,0 +1,22 @@
+[project]
+name = "crm-corretora"
+version = "0.1.0"
+description = "CRM para corretora de seguros: carteira, beneficiários, movimentações e pendências."
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings_testes"
+python_files = ["test_*.py"]
+addopts = "--strict-markers"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["*/migrations/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "DJ", "S", "SIM", "N"]
+
+[tool.ruff.lint.per-file-ignores]
+# Testes podem usar assert e senhas fictícias.
+"**/tests/**" = ["S101", "S105", "S106"]

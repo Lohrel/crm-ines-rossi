@@ -1,0 +1,55 @@
+# ------------------------------------------------------------------
+# Segredos e configuração local: NUNCA versionar
+# ------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# ------------------------------------------------------------------
+# Dados reais da corretora: NUNCA versionar
+# (planilhas, exportações, backups e bancos locais)
+# ------------------------------------------------------------------
+*.xlsx
+*.xls
+*.xlsm
+*.csv
+*.ods
+*.sql
+*.sql.gz
+*.dump
+*.gpg
+*.sqlite3
+*.db
+backups/
+media/
+dados/
+
+# Permite planilhas fictícias usadas nos testes automáticos
+!**/tests/fixtures/**
+
+# ------------------------------------------------------------------
+# Python
+# ------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+staticfiles/
+
+# ------------------------------------------------------------------
+# Editores e sistema operacional
+# ------------------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
