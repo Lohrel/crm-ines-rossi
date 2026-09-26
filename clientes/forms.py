@@ -9,17 +9,16 @@ CAMPOS_CONTATO = ["telefone", "whatsapp", "email"]
 
 
 class DocumentoField(forms.CharField):
-    """Campo de CPF/CNPJ: aceita com ou sem pontuação e guarda só os dígitos."""
+    """Campo de CPF/CNPJ: aceita com ou sem pontuação e guarda só os caracteres do número."""
 
     def __init__(self, documento: type[Documento], **kwargs):
         self.documento = documento
         kwargs.setdefault("label", documento.nome)
         super().__init__(**kwargs)
         self.widget.attrs.setdefault("maxlength", "20")
-        self.widget.attrs.setdefault("inputmode", "numeric")
 
     def to_python(self, value) -> str:
-        return self.documento(super().to_python(value)).digitos
+        return self.documento(super().to_python(value)).valor
 
     def prepare_value(self, value):
         return self.documento(value).formatado() if value else value
@@ -89,6 +88,7 @@ class PessoaFisicaForm(BootstrapFormMixin, forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.instance.tipo = Cliente.Tipo.PESSOA_FISICA
         self.fields["cpf"].widget.attrs["placeholder"] = "000.000.000-00"
+        self.fields["cpf"].widget.attrs["inputmode"] = "numeric"
 
 
 class EmpresaForm(BootstrapFormMixin, forms.ModelForm):

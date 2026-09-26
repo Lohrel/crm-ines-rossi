@@ -152,3 +152,14 @@ def test_historico_mostra_quem_alterou_e_quais_campos(logado, pessoa):
     conteudo = logado.get(pessoa.get_absolute_url()).content.decode()
     assert "Ana Lima" in conteudo
     assert "(telefone)" in conteudo
+
+
+def test_cadastrar_filial_com_cnpj_alfanumerico(logado, empresa, matriz):
+    resposta = logado.post(
+        reverse("clientes:nova_unidade", args=[empresa.pk]),
+        {"cnpj": "12.abc.345/01de-35", "razao_social": "Filial Nova Ltda", "ativo": "on"},
+    )
+    assert resposta.status_code == 302
+    assert Unidade.objects.get(cnpj="12ABC34501DE35").cliente == empresa
+    conteudo = logado.get(empresa.get_absolute_url()).content.decode()
+    assert "12.ABC.345/01DE-35" in conteudo

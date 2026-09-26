@@ -93,3 +93,8 @@ def test_unidade_str_prefere_nome_fantasia(filial, matriz):
     assert str(filial) == "Exemplo Centro"
     assert str(matriz) == "Supermercados Exemplo Ltda"
     assert CNPJ_FILIAL  # usado nos fixtures
+
+
+def test_busca_por_cnpj_alfanumerico(empresa):
+    Unidade.objects.create(cliente=empresa, cnpj="12ABC34501DE35", razao_social="Nova Ltda")
+    assert list(Cliente.objects.buscar("12.abc.345")) == [empresa]

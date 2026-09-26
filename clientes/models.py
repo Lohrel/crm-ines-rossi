@@ -129,9 +129,11 @@ class ClienteQuerySet(models.QuerySet):
             | Q(unidades__razao_social__icontains=termo)
             | Q(unidades__nome_fantasia__icontains=termo)
         )
-        digitos = re.sub(r"\D", "", termo)
-        if len(digitos) >= 3:
-            filtro |= Q(cpf__contains=digitos) | Q(unidades__cnpj__contains=digitos)
+        # CPF/CNPJ são guardados sem pontuação; o CNPJ pode ter letras (alfanumérico).
+        if re.search(r"\d", termo):
+            documento = re.sub(r"[^0-9A-Za-z]", "", termo).upper()
+            if len(documento) >= 3:
+                filtro |= Q(cpf__contains=documento) | Q(unidades__cnpj__contains=documento)
         return self.filter(filtro).distinct()
 
 
@@ -224,6 +226,7 @@ class Unidade(MarcacaoExclusiva, Endereco, MeiosDeContato, Registro):
         related_name="unidades",
         limit_choices_to={"tipo": Cliente.Tipo.PESSOA_JURIDICA},
     )
+    # Numérico ou alfanumérico (letras nas 12 primeiras posições, desde jul/2026).
     cnpj = models.CharField("CNPJ", max_length=14, unique=True, validators=[validar_cnpj])
     razao_social = models.CharField("razão social", max_length=200)
     nome_fantasia = models.CharField("nome fantasia", max_length=200, blank=True)

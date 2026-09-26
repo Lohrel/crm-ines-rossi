@@ -5,6 +5,8 @@ from clientes.documentos import CNPJ, CPF
 # Números gerados apenas para teste (dígitos verificadores válidos, sem titular real).
 CPF_VALIDO = "529.982.247-25"
 CNPJ_VALIDO = "11.222.333/0001-81"
+# Exemplo publicado pela Receita Federal para o CNPJ alfanumérico.
+CNPJ_ALFANUMERICO = "12.ABC.345/01DE-35"
 
 
 @pytest.mark.parametrize("valor", [CPF_VALIDO, "52998224725", " 529 982 247 25 "])
@@ -37,3 +39,31 @@ def test_cnpj_formatado():
 
 def test_formatado_de_valor_incompleto_devolve_so_digitos():
     assert CPF("123.4").formatado() == "1234"
+
+
+@pytest.mark.parametrize("valor", [CNPJ_ALFANUMERICO, "12ABC34501DE35", "12.abc.345/01de-35"])
+def test_cnpj_alfanumerico_valido(valor):
+    assert CNPJ(valor).valido()
+
+
+def test_cnpj_alfanumerico_guardado_em_maiusculas_e_formatado():
+    cnpj = CNPJ("12abc34501de35")
+    assert cnpj.valor == "12ABC34501DE35"
+    assert cnpj.formatado() == CNPJ_ALFANUMERICO
+
+
+@pytest.mark.parametrize(
+    "valor",
+    [
+        "12.ABC.345/01DE-36",  # verificador errado
+        "12.ABC.345/01DE-3A",  # verificador com letra
+        "12.ÁBC.345/01DE-35",  # acento não é aceito
+    ],
+)
+def test_cnpj_alfanumerico_invalido(valor):
+    assert not CNPJ(valor).valido()
+
+
+def test_cpf_nao_aceita_letras():
+    assert CPF("529.982.247-2A").valor == "5299822472"
+    assert not CPF("529.982.247-2A").valido()
