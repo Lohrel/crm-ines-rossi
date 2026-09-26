@@ -21,6 +21,8 @@ Cada etapa só começa quando a anterior está testada e em uso.
 
 - [x] **0. Fundação**: login por usuário, HTTPS, backup diário, testes automáticos
 - [ ] **1.** Clientes, seguradoras, ramos e apólices
+  - [x] 1a. Clientes: pessoa física e empresas com unidades (CNPJ por filial) e contatos
+  - [ ] 1b. Seguradoras, ramos e apólices
 - [ ] **2.** Beneficiários (titulares e dependentes)
 - [ ] **3.** Movimentações de inclusão e exclusão, com solicitante, executor e datas
 - [ ] **4.** Pendências com "marcar como concluído"
@@ -53,6 +55,7 @@ Para rodar o sistema completo como no servidor, use o Docker (veja `docs/instala
 ```
 config/          Configurações do Django (lidas do arquivo .env)
 contas/          Usuários, login e página inicial
+clientes/        Clientes PF/PJ, unidades (filiais) e contatos, com histórico
 templates/       Layout base e tela de login
 static/vendor/   Bootstrap servido localmente (funciona sem internet)
 docker/          Entrypoint, Caddy (HTTPS) e scripts de backup/restauração

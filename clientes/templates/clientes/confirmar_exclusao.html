@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block titulo %}Remover contato{% endblock %}
+{% block conteudo %}
+<h1 class="h3 mb-3">Remover contato</h1>
+<p>Remover <strong>{{ object }}</strong> da unidade {{ object.unidade }}? A remoção fica registrada no histórico.</p>
+<form method="post" class="d-flex gap-2">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-danger">Remover</button>
+  <a href="{{ object.unidade.get_absolute_url }}" class="btn btn-outline-secondary">Cancelar</a>
+</form>
+{% endblock %}

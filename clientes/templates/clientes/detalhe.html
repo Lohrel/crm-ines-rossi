@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block titulo %}{{ cliente.nome }}{% endblock %}
+{% block conteudo %}
+<nav aria-label="breadcrumb"><ol class="breadcrumb">
+  <li class="breadcrumb-item"><a href="{% url 'clientes:lista' %}">Clientes</a></li>
+  <li class="breadcrumb-item active">{{ cliente.nome }}</li>
+</ol></nav>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-1">{{ cliente.nome }}</h1>
+    <span class="badge text-bg-light border">{{ cliente.get_tipo_display }}</span>
+    {% if not cliente.ativo %}<span class="badge text-bg-secondary">Inativo</span>{% endif %}
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'clientes:editar' cliente.pk %}" class="btn btn-outline-primary">Editar</a>
+    {% if cliente.eh_empresa %}
+      <a href="{% url 'clientes:nova_unidade' cliente.pk %}" class="btn btn-primary">Nova unidade</a>
+    {% endif %}
+  </div>
+</div>
+
+{% if not cliente.eh_empresa %}
+<div class="card shadow-sm mb-4"><div class="card-body">
+  <dl class="row mb-0">
+    <dt class="col-sm-3">CPF</dt><dd class="col-sm-9">{{ cliente.cpf_formatado }}</dd>
+    <dt class="col-sm-3">Nascimento</dt><dd class="col-sm-9">{{ cliente.data_nascimento|date:"d/m/Y"|default:"—" }}</dd>
+    <dt class="col-sm-3">Sexo</dt><dd class="col-sm-9">{{ cliente.get_sexo_display|default:"—" }}</dd>
+    <dt class="col-sm-3">Telefone</dt><dd class="col-sm-9">{{ cliente.telefone|default:"—" }}</dd>
+    <dt class="col-sm-3">WhatsApp</dt><dd class="col-sm-9">{{ cliente.whatsapp|default:"—" }}</dd>
+    <dt class="col-sm-3">E-mail</dt><dd class="col-sm-9">{{ cliente.email|default:"—" }}</dd>
+    <dt class="col-sm-3">Endereço</dt><dd class="col-sm-9">{{ cliente.endereco_resumido|default:"—" }}</dd>
+  </dl>
+</div></div>
+{% else %}
+  {% for unidade in cliente.unidades.all %}
+  <div class="card shadow-sm mb-3">
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <div>
+        <strong>{{ unidade }}</strong>
+        {% if unidade.matriz %}<span class="badge text-bg-primary">Matriz</span>{% else %}<span class="badge text-bg-light border">Filial</span>{% endif %}
+        {% if not unidade.ativo %}<span class="badge text-bg-secondary">Inativa</span>{% endif %}
+      </div>
+      <div class="d-flex gap-2">
+        <a href="{% url 'clientes:novo_contato' unidade.pk %}" class="btn btn-sm btn-outline-primary">Novo contato</a>
+        <a href="{% url 'clientes:editar_unidade' unidade.pk %}" class="btn btn-sm btn-outline-secondary">Editar unidade</a>
+      </div>
+    </div>
+    <div class="card-body">
+      <dl class="row mb-3">
+        <dt class="col-sm-3">CNPJ</dt><dd class="col-sm-9">{{ unidade.cnpj_formatado }}</dd>
+        <dt class="col-sm-3">Razão social</dt><dd class="col-sm-9">{{ unidade.razao_social }}</dd>
+        <dt class="col-sm-3">Endereço</dt><dd class="col-sm-9">{{ unidade.endereco_resumido|default:"—" }}</dd>
+        {% if unidade.telefone or unidade.email %}
+        <dt class="col-sm-3">Contato da unidade</dt><dd class="col-sm-9">{{ unidade.telefone }} {{ unidade.email }}</dd>
+        {% endif %}
+      </dl>
+      <h2 class="h6">Contatos</h2>
+      {% with contatos=unidade.contatos.all %}
+      {% if contatos %}
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead><tr><th>Nome</th><th>Cargo/setor</th><th>Telefone</th><th>WhatsApp</th><th>E-mail</th><th></th></tr></thead>
+          <tbody>
+          {% for contato in contatos %}
+            <tr>
+              <td>{{ contato.nome }} {% if contato.principal %}<span class="badge text-bg-success">Principal</span>{% endif %}</td>
+              <td>{{ contato.cargo|default:"—" }}</td>
+              <td>{{ contato.telefone|default:"—" }}</td>
+              <td>{{ contato.whatsapp|default:"—" }}</td>
+              <td>{% if contato.email %}<a href="mailto:{{ contato.email }}">{{ contato.email }}</a>{% else %}—{% endif %}</td>
+              <td class="text-end text-nowrap">
+                <a href="{% url 'clientes:editar_contato' contato.pk %}" class="btn btn-sm btn-link">Editar</a>
+                <a href="{% url 'clientes:remover_contato' contato.pk %}" class="btn btn-sm btn-link text-danger">Remover</a>
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+        <p class="text-body-secondary mb-0">Nenhum contato cadastrado nesta unidade.</p>
+      {% endif %}
+      {% endwith %}
+    </div>
+  </div>
+  {% empty %}
+    <div class="alert alert-warning">Esta empresa ainda não tem unidades cadastradas.</div>
+  {% endfor %}
+{% endif %}
+
+{% if cliente.observacoes %}
+<div class="card shadow-sm mb-4"><div class="card-body">
+  <h2 class="h6">Observações</h2>
+  <p class="mb-0" style="white-space: pre-line">{{ cliente.observacoes }}</p>
+</div></div>
+{% endif %}
+
+<div class="card shadow-sm">
+  <div class="card-header fw-semibold">Histórico de alterações</div>
+  <ul class="list-group list-group-flush">
+    {% for evento in historico %}
+      <li class="list-group-item small">
+        <span class="text-body-secondary">{{ evento.quando|date:"d/m/Y H:i" }}</span> ·
+        <strong>{{ evento.quem }}</strong> {{ evento.acao|lower }} {{ evento.registro }}
+        {% if evento.campos %}<span class="text-body-secondary">({{ evento.campos|join:", " }})</span>{% endif %}
+      </li>
+    {% empty %}
+      <li class="list-group-item small text-body-secondary">Sem alterações registradas.</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

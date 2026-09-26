@@ -2,7 +2,10 @@
 {% block titulo %}Início{% endblock %}
 {% block conteudo %}
 <h1 class="h3">Olá, {{ user.nome_exibicao }}</h1>
-<p class="text-body-secondary">
-  A fundação do CRM está no ar. Os cadastros de clientes e apólices chegam na Etapa 1.
-</p>
+<p class="text-body-secondary">O que você quer fazer?</p>
+<div class="d-flex flex-wrap gap-2">
+  <a href="{% url 'clientes:lista' %}" class="btn btn-primary">Ver clientes</a>
+  <a href="{% url 'clientes:novo_pf' %}" class="btn btn-outline-primary">Nova pessoa física</a>
+  <a href="{% url 'clientes:nova_empresa' %}" class="btn btn-outline-primary">Nova empresa</a>
+</div>
 {% endblock %}
