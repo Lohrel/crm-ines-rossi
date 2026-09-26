@@ -1,8 +1,9 @@
 """Movimentações: pedidos de inclusão e exclusão enviados às operadoras.
 
-Um pedido passa por etapas até ser concluído. Quando a operadora aprova, a
-pessoa entra no plano (ou sai dele) a partir da data de vigência, e só então
-passa a contar (ou deixa de contar) como vida.
+O pedido só é registrado depois de enviado à operadora, então já começa em
+análise. Quando a operadora aprova, a pessoa entra no plano (ou sai dele) a
+partir da data de vigência, e só então passa a contar (ou deixa de contar)
+como vida.
 """
 
 from datetime import date
@@ -20,8 +21,6 @@ from clientes.models import Contato, Registro
 
 
 class Etapa(models.TextChoices):
-    RECEBIDA = "REC", "Recebida"
-    ENVIADA = "ENV", "Enviada à operadora"
     EM_ANALISE = "ANA", "Em análise"
     APROVADA = "APR", "Aprovada"
     CONCLUIDA = "CON", "Concluída"
@@ -29,12 +28,10 @@ class Etapa(models.TextChoices):
     CANCELADA = "CAN", "Cancelada"
 
 
-ETAPAS_EM_ABERTO = [Etapa.RECEBIDA, Etapa.ENVIADA, Etapa.EM_ANALISE, Etapa.APROVADA]
+ETAPAS_EM_ABERTO = [Etapa.EM_ANALISE, Etapa.APROVADA]
 
 # Para onde cada etapa pode ir.
 PROXIMAS_ETAPAS = {
-    Etapa.RECEBIDA: [Etapa.ENVIADA, Etapa.CANCELADA],
-    Etapa.ENVIADA: [Etapa.EM_ANALISE, Etapa.APROVADA, Etapa.REJEITADA, Etapa.CANCELADA],
     Etapa.EM_ANALISE: [Etapa.APROVADA, Etapa.REJEITADA, Etapa.CANCELADA],
     Etapa.APROVADA: [Etapa.CONCLUIDA],
     Etapa.CONCLUIDA: [],
@@ -93,7 +90,7 @@ class Movimentacao(Registro):
         related_name="movimentacoes",
         help_text="Quem pediu (ex.: o RH da filial).",
     )
-    etapa = models.CharField(max_length=3, choices=Etapa.choices, default=Etapa.RECEBIDA)
+    etapa = models.CharField(max_length=3, choices=Etapa.choices, default=Etapa.EM_ANALISE)
     recebida_em = models.DateField("recebida em", default=date.today)
     enviada_em = models.DateField("enviada à operadora em", null=True, blank=True)
     vigencia = models.DateField(
@@ -208,8 +205,6 @@ class Movimentacao(Registro):
         for campo, valor in dados.items():
             setattr(self, campo, valor)
         with transaction.atomic():
-            if nova == Etapa.ENVIADA and not self.enviada_em:
-                self.enviada_em = date.today()
             if nova == Etapa.REJEITADA and not self.motivo_rejeicao:
                 raise ValidationError("Informe o motivo da rejeição.")
             if nova == Etapa.APROVADA:
@@ -270,6 +265,7 @@ class Movimentacao(Registro):
             contrato=self.contrato,
             solicitante=self.solicitante,
             recebida_em=hoje,
+            enviada_em=hoje,
             vigencia=self.contrato.vigencia_sugerida(hoje),
             origem=self,
             registrada_por=usuario,

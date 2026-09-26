@@ -27,6 +27,7 @@ def pedido(pessoa, plano, tipo="INC", **extra):
         cliente=pessoa.cliente,
         beneficiario=pessoa,
         contrato=plano,
+        enviada_em=extra.pop("enviada_em", HOJE),
         vigencia=extra.pop("vigencia", date(2026, 10, 1)),
         **extra,
     )
@@ -94,15 +95,13 @@ def test_um_pedido_em_aberto_por_pessoa_e_plano(titular, saude):
 def test_etapas_fora_de_ordem_sao_barradas(titular, saude):
     mov = pedido(titular, saude)
     with pytest.raises(ValidationError, match="Não é possível"):
-        mov.mudar_etapa(Etapa.APROVADA)
+        mov.mudar_etapa(Etapa.CONCLUIDA)
 
 
 def test_inclusao_aprovada_entra_no_plano_e_conta_como_vida(empresa, titular, saude):
     mov = pedido(titular, saude, vigencia=date(2026, 10, 1))
-    mov.mudar_etapa(Etapa.ENVIADA)
-    assert mov.enviada_em == HOJE
-    mov.mudar_etapa(Etapa.EM_ANALISE, observacao="Carência: aguardando entrevista médica")
-    # Em análise ainda não é vida.
+    # Já foi enviado à operadora: começa em análise, e ainda não é vida.
+    assert mov.etapa == Etapa.EM_ANALISE
     assert VidasDoCliente(empresa, em=date(2026, 10, 1)).total_pessoas == 0
 
     mov.mudar_etapa(Etapa.APROVADA, carteirinha="0001")
@@ -119,7 +118,6 @@ def test_inclusao_aprovada_entra_no_plano_e_conta_como_vida(empresa, titular, sa
 
 def test_concluir_inclusao_exige_carteirinha(titular, saude):
     mov = pedido(titular, saude)
-    mov.mudar_etapa(Etapa.ENVIADA)
     mov.mudar_etapa(Etapa.APROVADA)
     with pytest.raises(ValidationError, match="carteirinha"):
         mov.mudar_etapa(Etapa.CONCLUIDA)
@@ -132,8 +130,6 @@ def test_concluir_inclusao_exige_carteirinha(titular, saude):
 def test_dependente_aprovado_antes_do_titular_da_aviso(titular, conjuge, saude):
     mov_titular = pedido(titular, saude)
     mov_conjuge = pedido(conjuge, saude)
-    for mov in (mov_titular, mov_conjuge):
-        mov.mudar_etapa(Etapa.ENVIADA)
     with pytest.raises(ValidationError, match="aprove-o primeiro"):
         mov_conjuge.mudar_etapa(Etapa.APROVADA)
     assert not Vinculo.objects.exists()
@@ -146,7 +142,6 @@ def test_dependente_aprovado_antes_do_titular_da_aviso(titular, conjuge, saude):
 def test_exclusao_aprovada_tira_do_plano(empresa, titular, saude):
     incluir(titular, saude, inclusao=date(2026, 1, 1))
     mov = pedido(titular, saude, tipo="EXC", vigencia=date(2026, 10, 1))
-    mov.mudar_etapa(Etapa.ENVIADA)
     mov.mudar_etapa(Etapa.APROVADA)
     assert Vinculo.objects.get().data_exclusao == date(2026, 10, 1)
     assert VidasDoCliente(empresa, em=date(2026, 10, 1)).total_pessoas == 0
@@ -156,14 +151,13 @@ def test_exclusao_aprovada_tira_do_plano(empresa, titular, saude):
 
 def test_rejeitada_exige_motivo_e_pode_ser_refeita(titular, saude, usuario):
     mov = pedido(titular, saude)
-    mov.mudar_etapa(Etapa.ENVIADA)
     with pytest.raises(ValidationError, match="motivo"):
         mov.mudar_etapa(Etapa.REJEITADA)
     mov.mudar_etapa(Etapa.REJEITADA, motivo_rejeicao="ENT")
     assert not Movimentacao.objects.em_aberto().exists()
 
     nova = mov.refazer(usuario)
-    assert nova.origem == mov and nova.etapa == Etapa.RECEBIDA
+    assert nova.origem == mov and nova.etapa == Etapa.EM_ANALISE and nova.enviada_em == HOJE
     assert "Prazo da entrevista médica" in nova.observacao
     assert list(mov.refeitas.all()) == [nova]
 
@@ -188,7 +182,8 @@ def test_solicitar_inclusao_do_titular_com_dependente(logado, titular, conjuge, 
     assert resposta.status_code == 302
     pedidos = Movimentacao.objects.order_by("beneficiario__nome")
     assert [m.beneficiario for m in pedidos] == [titular, conjuge]
-    assert all(m.etapa == Etapa.ENVIADA and m.solicitante == rh for m in pedidos)
+    assert all(m.etapa == Etapa.EM_ANALISE and m.solicitante == rh for m in pedidos)
+    assert all(m.enviada_em == date(2026, 9, 21) for m in pedidos)
     assert pedidos[0].registrada_por.username == "ana"
 
 
@@ -208,8 +203,6 @@ def test_tipo_invalido_na_url(logado, titular):
 def test_fluxo_pela_tela_ate_a_carteirinha(logado, titular, saude):
     mov = pedido(titular, saude)
     url = lambda etapa: reverse("movimentacoes:mudar_etapa", args=[mov.pk, etapa])  # noqa: E731
-    logado.post(url("ENV"), {"enviada_em": "2026-09-21"})
-    logado.post(url("ANA"), {"observacao": "Carência"})
     logado.post(url("APR"), {"vigencia": "2026-10-01", "carteirinha": ""})
     resposta = logado.post(url("CON"), {"carteirinha": "", "carteirinha_enviada_em": "2026-10-02"})
     assert resposta.status_code == 200  # carteirinha obrigatória
@@ -230,19 +223,17 @@ def test_etapa_nao_permitida_pela_url(logado, titular, saude):
 def test_erro_ao_aprovar_aparece_na_tela(logado, titular, conjuge, saude):
     pedido(titular, saude)
     mov = pedido(conjuge, saude)
-    mov.mudar_etapa(Etapa.ENVIADA)
     resposta = logado.post(
         reverse("movimentacoes:mudar_etapa", args=[mov.pk, "APR"]), {"vigencia": "2026-10-01"}
     )
     assert resposta.status_code == 200
     assert "aprove-o primeiro" in resposta.content.decode()
     mov.refresh_from_db()
-    assert mov.etapa == Etapa.ENVIADA
+    assert mov.etapa == Etapa.EM_ANALISE
 
 
 def test_refazer_pela_tela(logado, titular, saude):
     mov = pedido(titular, saude)
-    mov.mudar_etapa(Etapa.ENVIADA)
     mov.mudar_etapa(Etapa.REJEITADA, motivo_rejeicao="RAS")
     resposta = logado.post(reverse("movimentacoes:refazer", args=[mov.pk]))
     nova = Movimentacao.objects.exclude(pk=mov.pk).get()
@@ -252,7 +243,6 @@ def test_refazer_pela_tela(logado, titular, saude):
 def test_lista_mostra_em_aberto_de_qualquer_mes(logado, titular, conjuge, saude):
     setembro = pedido(titular, saude, vigencia=date(2026, 9, 1))
     outubro = pedido(conjuge, saude, vigencia=date(2026, 10, 1))
-    setembro.mudar_etapa(Etapa.ENVIADA)
     setembro.mudar_etapa(Etapa.REJEITADA, motivo_rejeicao="DOC")
     url = reverse("movimentacoes:lista")
 
@@ -267,8 +257,7 @@ def test_lista_mostra_em_aberto_de_qualquer_mes(logado, titular, conjuge, saude)
 
 
 def test_pagina_da_pessoa_mostra_movimentacoes_e_historico(logado, titular, saude):
-    mov = pedido(titular, saude)
-    mov.mudar_etapa(Etapa.ENVIADA)
+    pedido(titular, saude)
     pagina = logado.get(titular.get_absolute_url()).content.decode()
     assert "Inclusão em Saúde" in pagina
     assert "Movimentação" in pagina
@@ -280,8 +269,6 @@ def test_exclusao_do_dependente_depois_da_do_titular(titular, conjuge, saude):
     incluir(conjuge, saude, inclusao=date(2026, 1, 1))
     do_titular = pedido(titular, saude, tipo="EXC", vigencia=date(2026, 10, 1))
     do_conjuge = pedido(conjuge, saude, tipo="EXC", vigencia=date(2026, 10, 1))
-    for mov in (do_titular, do_conjuge):
-        mov.mudar_etapa(Etapa.ENVIADA)
     do_titular.mudar_etapa(Etapa.APROVADA)
     do_conjuge.refresh_from_db()
     do_conjuge.mudar_etapa(Etapa.APROVADA)
@@ -291,11 +278,14 @@ def test_exclusao_do_dependente_depois_da_do_titular(titular, conjuge, saude):
 
 def test_corrigir_carteirinha_depois_de_aprovada_atualiza_o_plano(logado, titular, saude):
     mov = pedido(titular, saude)
-    mov.mudar_etapa(Etapa.ENVIADA)
     mov.mudar_etapa(Etapa.APROVADA, carteirinha="0001")
     resposta = logado.post(
         reverse("movimentacoes:editar", args=[mov.pk]),
-        {"recebida_em": mov.recebida_em.isoformat(), "carteirinha": "0001-9"},
+        {
+            "recebida_em": mov.recebida_em.isoformat(),
+            "enviada_em": mov.enviada_em.isoformat(),
+            "carteirinha": "0001-9",
+        },
     )
     assert resposta.status_code == 302
     assert Vinculo.objects.get().carteirinha == "0001-9"
@@ -312,7 +302,8 @@ def test_data_digitada_como_dia_mes_ano(logado, titular, saude):
     """05/09/2026 é 5 de setembro, qualquer que seja o idioma do navegador."""
     mov = pedido(titular, saude)
     url = reverse("movimentacoes:editar", args=[mov.pk])
-    logado.post(url, {"recebida_em": "05/09/2026", "vigencia": "01/10/2026"})
+    dados = {"recebida_em": "05/09/2026", "enviada_em": "05/09/2026", "vigencia": "01/10/2026"}
+    logado.post(url, dados)
     mov.refresh_from_db()
     assert mov.recebida_em == date(2026, 9, 5)
 
@@ -328,3 +319,15 @@ def test_filtro_por_mes_no_formato_mes_ano(logado, titular, conjuge, saude):
     pedido(conjuge, saude, vigencia=date(2026, 10, 1))
     pagina = logado.get(reverse("movimentacoes:lista"), {"mes": "09/2026"}).content.decode()
     assert titular.nome in pagina and conjuge.nome not in pagina
+
+
+def test_data_de_envio_obrigatoria_no_cadastro_e_sugerida_como_hoje(logado, titular, saude):
+    """Só se registra o pedido depois de enviado à operadora."""
+    url = reverse("movimentacoes:nova", args=[titular.pk, "inclusao"])
+    pagina = logado.get(url).content.decode()
+    campo = re.search(r'<input[^>]*name="enviada_em"[^>]*>', pagina).group(0)
+    assert f'value="{HOJE:%d/%m/%Y}"' in campo
+
+    resposta = logado.post(url, {"contrato": saude.pk, "recebida_em": "20/09/2026"})
+    assert resposta.status_code == 200
+    assert not Movimentacao.objects.exists()

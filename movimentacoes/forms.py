@@ -51,7 +51,10 @@ class MovimentacaoForm(BootstrapFormMixin, forms.ModelForm):
         self.fields["contrato"].label_from_instance = rotulo_do_plano
         self.fields["solicitante"].queryset = beneficiario.cliente.contatos.all()
         self.fields["vigencia"].required = False
-        self.initial.setdefault("recebida_em", date.today())
+        # Só se registra o pedido depois de enviado à operadora.
+        self.fields["enviada_em"].required = True
+        for nome in ("recebida_em", "enviada_em"):
+            self.initial.setdefault(nome, date.today())
         dependentes = self._dependentes_possiveis(tipo, beneficiario)
         if dependentes is not None and dependentes.exists():
             self.fields["dependentes"].queryset = dependentes
@@ -102,9 +105,6 @@ class MovimentacaoForm(BootstrapFormMixin, forms.ModelForm):
         return dados
 
     def save(self, commit=True):
-        movimentacao = self.instance
-        if movimentacao.enviada_em:
-            movimentacao.etapa = Etapa.ENVIADA
         movimentacao = super().save(commit)
         if commit:
             for dependente in self.cleaned_data.get("dependentes") or []:
@@ -149,6 +149,7 @@ class EdicaoMovimentacaoForm(BootstrapFormMixin, forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["solicitante"].queryset = self.instance.cliente.contatos.all()
+        self.fields["enviada_em"].required = True
         if self.instance.vinculo_id:
             # Depois de aprovada, a data já está no plano da pessoa.
             self.fields["vigencia"].disabled = True
@@ -171,8 +172,6 @@ class EdicaoMovimentacaoForm(BootstrapFormMixin, forms.ModelForm):
 
 # Campos pedidos em cada mudança de etapa.
 CAMPOS_DA_ETAPA = {
-    Etapa.ENVIADA: ["enviada_em", "observacao"],
-    Etapa.EM_ANALISE: ["observacao"],
     Etapa.APROVADA: ["vigencia", "carteirinha", "observacao"],
     Etapa.CONCLUIDA: ["carteirinha", "carteirinha_enviada_em", "observacao"],
     Etapa.REJEITADA: ["motivo_rejeicao", "observacao"],
@@ -189,10 +188,10 @@ class MudancaDeEtapaFormBase(BootstrapFormMixin, forms.ModelForm):
         for nome in CAMPOS_SO_DE_INCLUSAO & set(self.fields):
             if not self.instance.eh_inclusao:
                 del self.fields[nome]
-        hoje = date.today()
-        for nome in ("enviada_em", "carteirinha_enviada_em"):
-            if nome in self.fields:
-                self.initial[nome] = getattr(self.instance, nome) or hoje
+        if "carteirinha_enviada_em" in self.fields:
+            self.initial["carteirinha_enviada_em"] = (
+                self.instance.carteirinha_enviada_em or date.today()
+            )
         if "motivo_rejeicao" in self.fields:
             self.fields["motivo_rejeicao"].required = True
         if "carteirinha" in self.fields and self.etapa == Etapa.CONCLUIDA:
@@ -218,7 +217,6 @@ def formulario_da_etapa(etapa: str) -> type[MudancaDeEtapaFormBase]:
         form=type("MudancaDeEtapaForm", (MudancaDeEtapaFormBase,), {"etapa": etapa}),
         fields=CAMPOS_DA_ETAPA[etapa],
         widgets={
-            "enviada_em": DATA,
             "vigencia": DATA,
             "carteirinha_enviada_em": DATA,
             "observacao": forms.Textarea(attrs={"rows": 3}),
