@@ -1,3 +1,5 @@
+from datetime import date, datetime
+
 from django import forms
 from django.core.exceptions import ValidationError
 
@@ -23,6 +25,30 @@ class DocumentoField(forms.CharField):
 
     def prepare_value(self, value):
         return self.documento(value).formatado() if value else value
+
+
+class MesField(forms.Field):
+    """Mês digitado como mm/aaaa (ex.: 09/2026). Devolve o dia 1º desse mês."""
+
+    FORMATOS = ("%m/%Y", "%Y-%m")
+    widget = forms.TextInput(
+        attrs={"placeholder": "mm/aaaa", "inputmode": "numeric", "maxlength": "7"}
+    )
+    default_error_messages = {"invalid": "Mês inválido. Use mm/aaaa, por exemplo 09/2026."}
+
+    def to_python(self, value) -> date | None:
+        texto = (value or "").strip()
+        if not texto:
+            return None
+        for formato in self.FORMATOS:
+            try:
+                return datetime.strptime(texto, formato).date()
+            except ValueError:
+                continue
+        raise ValidationError(self.error_messages["invalid"], code="invalid")
+
+    def prepare_value(self, value):
+        return value.strftime("%m/%Y") if isinstance(value, date) else value
 
 
 class BootstrapFormMixin:

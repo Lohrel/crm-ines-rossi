@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block titulo %}Boletos{% endblock %}
+{% block conteudo %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+  <h1 class="h3 mb-0">Boletos</h1>
+  <div class="d-flex gap-2">
+    <a href="{% url 'boletos:novo' %}{% if contrato %}?contrato={{ contrato.pk }}{% endif %}" class="btn btn-outline-primary">Novo boleto</a>
+    <a href="{% url 'boletos:gerar' %}" class="btn btn-primary">Gerar boletos do mês</a>
+  </div>
+</div>
+<p class="mb-3">
+  <span class="me-3"><strong>{{ resumo.a_enviar }}</strong> a enviar</span>
+  <span class="me-3 {% if resumo.vencidos %}text-danger fw-semibold{% endif %}"><strong>{{ resumo.vencidos }}</strong> já {{ resumo.vencidos|pluralize:"venceu,venceram" }} sem envio</span>
+  <span><strong>{{ resumo.vencendo }}</strong> {{ resumo.vencendo|pluralize:"vence,vencem" }} nos próximos {{ dias_de_antecedencia }} dias</span>
+</p>
+
+<form method="get" class="card card-body shadow-sm mb-3">
+  {{ filtro.contrato }}
+  <div class="row g-2 align-items-end">
+    <div class="col-md-3">{{ filtro.q.label_tag }}{{ filtro.q }}</div>
+    <div class="col-md-2">{{ filtro.situacao.label_tag }}{{ filtro.situacao }}</div>
+    <div class="col-md-2">{{ filtro.mes.label_tag }}{{ filtro.mes }}</div>
+    <div class="col-md-2">{{ filtro.tipo.label_tag }}{{ filtro.tipo }}</div>
+    <div class="col-md-2">
+      <div class="form-check mb-2">{{ filtro.fora }}<label class="form-check-label" for="{{ filtro.fora.id_for_label }}">{{ filtro.fora.label }}</label></div>
+    </div>
+    <div class="col-md-1"><button type="submit" class="btn btn-outline-primary w-100">Filtrar</button></div>
+  </div>
+  {% if filtro.mes.errors %}<div class="text-danger small mt-2">{{ filtro.mes.errors|join:" " }}</div>{% endif %}
+</form>
+
+{% if contrato %}
+<div class="alert alert-light border d-flex flex-wrap justify-content-between align-items-center gap-2">
+  <span>Boletos do contrato <strong>{{ contrato.cliente }} · {{ contrato.ramo }} · {{ contrato.seguradora }} {{ contrato.numero }}</strong> (vence dia {{ contrato.dia_vencimento }})</span>
+  <a href="{% url 'boletos:lista' %}">Ver boletos de todos os contratos</a>
+</div>
+{% endif %}
+
+<p class="small text-body-secondary">
+  Sem filtro, a lista mostra o que falta enviar, de qualquer mês, pelo vencimento. "Gerar boletos do mês" cria as mensalidades dos contratos em que a corretora envia o boleto.
+  Coparticipação, reajuste e casos especiais entram por "Novo boleto".
+</p>
+
+<div class="card shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover table-sm align-middle mb-0">
+      <thead class="table-light">
+        <tr><th>Vencimento</th><th>Cliente / plano</th><th>Tipo</th><th>Situação</th><th>Envio</th><th></th></tr>
+      </thead>
+      <tbody>
+      {% for boleto in object_list %}
+        <tr>
+          <td class="text-nowrap">
+            <a href="{{ boleto.get_absolute_url }}" class="fw-semibold">{{ boleto.vencimento|date:"d/m/Y" }}</a>
+            {% if boleto.fora_do_vencimento %}<div><span class="badge text-bg-warning" title="O contrato vence dia {{ boleto.contrato.dia_vencimento }}">fora do vencimento</span></div>{% endif %}
+          </td>
+          <td>
+            <a href="{{ boleto.contrato.cliente.get_absolute_url }}">{{ boleto.contrato.cliente }}</a>
+            <div class="small text-body-secondary">{{ boleto.contrato.ramo }} · {{ boleto.contrato.seguradora }} {{ boleto.contrato.numero }}</div>
+          </td>
+          <td>{{ boleto.get_tipo_display }}<div class="small text-body-secondary">ref. {{ boleto.referencia|date:"m/Y" }}</div></td>
+          <td>{% include "boletos/_situacao.html" %}</td>
+          <td class="small">
+            {% if boleto.enviado_em %}{{ boleto.enviado_em|date:"d/m/Y" }}{% if boleto.enviado_para %} para {{ boleto.enviado_para.nome }}{% endif %}{% if boleto.enviado_por %}<div class="text-body-secondary">por {{ boleto.enviado_por }}</div>{% endif %}{% else %}—{% endif %}
+          </td>
+          <td class="text-end text-nowrap">
+            {% if boleto.situacao == "enviar" %}
+            <form method="post" action="{% url 'boletos:enviado_hoje' boleto.pk %}" class="d-inline">
+              {% csrf_token %}
+              <input type="hidden" name="proximo" value="{{ request.get_full_path }}">
+              <button type="submit" class="btn btn-sm btn-outline-success">Enviado hoje</button>
+            </form>
+            {% endif %}
+            <a href="{{ boleto.get_absolute_url }}" class="btn btn-sm btn-link">Abrir</a>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="text-center text-body-secondary py-3">Nenhum boleto encontrado.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if is_paginated %}
+<nav class="mt-3"><ul class="pagination">
+  {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?{{ parametros_busca }}&page={{ page_obj.previous_page_number }}">Anterior</a></li>{% endif %}
+  <li class="page-item disabled"><span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span></li>
+  {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?{{ parametros_busca }}&page={{ page_obj.next_page_number }}">Próxima</a></li>{% endif %}
+</ul></nav>
+{% endif %}
+{% endblock %}
