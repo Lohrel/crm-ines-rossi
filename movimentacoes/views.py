@@ -19,6 +19,13 @@ from movimentacoes.historico import LinhaDoTempoDaMovimentacao
 from movimentacoes.models import Etapa, Movimentacao
 
 TIPOS_NA_URL = {"inclusao": Movimentacao.Tipo.INCLUSAO, "exclusao": Movimentacao.Tipo.EXCLUSAO}
+AVISO_EXCLUSAO_DO_TITULAR = (
+    "Ao aprovar a exclusão do titular, os dependentes deste plano saem junto."
+)
+
+
+def exclusao_de_titular_com_dependentes(tipo: str, pessoa: Beneficiario) -> bool:
+    return tipo == Movimentacao.Tipo.EXCLUSAO and pessoa.eh_titular and pessoa.dependentes.exists()
 
 
 class MovimentacaoListView(ListView):
@@ -105,6 +112,12 @@ class MovimentacaoCreateView(FormularioMixin, CreateView):
         contrato = self.request.GET.get("contrato", "")
         return {"contrato": contrato} if contrato.isdigit() else {}
 
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        if exclusao_de_titular_com_dependentes(self.tipo, self.beneficiario):
+            contexto["aviso"] = AVISO_EXCLUSAO_DO_TITULAR
+        return contexto
+
     @transaction.atomic
     def form_valid(self, form):
         return super().form_valid(form)
@@ -152,6 +165,15 @@ class MudarEtapaView(FormularioMixin, UpdateView):
 
     def get_form_class(self):
         return formulario_da_etapa(self.etapa)
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        mov = self.object
+        if self.etapa == Etapa.APROVADA and exclusao_de_titular_com_dependentes(
+            mov.tipo, mov.beneficiario
+        ):
+            contexto["aviso"] = AVISO_EXCLUSAO_DO_TITULAR
+        return contexto
 
     def form_valid(self, form):
         try:

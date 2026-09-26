@@ -236,10 +236,15 @@ class Movimentacao(Registro):
                 raise ValidationError(mensagens) from erro
             vinculo.save()
         else:
-            vinculo = self.beneficiario.vinculos.get(
-                contrato=self.contrato, data_exclusao__isnull=True
-            )
-            vinculo.encerrar(self.vigencia)
+            do_plano = self.beneficiario.vinculos.filter(contrato=self.contrato)
+            vinculo = do_plano.filter(data_exclusao__isnull=True).first()
+            if vinculo:
+                vinculo.encerrar(self.vigencia)
+            else:
+                # Já saiu (ex.: junto com o titular): só liga o pedido ao plano encerrado.
+                vinculo = do_plano.order_by("-data_exclusao").first()
+                if vinculo is None:
+                    raise ValidationError("Esta pessoa não está neste plano.")
         self.vinculo = vinculo
 
     def _concluir(self) -> None:

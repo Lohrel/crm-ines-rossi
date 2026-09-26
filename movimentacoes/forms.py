@@ -155,6 +155,18 @@ class EdicaoMovimentacaoForm(BootstrapFormMixin, forms.ModelForm):
             del self.fields["carteirinha"]
             del self.fields["carteirinha_enviada_em"]
 
+    def save(self, commit=True):
+        movimentacao = super().save(commit)
+        vinculo = movimentacao.vinculo
+        # A carteirinha corrigida aqui também vale no plano da pessoa.
+        mudou = (
+            vinculo and movimentacao.eh_inclusao and vinculo.carteirinha != movimentacao.carteirinha
+        )
+        if commit and mudou:
+            vinculo.carteirinha = movimentacao.carteirinha
+            vinculo.save(update_fields=["carteirinha", "atualizado_em"])
+        return movimentacao
+
 
 # Campos pedidos em cada mudança de etapa.
 CAMPOS_DA_ETAPA = {

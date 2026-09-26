@@ -271,3 +271,37 @@ def test_pagina_da_pessoa_mostra_movimentacoes_e_historico(logado, titular, saud
     pagina = logado.get(titular.get_absolute_url()).content.decode()
     assert "Inclusão em Saúde" in pagina
     assert "Movimentação" in pagina
+
+
+def test_exclusao_do_dependente_depois_da_do_titular(titular, conjuge, saude):
+    """O titular saiu e levou o dependente: aprovar o pedido do dependente não quebra."""
+    incluir(titular, saude, inclusao=date(2026, 1, 1))
+    incluir(conjuge, saude, inclusao=date(2026, 1, 1))
+    do_titular = pedido(titular, saude, tipo="EXC", vigencia=date(2026, 10, 1))
+    do_conjuge = pedido(conjuge, saude, tipo="EXC", vigencia=date(2026, 10, 1))
+    for mov in (do_titular, do_conjuge):
+        mov.mudar_etapa(Etapa.ENVIADA)
+    do_titular.mudar_etapa(Etapa.APROVADA)
+    do_conjuge.refresh_from_db()
+    do_conjuge.mudar_etapa(Etapa.APROVADA)
+    assert do_conjuge.vinculo.data_exclusao == date(2026, 10, 1)
+    assert not Vinculo.objects.filter(data_exclusao__isnull=True).exists()
+
+
+def test_corrigir_carteirinha_depois_de_aprovada_atualiza_o_plano(logado, titular, saude):
+    mov = pedido(titular, saude)
+    mov.mudar_etapa(Etapa.ENVIADA)
+    mov.mudar_etapa(Etapa.APROVADA, carteirinha="0001")
+    resposta = logado.post(
+        reverse("movimentacoes:editar", args=[mov.pk]),
+        {"recebida_em": mov.recebida_em.isoformat(), "carteirinha": "0001-9"},
+    )
+    assert resposta.status_code == 302
+    assert Vinculo.objects.get().carteirinha == "0001-9"
+
+
+def test_aviso_na_exclusao_do_titular_com_dependentes(logado, titular, conjuge, saude):
+    incluir(titular, saude)
+    incluir(conjuge, saude)
+    pagina = logado.get(reverse("movimentacoes:nova", args=[titular.pk, "exclusao"]))
+    assert "dependentes deste plano saem junto" in pagina.content.decode()
