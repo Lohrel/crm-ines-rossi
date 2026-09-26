@@ -23,7 +23,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "simple_history",
     "contas",
+    "clientes",
+    "apolices",
 ]
 
 MIDDLEWARE = [
@@ -34,6 +37,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.auth.middleware.LoginRequiredMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    # Registra qual usuário fez cada alteração no histórico.
+    "simple_history.middleware.HistoryRequestMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 

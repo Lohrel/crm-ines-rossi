@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block conteudo %}
+<h1 class="h3 mb-4">{{ titulo }}</h1>
+<form method="post" novalidate>
+  {% csrf_token %}
+  {% for subtitulo, form in formularios %}
+    <div class="card shadow-sm mb-4">
+      {% if subtitulo %}<div class="card-header fw-semibold">{{ subtitulo }}</div>{% endif %}
+      <div class="card-body">{% include "clientes/_campos.html" %}</div>
+    </div>
+  {% endfor %}
+  <div class="d-flex gap-2">
+    <button type="submit" class="btn btn-primary">Salvar</button>
+    <a href="{{ url_cancelar }}" class="btn btn-outline-secondary">Cancelar</a>
+  </div>
+</form>
+{% endblock %}

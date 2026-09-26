@@ -1,0 +1,40 @@
+{% for campo in form.hidden_fields %}{{ campo }}{% endfor %}
+{% if form.non_field_errors %}
+  <div class="alert alert-danger">{% for erro in form.non_field_errors %}<div>{{ erro }}</div>{% endfor %}</div>
+{% endif %}
+<div class="row g-3">
+  {% for campo in form.visible_fields %}
+    {% if campo.widget_type == "checkbox" %}
+      <div class="col-12">
+        <div class="form-check">
+          {{ campo }}
+          <label class="form-check-label" for="{{ campo.id_for_label }}">{{ campo.label|capfirst }}</label>
+          {% if campo.help_text %}<div class="form-text">{{ campo.help_text }}</div>{% endif %}
+        </div>
+      </div>
+    {% elif campo.widget_type == "checkboxselectmultiple" %}
+      <div class="col-12">
+        <div class="form-label">{{ campo.label|capfirst }}</div>
+        {% for opcao in campo %}
+          <div class="form-check">
+            {{ opcao.tag }}
+            <label class="form-check-label" for="{{ opcao.id_for_label }}">{{ opcao.choice_label }}</label>
+          </div>
+        {% empty %}
+          <div class="text-body-secondary small">Nenhuma opção cadastrada.</div>
+        {% endfor %}
+        {% for erro in campo.errors %}<div class="invalid-feedback d-block">{{ erro }}</div>{% endfor %}
+        {% if campo.help_text %}<div class="form-text">{{ campo.help_text }}</div>{% endif %}
+      </div>
+    {% else %}
+      <div class="{% if campo.widget_type == 'textarea' %}col-12{% else %}col-md-6{% endif %}">
+        <label class="form-label" for="{{ campo.id_for_label }}">
+          {{ campo.label|capfirst }}{% if campo.field.required %} <span class="text-danger">*</span>{% endif %}
+        </label>
+        {{ campo }}
+        {% for erro in campo.errors %}<div class="invalid-feedback d-block">{{ erro }}</div>{% endfor %}
+        {% if campo.help_text %}<div class="form-text">{{ campo.help_text }}</div>{% endif %}
+      </div>
+    {% endif %}
+  {% endfor %}
+</div>

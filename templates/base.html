@@ -11,6 +11,10 @@
   <nav class="navbar navbar-expand bg-primary" data-bs-theme="dark">
     <div class="container">
       <a class="navbar-brand" href="{% url 'inicio' %}">CRM Corretora</a>
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item"><a class="nav-link" href="{% url 'clientes:lista' %}">Clientes</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'apolices:contratos' %}">Contratos</a></li>
+      </ul>
       <div class="d-flex align-items-center gap-3">
         <span class="navbar-text">{{ user.nome_exibicao }}</span>
         <form method="post" action="{% url 'logout' %}">

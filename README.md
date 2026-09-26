@@ -21,12 +21,18 @@ Cada etapa só começa quando a anterior está testada e em uso.
 
 - [x] **0. Fundação**: login por usuário, HTTPS, backup diário, testes automáticos
 - [ ] **1.** Clientes, seguradoras, ramos e apólices
-- [ ] **2.** Beneficiários (titulares e dependentes)
+  - [x] 1a. Clientes: pessoa física e empresas com unidades (CNPJ por filial) e contatos
+  - [x] 1b. Seguradoras, ramos e contratos (vencimento da fatura, boleto pela corretora, coparticipação, filiais cobertas)
+- [ ] **2.** Beneficiários (titulares e dependentes) e número de vidas por grupo, filial e contrato
 - [ ] **3.** Movimentações de inclusão e exclusão, com solicitante, executor e datas
-- [ ] **4.** Pendências com "marcar como concluído"
-- [ ] **5.** Importação e exportação da planilha mensal de inclusão
-- [ ] **6.** Painel e relatórios
-- [ ] **7.** Campos específicos de auto e imóvel
+- [ ] **4.** Acompanhamento de boletos: atrasos, boleto fora do vencimento, reajuste e coparticipação
+- [ ] **5.** Pendências com "marcar como concluído"
+- [ ] **6.** Importação e exportação da planilha mensal de inclusão
+- [ ] **7.** Painel e relatórios
+- [ ] **8.** Campos específicos de auto e imóvel
+- [ ] **9.** Acabamento visual: cores e logo da corretora, menu, painel inicial e ajustes para celular
+
+Até a etapa 9, cada tela usa o visual padrão do Bootstrap. Problemas de uso encontrados nos testes são corrigidos na própria etapa.
 
 ## Instalar no servidor do escritório
 
@@ -53,6 +59,8 @@ Para rodar o sistema completo como no servidor, use o Docker (veja `docs/instala
 ```
 config/          Configurações do Django (lidas do arquivo .env)
 contas/          Usuários, login e página inicial
+clientes/        Clientes PF/PJ, unidades (filiais) e contatos, com histórico
+apolices/        Seguradoras, ramos e contratos
 templates/       Layout base e tela de login
 static/vendor/   Bootstrap servido localmente (funciona sem internet)
 docker/          Entrypoint, Caddy (HTTPS) e scripts de backup/restauração
