@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     "contas",
     "clientes",
     "apolices",
+    "beneficiarios",
 ]
 
 MIDDLEWARE = [
@@ -132,6 +133,11 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# Anexos (ex.: DPS) têm dados sensíveis: ficam fora da pasta pública e só são
+# entregues por uma tela que exige login. Não existe MEDIA_URL de propósito.
+MEDIA_ROOT = env.str("ANEXOS_DIR", padrao=str(BASE_DIR / "media"))
+TAMANHO_MAXIMO_ANEXO_MB = 15
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

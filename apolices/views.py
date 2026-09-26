@@ -5,6 +5,7 @@ from django.views.generic import CreateView, ListView, UpdateView
 
 from apolices.forms import ContratoForm, FiltroContratosForm, SeguradoraForm
 from apolices.models import Contrato, Seguradora
+from beneficiarios.vidas import anotar_vidas
 from clientes.models import Cliente
 from clientes.views import FormularioMixin
 
@@ -18,7 +19,7 @@ class ContratoListView(ListView):
 
     def get_queryset(self):
         self.filtro = FiltroContratosForm(self.request.GET or None)
-        contratos = Contrato.objects.select_related("cliente", "seguradora", "ramo")
+        contratos = anotar_vidas(Contrato.objects.select_related("cliente", "seguradora", "ramo"))
         if not self.filtro.is_valid():
             return contratos.vigentes()
         dados = self.filtro.cleaned_data

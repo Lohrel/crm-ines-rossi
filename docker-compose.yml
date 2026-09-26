@@ -26,6 +26,8 @@ services:
         condition: service_healthy
     volumes:
       - arquivos_estaticos:/app/staticfiles
+      # Anexos dos beneficiários (DPS etc.). Não passam pelo Caddy: só pelo sistema, com login.
+      - anexos:/app/media
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/saude/', timeout=5)"]
       interval: 30s
@@ -61,8 +63,10 @@ services:
     volumes:
       # Pasta no próprio servidor. Copie-a para o HD externo e para a nuvem.
       - ./backups:/backups
+      - anexos:/anexos
 
 volumes:
   dados_postgres:
   dados_caddy:
   arquivos_estaticos:
+  anexos:

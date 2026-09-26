@@ -35,8 +35,9 @@ class LinhaDoTempo:
     ACOES = {"+": "Criou", "~": "Alterou", "-": "Removeu"}
     fontes: list[FonteDeHistorico] = [_cadastro_do_cliente]
 
-    def __init__(self, cliente: Cliente, limite: int = 30) -> None:
-        self.cliente = cliente
+    def __init__(self, alvo, limite: int = 30) -> None:
+        # O alvo é o cliente; subclasses podem usar outro registro (ex.: um beneficiário).
+        self.alvo = alvo
         self.limite = limite
 
     @classmethod
@@ -45,7 +46,7 @@ class LinhaDoTempo:
             cls.fontes.append(fonte)
 
     def eventos(self) -> list[Evento]:
-        registros = chain.from_iterable(fonte(self.cliente) for fonte in self.fontes)
+        registros = chain.from_iterable(fonte(self.alvo) for fonte in self.fontes)
         recentes = sorted(registros, key=lambda r: r.history_date, reverse=True)[: self.limite]
         return [self._evento(r) for r in recentes]
 

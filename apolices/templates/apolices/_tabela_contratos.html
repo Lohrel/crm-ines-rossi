@@ -3,7 +3,7 @@
     <thead class="table-light">
       <tr>
         {% if mostrar_cliente %}<th>Cliente</th>{% endif %}
-        <th>Seguradora / nº</th><th>Ramo / produto</th><th>Vence dia</th><th>Valor mensal</th>
+        <th>Seguradora / nº</th><th>Ramo / produto</th><th>Vidas</th><th>Vence dia</th><th>Valor mensal</th>
         {% if not mostrar_cliente %}<th>Unidades</th>{% endif %}
         <th>Situação</th><th></th>
       </tr>
@@ -14,6 +14,7 @@
         {% if mostrar_cliente %}<td><a href="{{ contrato.cliente.get_absolute_url }}">{{ contrato.cliente }}</a></td>{% endif %}
         <td>{{ contrato.seguradora }}<div class="small text-body-secondary">{{ contrato.numero }}</div></td>
         <td>{{ contrato.ramo }}<div class="small text-body-secondary">{{ contrato.produto }}</div></td>
+        <td>{{ contrato.vidas }}</td>
         <td>
           {{ contrato.dia_vencimento }}
           {% if contrato.corretora_envia_boleto %}<span class="badge text-bg-info" title="A corretora envia o boleto">boleto</span>{% endif %}
@@ -31,7 +32,7 @@
         <td class="text-end"><a href="{% url 'apolices:editar_contrato' contrato.pk %}" class="btn btn-sm btn-link">Editar</a></td>
       </tr>
     {% empty %}
-      <tr><td colspan="8" class="text-center text-body-secondary py-3">Nenhum contrato.</td></tr>
+      <tr><td colspan="9" class="text-center text-body-secondary py-3">Nenhum contrato.</td></tr>
     {% endfor %}
     </tbody>
   </table>

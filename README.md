@@ -12,7 +12,7 @@ Sistema web para uma corretora de seguros (vida, saúde, dental, auto e imóvel)
 | Banco de dados | PostgreSQL 16 |
 | Interface | Templates do Django + Bootstrap 5 (HTMX nas próximas etapas) |
 | Servidor | Docker Compose: Gunicorn, Caddy (HTTPS) e PostgreSQL |
-| Backup | `pg_dump` diário, criptografado com GPG (AES-256), retenção 7/4/12 |
+| Backup | `pg_dump` e anexos, diários, criptografados com GPG (AES-256), retenção 7/4/12 |
 | Qualidade | pytest, ruff e GitHub Actions |
 
 ## Etapas
@@ -20,10 +20,10 @@ Sistema web para uma corretora de seguros (vida, saúde, dental, auto e imóvel)
 Cada etapa só começa quando a anterior está testada e em uso.
 
 - [x] **0. Fundação**: login por usuário, HTTPS, backup diário, testes automáticos
-- [ ] **1.** Clientes, seguradoras, ramos e apólices
+- [x] **1.** Clientes, seguradoras, ramos e apólices
   - [x] 1a. Clientes: pessoa física e empresas com unidades (CNPJ por filial) e contatos
   - [x] 1b. Seguradoras, ramos e contratos (vencimento da fatura, boleto pela corretora, coparticipação, filiais cobertas)
-- [ ] **2.** Beneficiários (titulares e dependentes) e número de vidas por grupo, filial e contrato
+- [x] **2.** Beneficiários (titulares e dependentes, cada um nos planos escolhidos), anexos como DPS e eSocial, e número de vidas por grupo, filial e contrato
 - [ ] **3.** Movimentações de inclusão e exclusão, com solicitante, executor e datas
 - [ ] **4.** Acompanhamento de boletos: atrasos, boleto fora do vencimento, reajuste e coparticipação
 - [ ] **5.** Pendências com "marcar como concluído"
@@ -61,6 +61,7 @@ config/          Configurações do Django (lidas do arquivo .env)
 contas/          Usuários, login e página inicial
 clientes/        Clientes PF/PJ, unidades (filiais) e contatos, com histórico
 apolices/        Seguradoras, ramos e contratos
+beneficiarios/   Titulares, dependentes, planos de cada pessoa, anexos e contagem de vidas
 templates/       Layout base e tela de login
 static/vendor/   Bootstrap servido localmente (funciona sem internet)
 docker/          Entrypoint, Caddy (HTTPS) e scripts de backup/restauração
