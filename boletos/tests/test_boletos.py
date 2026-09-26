@@ -1,3 +1,4 @@
+import re
 from datetime import date, timedelta
 
 import pytest
@@ -265,6 +266,14 @@ def test_novo_boleto_pela_tela(logado, com_boleto, usuario):
     assert resposta.url == novo.get_absolute_url()
     assert novo.tipo == "COP" and novo.vencimento == date(2026, 10, 10)
     assert novo.registrado_por == usuario
+
+
+def test_campo_de_mes_tem_a_marca_para_a_barra_automatica(logado):
+    """O script dos campos de data (static/js/campos-data.js) formata os data-campo-mes."""
+    pagina = logado.get(reverse("boletos:novo")).content.decode()
+    campo = re.search(r'<input[^>]*name="referencia"[^>]*>', pagina).group(0)
+    assert "data-campo-mes" in campo and 'placeholder="mm/aaaa"' in campo
+    assert f'value="{HOJE:%m/%Y}"' in campo
 
 
 def test_pagina_do_boleto_mostra_o_historico(logado, com_boleto, usuario):

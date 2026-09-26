@@ -31,8 +31,15 @@ class MesField(forms.Field):
     """Mês digitado como mm/aaaa (ex.: 09/2026). Devolve o dia 1º desse mês."""
 
     FORMATOS = ("%m/%Y", "%Y-%m")
+    # data-campo-mes: static/js/campos-data.js coloca a barra e seleciona o mês ao clicar.
     widget = forms.TextInput(
-        attrs={"placeholder": "mm/aaaa", "inputmode": "numeric", "maxlength": "7"}
+        attrs={
+            "placeholder": "mm/aaaa",
+            "inputmode": "numeric",
+            "autocomplete": "off",
+            "maxlength": "7",
+            "data-campo-mes": "",
+        }
     )
     default_error_messages = {"invalid": "Mês inválido. Use mm/aaaa, por exemplo 09/2026."}
 
