@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block titulo %}Seguradoras{% endblock %}
+{% block conteudo %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <h1 class="h3 mb-0">Seguradoras</h1>
+  <a href="{% url 'apolices:nova_seguradora' %}" class="btn btn-primary">Nova seguradora</a>
+</div>
+<div class="card shadow-sm"><div class="table-responsive">
+  <table class="table table-hover align-middle mb-0">
+    <thead class="table-light"><tr><th>Nome</th><th>CNPJ</th><th>Atendimento</th><th>Situação</th><th></th></tr></thead>
+    <tbody>
+    {% for seguradora in object_list %}
+      <tr>
+        <td>{{ seguradora.nome }}</td>
+        <td class="text-nowrap">{{ seguradora.cnpj_formatado|default:"—" }}</td>
+        <td>{{ seguradora.telefone|default:"" }}{% if seguradora.site %} <a href="{{ seguradora.site }}" target="_blank" rel="noopener noreferrer">site</a>{% endif %}</td>
+        <td>{% if seguradora.ativo %}<span class="badge text-bg-success">Ativa</span>{% else %}<span class="badge text-bg-secondary">Inativa</span>{% endif %}</td>
+        <td class="text-end"><a href="{% url 'apolices:editar_seguradora' seguradora.pk %}" class="btn btn-sm btn-link">Editar</a></td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="5" class="text-center text-body-secondary py-3">Nenhuma seguradora cadastrada.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div></div>
+{% endblock %}

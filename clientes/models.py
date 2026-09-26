@@ -1,5 +1,6 @@
 import re
 
+from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.db.models import Q
 from django.urls import reverse
@@ -112,6 +113,37 @@ class MarcacaoExclusiva(models.Model):
             super().save(*args, **kwargs)
 
 
+class ExclusaoProtegida(models.Model):
+    """Exclusão que só acontece quando nada importante depende do registro.
+
+    `dependentes_proprios` são relações que fazem parte do próprio registro
+    (ex.: contatos de uma unidade) e são apagadas junto; qualquer outra
+    relação (ex.: contratos) impede a exclusão.
+    """
+
+    dependentes_proprios: tuple[str, ...] = ()
+
+    class Meta:
+        abstract = True
+
+    def bloqueios_para_excluir(self) -> list[str]:
+        bloqueios = []
+        for relacao in self._meta.related_objects:
+            if relacao.name in self.dependentes_proprios:
+                continue
+            quantidade = getattr(self, relacao.get_accessor_name()).count()
+            if quantidade:
+                modelo = relacao.related_model._meta
+                nome = modelo.verbose_name if quantidade == 1 else modelo.verbose_name_plural
+                bloqueios.append(f"{quantidade} {nome} ligado(s) a {self}")
+        return bloqueios
+
+    def excluir(self) -> None:
+        if bloqueios := self.bloqueios_para_excluir():
+            raise ValidationError("Não é possível excluir: " + "; ".join(bloqueios) + ".")
+        self.delete()
+
+
 class ClienteQuerySet(models.QuerySet):
     def pessoas_fisicas(self):
         return self.filter(tipo=Cliente.Tipo.PESSOA_FISICA)
@@ -137,7 +169,7 @@ class ClienteQuerySet(models.QuerySet):
         return self.filter(filtro).distinct()
 
 
-class Cliente(Endereco, MeiosDeContato, Registro):
+class Cliente(ExclusaoProtegida, Endereco, MeiosDeContato, Registro):
     """Cliente da corretora: pessoa física ou empresa.
 
     Empresas (pessoa jurídica) podem ter várias unidades, cada uma com o
@@ -169,6 +201,8 @@ class Cliente(Endereco, MeiosDeContato, Registro):
     history = HistoricalRecords()
     objects = ClienteQuerySet.as_manager()
 
+    dependentes_proprios = ("unidades", "contatos")
+
     class Meta:
         ordering = ["nome"]
         constraints = [
@@ -196,6 +230,23 @@ class Cliente(Endereco, MeiosDeContato, Registro):
     def get_absolute_url(self) -> str:
         return reverse("clientes:detalhe", args=[self.pk])
 
+    def bloqueios_para_excluir(self) -> list[str]:
+        bloqueios = super().bloqueios_para_excluir()
+        for unidade in self.unidades.all():
+            bloqueios += unidade.bloqueios_para_excluir()
+        return bloqueios
+
+    def excluir(self) -> None:
+        """Exclui o cliente junto com as suas unidades e contatos."""
+        with transaction.atomic():
+            bloqueios = self.bloqueios_para_excluir()
+            if bloqueios:
+                raise ValidationError("Não é possível excluir: " + "; ".join(bloqueios) + ".")
+            self.contatos.all().delete()
+            for unidade in self.unidades.all():
+                unidade.delete()
+            self.delete()
+
     @property
     def eh_empresa(self) -> bool:
         return self.tipo == self.Tipo.PESSOA_JURIDICA
@@ -214,8 +265,10 @@ class Cliente(Endereco, MeiosDeContato, Registro):
         return unidades[0].cnpj_formatado if unidades else ""
 
 
-class Unidade(MarcacaoExclusiva, Endereco, MeiosDeContato, Registro):
+class Unidade(ExclusaoProtegida, MarcacaoExclusiva, Endereco, MeiosDeContato, Registro):
     """Matriz ou filial de uma empresa cliente, com CNPJ próprio."""
+
+    dependentes_proprios = ("contatos",)
 
     campo_exclusivo = "matriz"
     campo_grupo = "cliente"
@@ -256,30 +309,50 @@ class Unidade(MarcacaoExclusiva, Endereco, MeiosDeContato, Registro):
     def cnpj_formatado(self) -> str:
         return CNPJ(self.cnpj).formatado()
 
+    def excluir(self) -> None:
+        """Exclui a unidade; contatos que só atendiam esta unidade saem junto."""
+        with transaction.atomic():
+            if bloqueios := self.bloqueios_para_excluir():
+                raise ValidationError("Não é possível excluir: " + "; ".join(bloqueios) + ".")
+            # Conta todas as unidades de cada contato, não só esta (por isso o filtro em pk__in).
+            contatos = Contato.objects.filter(pk__in=self.contatos.values("pk"))
+            contatos.annotate(total=models.Count("unidades")).filter(total=1).delete()
+            self.delete()
+
 
 class Contato(MarcacaoExclusiva, MeiosDeContato, Registro):
-    """Pessoa de contato numa unidade (ex.: RH da filial)."""
+    """Pessoa de contato da empresa (ex.: RH), que pode cuidar de uma ou mais unidades."""
 
     campo_exclusivo = "principal"
-    campo_grupo = "unidade"
+    campo_grupo = "cliente"
 
-    unidade = models.ForeignKey(Unidade, on_delete=models.CASCADE, related_name="contatos")
+    cliente = models.ForeignKey(
+        Cliente,
+        on_delete=models.CASCADE,
+        related_name="contatos",
+        limit_choices_to={"tipo": Cliente.Tipo.PESSOA_JURIDICA},
+    )
+    unidades = models.ManyToManyField(
+        Unidade,
+        related_name="contatos",
+        help_text="Unidades (matriz ou filiais) que esta pessoa atende.",
+    )
     nome = models.CharField(max_length=200)
     cargo = models.CharField("cargo/setor", max_length=100, blank=True)
     principal = models.BooleanField(
-        default=False, help_text="Contato procurado primeiro nesta unidade."
+        default=False, help_text="Contato procurado primeiro nesta empresa."
     )
 
-    history = HistoricalRecords()
+    history = HistoricalRecords(m2m_fields=[unidades])
 
     class Meta:
         ordering = ["-principal", "nome"]
         constraints = [
             models.UniqueConstraint(
-                fields=["unidade"],
+                fields=["cliente"],
                 condition=Q(principal=True),
-                name="contato_um_principal_por_unidade",
-                violation_error_message="Esta unidade já tem um contato principal.",
+                name="contato_um_principal_por_cliente",
+                violation_error_message="Esta empresa já tem um contato principal.",
             ),
         ]
 
@@ -287,4 +360,10 @@ class Contato(MarcacaoExclusiva, MeiosDeContato, Registro):
         return f"{self.nome} ({self.cargo})" if self.cargo else self.nome
 
     def get_absolute_url(self) -> str:
-        return self.unidade.get_absolute_url()
+        return self.cliente.get_absolute_url()
+
+    def validar_unidades(self, unidades: list[Unidade]) -> None:
+        if not unidades:
+            raise ValidationError("Escolha ao menos uma unidade atendida por este contato.")
+        if any(u.cliente_id != self.cliente_id for u in unidades):
+            raise ValidationError("Só é possível escolher unidades desta empresa.")

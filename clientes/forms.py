@@ -31,7 +31,7 @@ class BootstrapFormMixin:
         super().__init__(*args, **kwargs)
         for campo in self.fields.values():
             widget = campo.widget
-            if isinstance(widget, forms.CheckboxInput):
+            if isinstance(widget, forms.CheckboxInput | forms.CheckboxSelectMultiple):
                 classe = "form-check-input"
             elif isinstance(widget, forms.Select):
                 classe = "form-select"
@@ -133,13 +133,23 @@ class UnidadeForm(MarcacaoExclusivaFormMixin, BootstrapFormMixin, forms.ModelFor
 class ContatoForm(MarcacaoExclusivaFormMixin, BootstrapFormMixin, forms.ModelForm):
     class Meta:
         model = Contato
-        fields = ["nome", "cargo", *CAMPOS_CONTATO, "principal"]
-        help_texts = {"principal": "Ao marcar, o contato principal anterior deixa de ser."}
+        fields = ["nome", "cargo", *CAMPOS_CONTATO, "unidades", "principal"]
+        help_texts = {
+            "principal": "Ao marcar, o contato principal anterior da empresa deixa de ser.",
+            "unidades": "Marque todas as unidades que esta pessoa atende.",
+        }
+        widgets = {"unidades": forms.CheckboxSelectMultiple}
 
-    def __init__(self, *args, unidade: Unidade | None = None, **kwargs):
+    def __init__(self, *args, cliente: Cliente | None = None, **kwargs):
         super().__init__(*args, **kwargs)
-        if unidade is not None:
-            self.instance.unidade = unidade
+        if cliente is not None:
+            self.instance.cliente = cliente
+        self.fields["unidades"].queryset = self.instance.cliente.unidades.all()
+
+    def clean_unidades(self):
+        unidades = list(self.cleaned_data["unidades"])
+        self.instance.validar_unidades(unidades)
+        return unidades
 
 
 class BuscaClienteForm(BootstrapFormMixin, forms.Form):
@@ -147,3 +157,24 @@ class BuscaClienteForm(BootstrapFormMixin, forms.Form):
     tipo = forms.ChoiceField(
         label="Tipo", required=False, choices=[("", "Todos"), *Cliente.Tipo.choices]
     )
+
+
+class ConfirmacaoExclusaoForm(BootstrapFormMixin, forms.Form):
+    """Pede que a pessoa digite o nome do registro antes de excluir."""
+
+    confirmacao = forms.CharField(label="Digite o nome para confirmar")
+
+    def __init__(self, *args, texto_esperado: str, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.texto_esperado = texto_esperado
+        self.fields["confirmacao"].widget.attrs["autocomplete"] = "off"
+
+    @staticmethod
+    def _normalizar(texto: str) -> str:
+        return " ".join(texto.split()).casefold()
+
+    def clean_confirmacao(self) -> str:
+        digitado = self.cleaned_data["confirmacao"]
+        if self._normalizar(digitado) != self._normalizar(self.texto_esperado):
+            raise ValidationError("O texto digitado não confere. Nada foi excluído.")
+        return digitado

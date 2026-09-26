@@ -1,5 +1,9 @@
-"""Linha do tempo das alterações de um cliente, das suas unidades e dos contatos."""
+"""Linha do tempo das alterações de um cliente e de tudo que pertence a ele.
 
+Outros apps (ex.: contratos) acrescentam seus registros com `LinhaDoTempo.registrar_fonte`.
+"""
+
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from datetime import datetime
 from itertools import chain
@@ -16,20 +20,32 @@ class Evento:
     campos: list[str]
 
 
+FonteDeHistorico = Callable[[Cliente], Iterable]
+
+
+def _cadastro_do_cliente(cliente: Cliente) -> Iterable:
+    return chain(
+        Cliente.history.filter(id=cliente.pk),
+        Unidade.history.filter(cliente_id=cliente.pk),
+        Contato.history.filter(cliente_id=cliente.pk),
+    )
+
+
 class LinhaDoTempo:
     ACOES = {"+": "Criou", "~": "Alterou", "-": "Removeu"}
+    fontes: list[FonteDeHistorico] = [_cadastro_do_cliente]
 
     def __init__(self, cliente: Cliente, limite: int = 30) -> None:
         self.cliente = cliente
         self.limite = limite
 
+    @classmethod
+    def registrar_fonte(cls, fonte: FonteDeHistorico) -> None:
+        if fonte not in cls.fontes:
+            cls.fontes.append(fonte)
+
     def eventos(self) -> list[Evento]:
-        unidades_ids = list(self.cliente.unidades.values_list("pk", flat=True))
-        registros = chain(
-            Cliente.history.filter(id=self.cliente.pk),
-            Unidade.history.filter(cliente_id=self.cliente.pk),
-            Contato.history.filter(unidade_id__in=unidades_ids),
-        )
+        registros = chain.from_iterable(fonte(self.cliente) for fonte in self.fontes)
         recentes = sorted(registros, key=lambda r: r.history_date, reverse=True)[: self.limite]
         return [self._evento(r) for r in recentes]
 
