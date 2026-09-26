@@ -31,7 +31,7 @@ class BootstrapFormMixin:
         super().__init__(*args, **kwargs)
         for campo in self.fields.values():
             widget = campo.widget
-            if isinstance(widget, forms.CheckboxInput):
+            if isinstance(widget, forms.CheckboxInput | forms.CheckboxSelectMultiple):
                 classe = "form-check-input"
             elif isinstance(widget, forms.Select):
                 classe = "form-select"

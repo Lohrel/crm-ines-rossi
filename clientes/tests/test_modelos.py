@@ -3,8 +3,7 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 
 from clientes.models import Cliente, Contato, Unidade
-
-from .conftest import CNPJ_FILIAL, CNPJ_MATRIZ, CPF_1
+from clientes.tests.fixtures import CNPJ_FILIAL, CNPJ_MATRIZ, CPF_1
 
 pytestmark = pytest.mark.django_db
 

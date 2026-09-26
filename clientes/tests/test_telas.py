@@ -2,8 +2,7 @@ import pytest
 from django.urls import reverse
 
 from clientes.models import Cliente, Contato, Unidade
-
-from .conftest import CNPJ_FILIAL, CNPJ_MATRIZ, CPF_1, CPF_2
+from clientes.tests.fixtures import CNPJ_FILIAL, CNPJ_MATRIZ, CPF_1, CPF_2
 
 pytestmark = pytest.mark.django_db
 

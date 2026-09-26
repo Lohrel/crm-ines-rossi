@@ -89,6 +89,14 @@
   {% endfor %}
 {% endif %}
 
+<div class="card shadow-sm mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">Contratos</span>
+    <a href="{% url 'apolices:novo_contrato' cliente.pk %}" class="btn btn-sm btn-primary">Novo contrato</a>
+  </div>
+  {% include "apolices/_tabela_contratos.html" with contratos=contratos mostrar_cliente=False %}
+</div>
+
 {% if cliente.observacoes %}
 <div class="card shadow-sm mb-4"><div class="card-body">
   <h2 class="h6">Observações</h2>

@@ -52,6 +52,9 @@ class ClienteDetailView(DetailView):
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
         contexto["historico"] = LinhaDoTempo(self.object).eventos()
+        contexto["contratos"] = self.object.contratos.select_related(
+            "seguradora", "ramo"
+        ).prefetch_related("unidades")
         return contexto
 
 
