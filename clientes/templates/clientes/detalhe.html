@@ -14,6 +14,9 @@
   </div>
   <div class="d-flex gap-2">
     <a href="{% url 'clientes:editar' cliente.pk %}" class="btn btn-outline-primary">Editar</a>
+    {% if perms.clientes.delete_cliente %}
+      <a href="{% url 'clientes:excluir' cliente.pk %}" class="btn btn-outline-danger">Excluir</a>
+    {% endif %}
     {% if cliente.eh_empresa %}
       <a href="{% url 'clientes:nova_unidade' cliente.pk %}" class="btn btn-primary">Nova unidade</a>
     {% endif %}
@@ -44,6 +47,9 @@
       <div class="d-flex gap-2">
         <a href="{% url 'clientes:novo_contato' unidade.pk %}" class="btn btn-sm btn-outline-primary">Novo contato</a>
         <a href="{% url 'clientes:editar_unidade' unidade.pk %}" class="btn btn-sm btn-outline-secondary">Editar unidade</a>
+        {% if perms.clientes.delete_unidade %}
+          <a href="{% url 'clientes:excluir_unidade' unidade.pk %}" class="btn btn-sm btn-outline-danger">Excluir unidade</a>
+        {% endif %}
       </div>
     </div>
     <div class="card-body">

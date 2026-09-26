@@ -147,3 +147,24 @@ class BuscaClienteForm(BootstrapFormMixin, forms.Form):
     tipo = forms.ChoiceField(
         label="Tipo", required=False, choices=[("", "Todos"), *Cliente.Tipo.choices]
     )
+
+
+class ConfirmacaoExclusaoForm(BootstrapFormMixin, forms.Form):
+    """Pede que a pessoa digite o nome do registro antes de excluir."""
+
+    confirmacao = forms.CharField(label="Digite o nome para confirmar")
+
+    def __init__(self, *args, texto_esperado: str, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.texto_esperado = texto_esperado
+        self.fields["confirmacao"].widget.attrs["autocomplete"] = "off"
+
+    @staticmethod
+    def _normalizar(texto: str) -> str:
+        return " ".join(texto.split()).casefold()
+
+    def clean_confirmacao(self) -> str:
+        digitado = self.cleaned_data["confirmacao"]
+        if self._normalizar(digitado) != self._normalizar(self.texto_esperado):
+            raise ValidationError("O texto digitado não confere. Nada foi excluído.")
+        return digitado

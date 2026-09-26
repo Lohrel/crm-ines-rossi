@@ -1,13 +1,17 @@
 from django.contrib import messages
+from django.contrib.auth.mixins import PermissionRequiredMixin
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views import View
-from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, FormView, ListView, UpdateView
+from django.views.generic.detail import SingleObjectMixin
 
 from clientes.forms import (
     BuscaClienteForm,
+    ConfirmacaoExclusaoForm,
     ContatoForm,
     EmpresaForm,
     PessoaFisicaForm,
@@ -216,3 +220,58 @@ class ContatoDeleteView(DeleteView):
     def form_valid(self, form):
         messages.success(self.request, f"Contato {self.object} removido.")
         return super().form_valid(form)
+
+
+class ExclusaoConfirmadaView(PermissionRequiredMixin, SingleObjectMixin, FormView):
+    """Exclusão que exige digitar o nome do registro e respeita os bloqueios do modelo."""
+
+    template_name = "clientes/excluir.html"
+    form_class = ConfirmacaoExclusaoForm
+    raise_exception = True
+
+    def dispatch(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_texto_esperado(self) -> str:
+        return str(self.object)
+
+    def get_url_cancelar(self) -> str:
+        return self.object.get_absolute_url()
+
+    def get_form_kwargs(self):
+        return {**super().get_form_kwargs(), "texto_esperado": self.get_texto_esperado()}
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        contexto["bloqueios"] = self.object.bloqueios_para_excluir()
+        contexto["texto_esperado"] = self.get_texto_esperado()
+        contexto["url_cancelar"] = self.get_url_cancelar()
+        return contexto
+
+    def form_valid(self, form):
+        descricao = str(self.object)
+        destino = self.get_success_url()
+        try:
+            self.object.excluir()
+        except ValidationError as erro:
+            form.add_error(None, erro)
+            return self.form_invalid(form)
+        messages.success(self.request, f"{descricao} foi excluído(a).")
+        return redirect(destino)
+
+
+class ClienteDeleteView(ExclusaoConfirmadaView):
+    model = Cliente
+    permission_required = "clientes.delete_cliente"
+
+    def get_success_url(self) -> str:
+        return reverse("clientes:lista")
+
+
+class UnidadeDeleteView(ExclusaoConfirmadaView):
+    model = Unidade
+    permission_required = "clientes.delete_unidade"
+
+    def get_success_url(self) -> str:
+        return self.object.cliente.get_absolute_url()

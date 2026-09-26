@@ -1,5 +1,6 @@
 import re
 
+from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.db.models import Q
 from django.urls import reverse
@@ -112,6 +113,37 @@ class MarcacaoExclusiva(models.Model):
             super().save(*args, **kwargs)
 
 
+class ExclusaoProtegida(models.Model):
+    """Exclusão que só acontece quando nada importante depende do registro.
+
+    `dependentes_proprios` são relações que fazem parte do próprio registro
+    (ex.: contatos de uma unidade) e são apagadas junto; qualquer outra
+    relação (ex.: contratos) impede a exclusão.
+    """
+
+    dependentes_proprios: tuple[str, ...] = ()
+
+    class Meta:
+        abstract = True
+
+    def bloqueios_para_excluir(self) -> list[str]:
+        bloqueios = []
+        for relacao in self._meta.related_objects:
+            if relacao.name in self.dependentes_proprios:
+                continue
+            quantidade = getattr(self, relacao.get_accessor_name()).count()
+            if quantidade:
+                modelo = relacao.related_model._meta
+                nome = modelo.verbose_name if quantidade == 1 else modelo.verbose_name_plural
+                bloqueios.append(f"{quantidade} {nome} ligado(s) a {self}")
+        return bloqueios
+
+    def excluir(self) -> None:
+        if bloqueios := self.bloqueios_para_excluir():
+            raise ValidationError("Não é possível excluir: " + "; ".join(bloqueios) + ".")
+        self.delete()
+
+
 class ClienteQuerySet(models.QuerySet):
     def pessoas_fisicas(self):
         return self.filter(tipo=Cliente.Tipo.PESSOA_FISICA)
@@ -137,7 +169,7 @@ class ClienteQuerySet(models.QuerySet):
         return self.filter(filtro).distinct()
 
 
-class Cliente(Endereco, MeiosDeContato, Registro):
+class Cliente(ExclusaoProtegida, Endereco, MeiosDeContato, Registro):
     """Cliente da corretora: pessoa física ou empresa.
 
     Empresas (pessoa jurídica) podem ter várias unidades, cada uma com o
@@ -169,6 +201,8 @@ class Cliente(Endereco, MeiosDeContato, Registro):
     history = HistoricalRecords()
     objects = ClienteQuerySet.as_manager()
 
+    dependentes_proprios = ("unidades",)
+
     class Meta:
         ordering = ["nome"]
         constraints = [
@@ -196,6 +230,22 @@ class Cliente(Endereco, MeiosDeContato, Registro):
     def get_absolute_url(self) -> str:
         return reverse("clientes:detalhe", args=[self.pk])
 
+    def bloqueios_para_excluir(self) -> list[str]:
+        bloqueios = super().bloqueios_para_excluir()
+        for unidade in self.unidades.all():
+            bloqueios += unidade.bloqueios_para_excluir()
+        return bloqueios
+
+    def excluir(self) -> None:
+        """Exclui o cliente junto com as suas unidades e contatos."""
+        with transaction.atomic():
+            bloqueios = self.bloqueios_para_excluir()
+            if bloqueios:
+                raise ValidationError("Não é possível excluir: " + "; ".join(bloqueios) + ".")
+            for unidade in self.unidades.all():
+                unidade.delete()
+            self.delete()
+
     @property
     def eh_empresa(self) -> bool:
         return self.tipo == self.Tipo.PESSOA_JURIDICA
@@ -214,8 +264,10 @@ class Cliente(Endereco, MeiosDeContato, Registro):
         return unidades[0].cnpj_formatado if unidades else ""
 
 
-class Unidade(MarcacaoExclusiva, Endereco, MeiosDeContato, Registro):
+class Unidade(ExclusaoProtegida, MarcacaoExclusiva, Endereco, MeiosDeContato, Registro):
     """Matriz ou filial de uma empresa cliente, com CNPJ próprio."""
+
+    dependentes_proprios = ("contatos",)
 
     campo_exclusivo = "matriz"
     campo_grupo = "cliente"

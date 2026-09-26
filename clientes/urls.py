@@ -10,12 +10,14 @@ urlpatterns = [
     path("novo/empresa/", views.EmpresaCreateView.as_view(), name="nova_empresa"),
     path("<int:pk>/", views.ClienteDetailView.as_view(), name="detalhe"),
     path("<int:pk>/editar/", views.ClienteUpdateView.as_view(), name="editar"),
+    path("<int:pk>/excluir/", views.ClienteDeleteView.as_view(), name="excluir"),
     path(
         "<int:cliente_pk>/unidades/nova/",
         views.UnidadeCreateView.as_view(),
         name="nova_unidade",
     ),
     path("unidades/<int:pk>/editar/", views.UnidadeUpdateView.as_view(), name="editar_unidade"),
+    path("unidades/<int:pk>/excluir/", views.UnidadeDeleteView.as_view(), name="excluir_unidade"),
     path(
         "unidades/<int:unidade_pk>/contatos/novo/",
         views.ContatoCreateView.as_view(),
