@@ -1,0 +1,20 @@
+# Caddy recebe as conexões HTTPS e repassa para o Django.
+# "tls internal" gera um certificado próprio do escritório: veja
+# docs/instalacao.md para instalar o certificado raiz nos computadores.
+{$CRM_HOSTNAME} {
+	tls internal
+	encode gzip
+
+	handle_path /static/* {
+		root * /srv/static
+		file_server
+	}
+
+	handle {
+		reverse_proxy web:8000
+	}
+
+	header {
+		-Server
+	}
+}
