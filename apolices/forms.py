@@ -33,6 +33,7 @@ class ContratoForm(BootstrapFormMixin, forms.ModelForm):
             "inicio_vigencia",
             "data_renovacao",
             "dia_vencimento",
+            "dia_fechamento",
             "valor_mensal",
             "corretora_envia_boleto",
             "coparticipacao",

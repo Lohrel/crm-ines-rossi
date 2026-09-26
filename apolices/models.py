@@ -96,6 +96,16 @@ class Contrato(Registro):
         "dia de vencimento da fatura",
         validators=[MinValueValidator(1), MaxValueValidator(31)],
     )
+    dia_fechamento = models.PositiveSmallIntegerField(
+        "dia de fechamento das movimentações",
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(31)],
+        help_text=(
+            "Último dia do mês para enviar movimentações com vigência no dia 1º do mês "
+            "seguinte (ex.: 25, fechamento do portal da operadora)."
+        ),
+    )
     valor_mensal = models.DecimalField(
         "valor mensal (R$)", max_digits=12, decimal_places=2, null=True, blank=True
     )
@@ -140,6 +150,14 @@ class Contrato(Registro):
 
     def get_absolute_url(self) -> str:
         return self.cliente.get_absolute_url()
+
+    def vigencia_sugerida(self, recebida_em: date) -> date:
+        """Dia 1º do mês seguinte; depois do fechamento, dia 1º do outro mês."""
+        meses = 1
+        if self.dia_fechamento and recebida_em.day > self.dia_fechamento:
+            meses = 2
+        indice = recebida_em.month - 1 + meses
+        return date(recebida_em.year + indice // 12, indice % 12 + 1, 1)
 
     @property
     def vigente(self) -> bool:

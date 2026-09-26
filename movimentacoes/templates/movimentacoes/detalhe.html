@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block titulo %}{{ object }}{% endblock %}
+{% block conteudo %}
+{% with mov=object %}
+<nav aria-label="breadcrumb"><ol class="breadcrumb">
+  <li class="breadcrumb-item"><a href="{% url 'movimentacoes:lista' %}">Movimentações</a></li>
+  <li class="breadcrumb-item"><a href="{{ mov.cliente.get_absolute_url }}">{{ mov.cliente }}</a></li>
+  <li class="breadcrumb-item active">{{ mov.beneficiario }}</li>
+</ol></nav>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-1">{{ mov.get_tipo_display }} de <a href="{{ mov.beneficiario.get_absolute_url }}">{{ mov.beneficiario }}</a></h1>
+    {% include "movimentacoes/_etapa.html" %}
+    {% if mov.apos_o_fechamento %}<span class="badge text-bg-warning">Recebida após o fechamento (dia {{ mov.contrato.dia_fechamento }})</span>{% endif %}
+  </div>
+  <a href="{% url 'movimentacoes:editar' mov.pk %}" class="btn btn-outline-primary">Editar dados</a>
+</div>
+
+{% if proximas or mov.etapa == "REJ" %}
+<div class="card shadow-sm mb-4 border-primary-subtle">
+  <div class="card-body d-flex flex-wrap align-items-center gap-2">
+    <span class="fw-semibold me-2">Próximo passo:</span>
+    {% for etapa in proximas %}
+      {% if etapa.value == "CAN" %}
+        <a href="{% url 'movimentacoes:mudar_etapa' mov.pk etapa.value %}" class="btn btn-sm btn-outline-secondary ms-auto">Cancelar pedido</a>
+      {% elif etapa.value == "REJ" %}
+        <a href="{% url 'movimentacoes:mudar_etapa' mov.pk etapa.value %}" class="btn btn-sm btn-outline-danger">Rejeitada</a>
+      {% else %}
+        <a href="{% url 'movimentacoes:mudar_etapa' mov.pk etapa.value %}" class="btn btn-sm btn-primary">{% if etapa.value == "CON" and mov.eh_inclusao %}Carteirinha enviada{% else %}{{ etapa.label }}{% endif %}</a>
+      {% endif %}
+    {% endfor %}
+    {% if mov.etapa == "REJ" %}
+      <form method="post" action="{% url 'movimentacoes:refazer' mov.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-primary">Nova {{ mov.get_tipo_display|lower }}</button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<div class="card shadow-sm mb-4"><div class="card-body">
+  <dl class="row mb-0">
+    <dt class="col-sm-3">Cliente</dt><dd class="col-sm-9">{{ mov.cliente }}{% if mov.beneficiario.unidade_efetiva %} · {{ mov.beneficiario.unidade_efetiva }}{% endif %}</dd>
+    <dt class="col-sm-3">Plano</dt><dd class="col-sm-9">{{ mov.contrato.ramo }} · {{ mov.contrato.seguradora }} {{ mov.contrato.numero }}</dd>
+    <dt class="col-sm-3">Solicitante</dt><dd class="col-sm-9">{{ mov.solicitante|default:"—" }}</dd>
+    <dt class="col-sm-3">Recebida em</dt><dd class="col-sm-9">{{ mov.recebida_em|date:"d/m/Y" }}</dd>
+    <dt class="col-sm-3">Enviada à operadora</dt><dd class="col-sm-9">{{ mov.enviada_em|date:"d/m/Y"|default:"—" }}</dd>
+    <dt class="col-sm-3">{% if mov.eh_inclusao %}Início de vigência{% else %}Data da exclusão{% endif %}</dt><dd class="col-sm-9">{{ mov.vigencia|date:"d/m/Y" }}</dd>
+    {% if mov.eh_inclusao %}
+    <dt class="col-sm-3">Carteirinha</dt><dd class="col-sm-9">{{ mov.carteirinha|default:"—" }}{% if mov.carteirinha_enviada_em %} · enviada em {{ mov.carteirinha_enviada_em|date:"d/m/Y" }}{% endif %}</dd>
+    {% endif %}
+    {% if mov.motivo_rejeicao %}<dt class="col-sm-3">Motivo da rejeição</dt><dd class="col-sm-9">{{ mov.get_motivo_rejeicao_display }}</dd>{% endif %}
+    {% if mov.origem %}<dt class="col-sm-3">Refaz</dt><dd class="col-sm-9"><a href="{{ mov.origem.get_absolute_url }}">pedido rejeitado de {{ mov.origem.recebida_em|date:"d/m/Y" }}</a></dd>{% endif %}
+    {% for nova in refeitas %}<dt class="col-sm-3">Refeita em</dt><dd class="col-sm-9"><a href="{{ nova.get_absolute_url }}">novo pedido de {{ nova.recebida_em|date:"d/m/Y" }}</a> ({{ nova.get_etapa_display|lower }})</dd>{% endfor %}
+    <dt class="col-sm-3">Registrada por</dt><dd class="col-sm-9">{{ mov.registrada_por|default:"—" }}</dd>
+    {% if mov.observacao %}<dt class="col-sm-3">Observação</dt><dd class="col-sm-9" style="white-space: pre-line">{{ mov.observacao }}</dd>{% endif %}
+  </dl>
+</div></div>
+
+<div class="card shadow-sm">
+  <div class="card-header fw-semibold">Histórico (quem fez cada etapa)</div>
+  <ul class="list-group list-group-flush">
+    {% for evento in historico %}
+      <li class="list-group-item small">
+        <span class="text-body-secondary">{{ evento.quando|date:"d/m/Y H:i" }}</span> ·
+        <strong>{{ evento.quem }}</strong> {{ evento.acao|lower }} a movimentação · {{ evento.registro }}
+        {% if evento.campos %}<span class="text-body-secondary">({{ evento.campos|join:", " }})</span>{% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endwith %}
+{% endblock %}
