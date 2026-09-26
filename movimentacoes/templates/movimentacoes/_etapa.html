@@ -1,0 +1,6 @@
+{% if mov.etapa == "CON" %}<span class="badge text-bg-success">{{ mov.get_etapa_display }}</span>
+{% elif mov.etapa == "REJ" %}<span class="badge text-bg-danger">{{ mov.get_etapa_display }}</span>
+{% elif mov.etapa == "CAN" %}<span class="badge text-bg-secondary">{{ mov.get_etapa_display }}</span>
+{% elif mov.etapa == "APR" %}<span class="badge text-bg-info">{{ mov.get_etapa_display }}</span>
+{% elif mov.etapa == "ANA" %}<span class="badge text-bg-warning">{{ mov.get_etapa_display }}</span>
+{% else %}<span class="badge text-bg-light border">{{ mov.get_etapa_display }}</span>{% endif %}

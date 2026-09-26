@@ -7,8 +7,9 @@ from beneficiarios.models import Anexo, Beneficiario, Vinculo
 from clientes.documentos import CPF
 from clientes.forms import BootstrapFormMixin, DocumentoField
 from clientes.models import Cliente, Unidade
+from clientes.widgets import CampoData
 
-DATA = forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d")
+DATA = CampoData()
 CAMPOS_PESSOAIS = ["nome", "cpf", "data_nascimento", "sexo", "nome_mae"]
 
 

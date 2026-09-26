@@ -4,6 +4,7 @@ from apolices.models import Contrato, Ramo, Seguradora
 from clientes.documentos import CNPJ
 from clientes.forms import BootstrapFormMixin, DocumentoField
 from clientes.models import Cliente
+from clientes.widgets import CampoData
 
 
 class SeguradoraForm(BootstrapFormMixin, forms.ModelForm):
@@ -33,6 +34,7 @@ class ContratoForm(BootstrapFormMixin, forms.ModelForm):
             "inicio_vigencia",
             "data_renovacao",
             "dia_vencimento",
+            "dia_fechamento",
             "valor_mensal",
             "corretora_envia_boleto",
             "coparticipacao",
@@ -40,8 +42,8 @@ class ContratoForm(BootstrapFormMixin, forms.ModelForm):
             "observacoes",
         ]
         widgets = {
-            "inicio_vigencia": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
-            "data_renovacao": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
+            "inicio_vigencia": CampoData(),
+            "data_renovacao": CampoData(),
             "unidades": forms.CheckboxSelectMultiple,
             "observacoes": forms.Textarea(attrs={"rows": 3}),
         }

@@ -3,6 +3,7 @@ from django.core.exceptions import ValidationError
 
 from clientes.documentos import CNPJ, CPF, Documento
 from clientes.models import Cliente, Contato, Unidade
+from clientes.widgets import CampoData
 
 CAMPOS_ENDERECO = ["cep", "logradouro", "numero", "complemento", "bairro", "cidade", "uf"]
 CAMPOS_CONTATO = ["telefone", "whatsapp", "email"]
@@ -80,7 +81,7 @@ class PessoaFisicaForm(BootstrapFormMixin, forms.ModelForm):
             "ativo",
         ]
         widgets = {
-            "data_nascimento": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
+            "data_nascimento": CampoData(),
             "observacoes": forms.Textarea(attrs={"rows": 3}),
         }
 

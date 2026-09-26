@@ -119,6 +119,11 @@ class Beneficiario(ExclusaoProtegida, MeiosDeContato, Registro):
         return self.unidade if self.eh_titular else self.titular.unidade
 
     @property
+    def matricula_efetiva(self) -> str:
+        """Matrícula do titular na empresa (o dependente usa a do titular)."""
+        return self.matricula if self.eh_titular else self.titular.matricula
+
+    @property
     def cpf_formatado(self) -> str:
         return CPF(self.cpf).formatado() if self.cpf else ""
 

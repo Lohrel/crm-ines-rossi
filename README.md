@@ -24,7 +24,7 @@ Cada etapa só começa quando a anterior está testada e em uso.
   - [x] 1a. Clientes: pessoa física e empresas com unidades (CNPJ por filial) e contatos
   - [x] 1b. Seguradoras, ramos e contratos (vencimento da fatura, boleto pela corretora, coparticipação, filiais cobertas)
 - [x] **2.** Beneficiários (titulares e dependentes, cada um nos planos escolhidos), anexos como DPS e eSocial, e número de vidas por grupo, filial e contrato
-- [ ] **3.** Movimentações de inclusão e exclusão, com solicitante, executor e datas
+- [x] **3.** Movimentações de inclusão e exclusão: etapas até a carteirinha enviada, rejeição com motivo e nova inclusão, dia de fechamento por contrato
 - [ ] **4.** Acompanhamento de boletos: atrasos, boleto fora do vencimento, reajuste e coparticipação
 - [ ] **5.** Pendências com "marcar como concluído"
 - [ ] **6.** Importação e exportação da planilha mensal de inclusão
@@ -62,6 +62,7 @@ contas/          Usuários, login e página inicial
 clientes/        Clientes PF/PJ, unidades (filiais) e contatos, com histórico
 apolices/        Seguradoras, ramos e contratos
 beneficiarios/   Titulares, dependentes, planos de cada pessoa, anexos e contagem de vidas
+movimentacoes/   Pedidos de inclusão e exclusão, com etapas, fechamento do mês e histórico
 templates/       Layout base e tela de login
 static/vendor/   Bootstrap servido localmente (funciona sem internet)
 docker/          Entrypoint, Caddy (HTTPS) e scripts de backup/restauração

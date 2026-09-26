@@ -104,6 +104,9 @@ class BeneficiarioDetailView(DetailView):
             )
         )
         contexto["anexos"] = pessoa.anexos.select_related("enviado_por")
+        contexto["movimentacoes"] = pessoa.movimentacoes.select_related("contrato__ramo").order_by(
+            "-recebida_em"
+        )
         contexto["historico"] = LinhaDoTempoDoBeneficiario(pessoa).eventos()
         return contexto
 

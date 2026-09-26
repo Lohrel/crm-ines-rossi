@@ -1,0 +1,270 @@
+from datetime import date, datetime
+
+from django import forms
+from django.core.exceptions import ValidationError
+from django.db.models import Q
+from django.forms import modelform_factory
+
+from apolices.models import Contrato
+from beneficiarios.models import Beneficiario
+from clientes.forms import BootstrapFormMixin
+from clientes.models import Cliente
+from clientes.widgets import CampoData
+from movimentacoes.models import Etapa, Movimentacao
+
+DATA = CampoData()
+
+
+def rotulo_do_plano(contrato: Contrato) -> str:
+    texto = f"{contrato.ramo} · {contrato.seguradora} {contrato.numero}"
+    return f"{texto} ({contrato.produto})" if contrato.produto else texto
+
+
+class MovimentacaoForm(BootstrapFormMixin, forms.ModelForm):
+    """Novo pedido de inclusão ou exclusão de uma pessoa num plano."""
+
+    dependentes = forms.ModelMultipleChoiceField(
+        label="Pedir também para os dependentes",
+        queryset=Beneficiario.objects.none(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        help_text="Cria um pedido para cada dependente marcado, no mesmo plano e datas.",
+    )
+
+    class Meta:
+        model = Movimentacao
+        fields = ["contrato", "solicitante", "recebida_em", "enviada_em", "vigencia", "observacao"]
+        widgets = {
+            "recebida_em": DATA,
+            "enviada_em": DATA,
+            "vigencia": DATA,
+            "observacao": forms.Textarea(attrs={"rows": 3}),
+        }
+
+    def __init__(self, *args, tipo: str, beneficiario: Beneficiario, usuario=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.instance.tipo = tipo
+        self.instance.beneficiario = beneficiario
+        self.instance.cliente = beneficiario.cliente
+        self.instance.registrada_por = usuario
+        self.fields["contrato"].queryset = self._planos_possiveis(tipo, beneficiario)
+        self.fields["contrato"].label_from_instance = rotulo_do_plano
+        self.fields["solicitante"].queryset = beneficiario.cliente.contatos.all()
+        self.fields["vigencia"].required = False
+        # Só se registra o pedido depois de enviado à operadora.
+        self.fields["enviada_em"].required = True
+        for nome in ("recebida_em", "enviada_em"):
+            self.initial.setdefault(nome, date.today())
+        dependentes = self._dependentes_possiveis(tipo, beneficiario)
+        if dependentes is not None and dependentes.exists():
+            self.fields["dependentes"].queryset = dependentes
+        else:
+            del self.fields["dependentes"]
+
+    @staticmethod
+    def _planos_possiveis(tipo: str, pessoa: Beneficiario):
+        contratos = Contrato.objects.filter(cliente=pessoa.cliente).select_related(
+            "ramo", "seguradora"
+        )
+        no_plano = pessoa.vinculos.filter(data_exclusao__isnull=True).values("contrato")
+        if tipo == Movimentacao.Tipo.EXCLUSAO:
+            return contratos.filter(pk__in=no_plano)
+        contratos = contratos.vigentes().exclude(pk__in=no_plano)
+        if not pessoa.eh_titular:
+            # Planos em que o titular está ou está sendo incluído.
+            titular = pessoa.titular
+            do_titular = titular.vinculos.filter(data_exclusao__isnull=True).values("contrato")
+            pedidos = titular.movimentacoes.em_aberto().filter(tipo=tipo).values("contrato")
+            contratos = contratos.filter(Q(pk__in=do_titular) | Q(pk__in=pedidos))
+        return contratos
+
+    @staticmethod
+    def _dependentes_possiveis(tipo: str, pessoa: Beneficiario):
+        if not pessoa.eh_titular:
+            return None
+        if tipo == Movimentacao.Tipo.EXCLUSAO:
+            # Na exclusão do titular os dependentes do plano saem junto, sem pedido próprio.
+            return None
+        return pessoa.dependentes.all()
+
+    def clean(self):
+        dados = super().clean()
+        contrato = dados.get("contrato")
+        for dependente in dados.get("dependentes") or []:
+            pedido = Movimentacao(
+                tipo=self.instance.tipo,
+                cliente=dependente.cliente,
+                beneficiario=dependente,
+                contrato=contrato,
+            )
+            try:
+                pedido.clean()
+                pedido.validate_constraints()
+            except ValidationError as erro:
+                self.add_error("dependentes", f"{dependente}: {' '.join(erro.messages)}")
+        return dados
+
+    def save(self, commit=True):
+        movimentacao = super().save(commit)
+        if commit:
+            for dependente in self.cleaned_data.get("dependentes") or []:
+                Movimentacao.objects.create(
+                    tipo=movimentacao.tipo,
+                    cliente=movimentacao.cliente,
+                    beneficiario=dependente,
+                    contrato=movimentacao.contrato,
+                    solicitante=movimentacao.solicitante,
+                    recebida_em=movimentacao.recebida_em,
+                    enviada_em=movimentacao.enviada_em,
+                    vigencia=movimentacao.vigencia,
+                    etapa=movimentacao.etapa,
+                    observacao=movimentacao.observacao,
+                    registrada_por=movimentacao.registrada_por,
+                )
+        return movimentacao
+
+
+class EdicaoMovimentacaoForm(BootstrapFormMixin, forms.ModelForm):
+    """Corrige dados do pedido sem mudar a etapa."""
+
+    class Meta:
+        model = Movimentacao
+        fields = [
+            "solicitante",
+            "recebida_em",
+            "enviada_em",
+            "vigencia",
+            "carteirinha",
+            "carteirinha_enviada_em",
+            "observacao",
+        ]
+        widgets = {
+            "recebida_em": DATA,
+            "enviada_em": DATA,
+            "vigencia": DATA,
+            "carteirinha_enviada_em": DATA,
+            "observacao": forms.Textarea(attrs={"rows": 3}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["solicitante"].queryset = self.instance.cliente.contatos.all()
+        self.fields["enviada_em"].required = True
+        if self.instance.vinculo_id:
+            # Depois de aprovada, a data já está no plano da pessoa.
+            self.fields["vigencia"].disabled = True
+        if not self.instance.eh_inclusao:
+            del self.fields["carteirinha"]
+            del self.fields["carteirinha_enviada_em"]
+
+    def save(self, commit=True):
+        movimentacao = super().save(commit)
+        vinculo = movimentacao.vinculo
+        # A carteirinha corrigida aqui também vale no plano da pessoa.
+        mudou = (
+            vinculo and movimentacao.eh_inclusao and vinculo.carteirinha != movimentacao.carteirinha
+        )
+        if commit and mudou:
+            vinculo.carteirinha = movimentacao.carteirinha
+            vinculo.save(update_fields=["carteirinha", "atualizado_em"])
+        return movimentacao
+
+
+# Campos pedidos em cada mudança de etapa.
+CAMPOS_DA_ETAPA = {
+    Etapa.APROVADA: ["vigencia", "carteirinha", "observacao"],
+    Etapa.CONCLUIDA: ["carteirinha", "carteirinha_enviada_em", "observacao"],
+    Etapa.REJEITADA: ["motivo_rejeicao", "observacao"],
+    Etapa.CANCELADA: ["observacao"],
+}
+CAMPOS_SO_DE_INCLUSAO = {"carteirinha", "carteirinha_enviada_em"}
+
+
+class MudancaDeEtapaFormBase(BootstrapFormMixin, forms.ModelForm):
+    etapa: str
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for nome in CAMPOS_SO_DE_INCLUSAO & set(self.fields):
+            if not self.instance.eh_inclusao:
+                del self.fields[nome]
+        if "carteirinha_enviada_em" in self.fields:
+            self.initial["carteirinha_enviada_em"] = (
+                self.instance.carteirinha_enviada_em or date.today()
+            )
+        if "motivo_rejeicao" in self.fields:
+            self.fields["motivo_rejeicao"].required = True
+        if "carteirinha" in self.fields and self.etapa == Etapa.CONCLUIDA:
+            self.fields["carteirinha"].required = True
+
+    def _post_clean(self):
+        # A validação e a gravação ficam com Movimentacao.mudar_etapa.
+        pass
+
+    def save(self, commit=True):
+        dados = {nome: self.cleaned_data[nome] for nome in self.fields}
+        try:
+            self.instance.mudar_etapa(self.etapa, **dados)
+        except ValidationError as erro:
+            self.add_error(None, erro)
+            raise
+        return self.instance
+
+
+def formulario_da_etapa(etapa: str) -> type[MudancaDeEtapaFormBase]:
+    return modelform_factory(
+        Movimentacao,
+        form=type("MudancaDeEtapaForm", (MudancaDeEtapaFormBase,), {"etapa": etapa}),
+        fields=CAMPOS_DA_ETAPA[etapa],
+        widgets={
+            "vigencia": DATA,
+            "carteirinha_enviada_em": DATA,
+            "observacao": forms.Textarea(attrs={"rows": 3}),
+        },
+    )
+
+
+class FiltroMovimentacoesForm(BootstrapFormMixin, forms.Form):
+    SITUACOES = [
+        ("", "Em aberto"),
+        ("CON", "Concluídas"),
+        ("REJ", "Rejeitadas"),
+        ("CAN", "Canceladas"),
+        ("todas", "Todas"),
+    ]
+
+    q = forms.CharField(label="Buscar", required=False)
+    situacao = forms.ChoiceField(label="Situação", choices=SITUACOES, required=False)
+    mes = forms.CharField(
+        label="Mês da vigência",
+        required=False,
+        widget=forms.TextInput(
+            attrs={"placeholder": "mm/aaaa", "inputmode": "numeric", "maxlength": "7"}
+        ),
+    )
+    cliente = forms.ModelChoiceField(
+        queryset=Cliente.objects.empresas(), required=False, empty_label="Todos os clientes"
+    )
+    tipo = forms.ChoiceField(
+        choices=[("", "Inclusões e exclusões"), *Movimentacao.Tipo.choices], required=False
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["q"].widget.attrs["placeholder"] = "Nome, matrícula, carteirinha ou cliente"
+        # Clientes pessoa física também podem ter movimentação.
+        self.fields["cliente"].queryset = Cliente.objects.filter(
+            movimentacoes__isnull=False
+        ).distinct()
+
+    def clean_mes(self) -> tuple[int, int] | None:
+        texto = self.cleaned_data["mes"].strip()
+        if not texto:
+            return None
+        for formato in ("%m/%Y", "%Y-%m"):
+            try:
+                data = datetime.strptime(texto, formato)
+            except ValueError:
+                continue
+            return data.year, data.month
+        raise forms.ValidationError("Mês inválido. Use mm/aaaa, por exemplo 09/2026.")
