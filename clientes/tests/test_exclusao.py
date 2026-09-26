@@ -111,3 +111,14 @@ def test_permissao_pode_ser_dada_a_um_funcionario(logado, usuario, empresa):
     )
     assert resposta.status_code == 302
     assert not Cliente.objects.exists()
+
+
+def test_botoes_de_exclusao_ficam_no_fim_da_pagina(admin, empresa, matriz):
+    """Excluir fica depois do histórico, longe de Editar e Nova unidade."""
+    pagina = admin.get(empresa.get_absolute_url()).content.decode()
+    historico = pagina.index("Histórico de alterações")
+    for url in (
+        reverse("clientes:excluir", args=[empresa.pk]),
+        reverse("clientes:excluir_unidade", args=[matriz.pk]),
+    ):
+        assert pagina.index(url) > historico

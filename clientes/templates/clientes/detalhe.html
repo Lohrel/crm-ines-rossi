@@ -14,9 +14,6 @@
   </div>
   <div class="d-flex gap-2">
     <a href="{% url 'clientes:editar' cliente.pk %}" class="btn btn-outline-primary">Editar</a>
-    {% if perms.clientes.delete_cliente %}
-      <a href="{% url 'clientes:excluir' cliente.pk %}" class="btn btn-outline-danger">Excluir</a>
-    {% endif %}
     {% if cliente.eh_empresa %}
       <a href="{% url 'clientes:nova_unidade' cliente.pk %}" class="btn btn-primary">Nova unidade</a>
     {% endif %}
@@ -47,9 +44,6 @@
       <div class="d-flex gap-2">
         <a href="{% url 'clientes:novo_contato' unidade.pk %}" class="btn btn-sm btn-outline-primary">Novo contato</a>
         <a href="{% url 'clientes:editar_unidade' unidade.pk %}" class="btn btn-sm btn-outline-secondary">Editar unidade</a>
-        {% if perms.clientes.delete_unidade %}
-          <a href="{% url 'clientes:excluir_unidade' unidade.pk %}" class="btn btn-sm btn-outline-danger">Excluir unidade</a>
-        {% endif %}
       </div>
     </div>
     <div class="card-body">
@@ -110,7 +104,7 @@
 </div></div>
 {% endif %}
 
-<div class="card shadow-sm">
+<div class="card shadow-sm mb-5">
   <div class="card-header fw-semibold">Histórico de alterações</div>
   <ul class="list-group list-group-flush">
     {% for evento in historico %}
@@ -124,4 +118,24 @@
     {% endfor %}
   </ul>
 </div>
+
+{% if perms.clientes.delete_cliente or perms.clientes.delete_unidade and cliente.eh_empresa %}
+{# Exclusões ficam no fim da página, longe dos botões do dia a dia, para evitar cliques por engano. #}
+<div class="d-flex justify-content-end">
+  <details class="border border-danger-subtle rounded p-3 text-end">
+    <summary class="text-danger small">Excluir registros</summary>
+    <p class="small text-body-secondary mt-2 mb-2">A exclusão pede confirmação digitada e fica no histórico.</p>
+    <div class="d-flex flex-column align-items-end gap-2">
+      {% if perms.clientes.delete_unidade and cliente.eh_empresa %}
+        {% for unidade in cliente.unidades.all %}
+          <a href="{% url 'clientes:excluir_unidade' unidade.pk %}" class="btn btn-sm btn-outline-danger">Excluir unidade {{ unidade }}</a>
+        {% endfor %}
+      {% endif %}
+      {% if perms.clientes.delete_cliente %}
+        <a href="{% url 'clientes:excluir' cliente.pk %}" class="btn btn-sm btn-outline-danger">Excluir {% if cliente.eh_empresa %}empresa{% else %}cliente{% endif %}</a>
+      {% endif %}
+    </div>
+  </details>
+</div>
+{% endif %}
 {% endblock %}
