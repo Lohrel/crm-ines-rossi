@@ -30,6 +30,9 @@ Cada etapa só começa quando a anterior está testada e em uso.
 - [ ] **6.** Importação e exportação da planilha mensal de inclusão
 - [ ] **7.** Painel e relatórios
 - [ ] **8.** Campos específicos de auto e imóvel
+- [ ] **9.** Acabamento visual: cores e logo da corretora, menu, painel inicial e ajustes para celular
+
+Até a etapa 9, cada tela usa o visual padrão do Bootstrap. Problemas de uso encontrados nos testes são corrigidos na própria etapa.
 
 ## Instalar no servidor do escritório
 
