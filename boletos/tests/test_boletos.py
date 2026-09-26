@@ -7,7 +7,7 @@ from django.urls import reverse
 
 from apolices.models import Contrato
 from beneficiarios.tests.fixtures import HOJE, contrato
-from boletos.models import Boleto, Situacao
+from boletos.models import Boleto, Situacao, somar_meses
 from clientes.models import Contato
 
 pytestmark = pytest.mark.django_db
@@ -43,7 +43,7 @@ def test_vencimento_do_contrato_em_meses_curtos(saude):
 
 
 def test_gerar_mensalidades_so_dos_contratos_em_que_a_corretora_envia(com_boleto, dental, usuario):
-    assert Boleto.gerar_mensalidades(date(2026, 10, 15), usuario) == (1, 0)
+    assert Boleto.gerar_mensalidades(date(2026, 10, 15), usuario=usuario) == (1, 0)
     gerado = Boleto.objects.get()
     assert gerado.contrato == com_boleto and gerado.tipo == Boleto.Tipo.MENSALIDADE
     assert gerado.referencia == OUTUBRO and gerado.vencimento == date(2026, 10, 10)
@@ -68,6 +68,34 @@ def test_mensalidade_cancelada_nao_volta_ao_gerar_de_novo(com_boleto):
     assert Boleto.gerar_mensalidades(OUTUBRO) == (0, 1)
     # Mas dá para lançar outra mensalidade no lugar da cancelada.
     boleto(com_boleto, vencimento=date(2026, 10, 20))
+
+
+def test_gerar_o_ano_com_pos_pagamento_vencendo_no_mes_seguinte(com_boleto, dental):
+    dental.corretora_envia_boleto = True
+    dental.pagamento = Contrato.Pagamento.POS
+    dental.dia_vencimento = 5
+    dental.save()
+    assert Boleto.gerar_mensalidades(OUTUBRO, date(2026, 12, 1)) == (6, 0)
+
+    def vencimentos(plano) -> list:
+        return [b.vencimento for b in plano.boletos.order_by("referencia")]
+
+    assert vencimentos(com_boleto) == [date(2026, 10, 10), date(2026, 11, 10), date(2026, 12, 10)]
+    assert vencimentos(dental) == [date(2026, 11, 5), date(2026, 12, 5), date(2027, 1, 5)]
+    assert not Boleto.objects.filter(fora_do_vencimento=True).exists()
+    # Com um mês a mais, só o mês novo é criado.
+    assert Boleto.gerar_mensalidades(OUTUBRO, date(2027, 1, 1)) == (2, 6)
+
+
+def test_gerar_so_de_um_contrato_a_partir_do_inicio_da_vigencia(com_boleto, dental):
+    dental.corretora_envia_boleto = True
+    dental.inicio_vigencia = date(2026, 11, 15)
+    dental.save()
+    assert Boleto.gerar_mensalidades(OUTUBRO, date(2026, 12, 1), contrato=dental) == (2, 0)
+    assert set(Boleto.objects.values_list("contrato", "referencia")) == {
+        (dental.pk, date(2026, 11, 1)),
+        (dental.pk, date(2026, 12, 1)),
+    }
 
 
 def test_uma_mensalidade_por_contrato_e_mes(com_boleto):
@@ -174,7 +202,7 @@ def test_filtros_por_mes_tipo_contrato_e_fora_do_vencimento(logado, com_boleto, 
     url = reverse("boletos:lista")
 
     def mostra(**filtros) -> set:
-        pagina = logado.get(url, filtros).content.decode()
+        pagina = logado.get(url, {"situacao": "enviar", **filtros}).content.decode()
         return {b for b in (outubro, novembro, fora) if b.get_absolute_url() in pagina}
 
     assert mostra(mes="10/2026") == {outubro, fora}
@@ -237,20 +265,34 @@ def test_editar_e_desfazer_envio(logado, com_boleto, usuario):
 
 def test_gerar_pela_tela(logado, com_boleto):
     url = reverse("boletos:gerar")
-    assert f'value="{HOJE:%m/%Y}"' in logado.get(url).content.decode()
+    formulario = logado.get(url).content.decode()
+    assert f'value="{HOJE:%m/%Y}"' in formulario
+    assert f'value="{somar_meses(HOJE, 11):%m/%Y}"' in formulario
+    assert ">Gerar boletos</button>" in formulario
 
-    resposta = logado.post(url, {"referencia": "10/2026"}, follow=True)
-    assert resposta.redirect_chain[-1][0] == reverse("boletos:lista") + "?mes=10/2026"
+    resposta = logado.post(url, {"de": "10/2026", "ate": "10/2026"}, follow=True)
+    assert resposta.redirect_chain[-1][0] == reverse("boletos:lista") + "?mes=10%2F2026"
     assert "1 boleto criado para 10/2026." in resposta.content.decode()
 
-    de_novo = logado.post(url, {"referencia": "10/2026"}, follow=True).content.decode()
-    assert "0 boletos criados para 10/2026. 1 já existia." in de_novo
-    assert Boleto.objects.count() == 1
+    de_novo = logado.post(url, {"de": "10/2026", "ate": "12/2026"}, follow=True)
+    assert de_novo.redirect_chain[-1][0] == reverse("boletos:lista") + "?situacao=enviar"
+    assert "2 boletos criados para 10/2026 a 12/2026. 1 já existia." in de_novo.content.decode()
+    assert Boleto.objects.count() == 3
+
+
+@pytest.mark.parametrize(
+    "ate, erro", [("09/2026", "igual ou depois do primeiro"), ("10/2027", "no máximo 12 meses")]
+)
+def test_periodo_invalido_para_gerar(logado, com_boleto, ate, erro):
+    resposta = logado.post(reverse("boletos:gerar"), {"de": "10/2026", "ate": ate})
+    assert resposta.status_code == 200 and erro in resposta.content.decode()
+    assert not Boleto.objects.exists()
 
 
 def test_gerar_sem_contratos_com_envio(logado, saude):
-    resposta = logado.post(reverse("boletos:gerar"), {"referencia": "10/2026"}, follow=True)
-    assert "Nenhum contrato vigente" in resposta.content.decode()
+    dados = {"de": "10/2026", "ate": "12/2026"}
+    resposta = logado.post(reverse("boletos:gerar"), dados, follow=True)
+    assert "Nenhum boleto criado" in resposta.content.decode()
 
 
 def test_novo_boleto_pela_tela(logado, com_boleto, usuario):
@@ -309,3 +351,99 @@ def test_edicao_nao_deixa_duas_mensalidades_no_mes(logado, com_boleto):
         resposta = logado.post(reverse("boletos:editar", args=[editado.pk]), dados | extra)
         assert resposta.status_code == 200
         assert "Este contrato já tem a mensalidade deste mês." in resposta.content.decode()
+
+
+def test_lista_padrao_mostra_os_proximos_30_dias(logado, com_boleto):
+    perto = boleto(com_boleto, tipo="COP", vencimento=HOJE + timedelta(days=30))
+    longe = boleto(com_boleto, tipo="REA", vencimento=HOJE + timedelta(days=31))
+    url = reverse("boletos:lista")
+
+    padrao = logado.get(url).content.decode()
+    assert perto.get_absolute_url() in padrao and longe.get_absolute_url() not in padrao
+    assert f"<strong>1</strong> a enviar até {HOJE + timedelta(days=30):%d/%m}" in padrao
+    todos_os_meses = logado.get(url, {"situacao": "enviar"}).content.decode()
+    assert longe.get_absolute_url() in todos_os_meses
+    # Escolhendo o mês, aparece o mês inteiro.
+    assert longe.get_absolute_url() in logado.get(url, {"mes": "10/2026"}).content.decode()
+
+
+def test_filtro_e_marca_de_pre_e_pos_pagamento(logado, com_boleto, dental):
+    dental.pagamento = Contrato.Pagamento.POS
+    dental.save()
+    pre, pos = boleto(com_boleto), boleto(dental)
+    assert pos.vencimento == date(2026, 11, 10) and not pos.fora_do_vencimento
+
+    url = reverse("boletos:lista")
+    so_pos = logado.get(url, {"situacao": "enviar", "pagamento": "POS"}).content.decode()
+    assert pos.get_absolute_url() in so_pos and pre.get_absolute_url() not in so_pos
+    assert 'title="Pós-pagamento">pós</span>' in so_pos
+    assert "Pós-pagamento" in logado.get(pos.get_absolute_url()).content.decode()
+
+
+# ------------------------------------------------------------------
+# Mudanças no contrato
+# ------------------------------------------------------------------
+
+
+def editar_contrato(cliente_http, plano, **mudancas):
+    dados = {
+        "seguradora": plano.seguradora_id,
+        "ramo": plano.ramo_id,
+        "numero": plano.numero,
+        "modalidade": plano.modalidade,
+        "situacao": plano.situacao,
+        "inicio_vigencia": f"{plano.inicio_vigencia:%d/%m/%Y}",
+        "dia_vencimento": plano.dia_vencimento,
+        "pagamento": plano.pagamento,
+        "corretora_envia_boleto": "on",
+        "unidades": [unidade.pk for unidade in plano.unidades.all()],
+        **mudancas,
+    }
+    url = reverse("apolices:editar_contrato", args=[plano.pk])
+    return cliente_http.post(url, dados, follow=True).content.decode()
+
+
+def test_novo_vencimento_do_contrato_vale_para_as_mensalidades_a_enviar(
+    logado, com_boleto, usuario
+):
+    passada = boleto(com_boleto, referencia=somar_meses(HOJE, -1))
+    Boleto.gerar_mensalidades(somar_meses(HOJE, 1), somar_meses(HOJE, 2))
+    enviada = boleto(com_boleto, referencia=somar_meses(HOJE, 3))
+    enviada.registrar_envio(usuario)
+    mes_da_fora = somar_meses(HOJE, 4)
+    fora = boleto(com_boleto, referencia=mes_da_fora, vencimento=mes_da_fora.replace(day=20))
+    copart = boleto(com_boleto, tipo="COP", referencia=somar_meses(HOJE, 1))
+
+    pagina = editar_contrato(logado, com_boleto, dia_vencimento=15)
+    assert "2 mensalidades a enviar passaram para o novo vencimento." in pagina
+    meses_gerados = [somar_meses(HOJE, 1), somar_meses(HOJE, 2)]
+    geradas = Boleto.objects.filter(tipo="MEN", referencia__in=meses_gerados).order_by("referencia")
+    assert [b.vencimento.day for b in geradas] == [15, 15]
+    assert not any(b.fora_do_vencimento for b in geradas)
+    for intocado in (passada, enviada, fora, copart):
+        antes = intocado.vencimento
+        intocado.refresh_from_db()
+        assert intocado.vencimento == antes
+
+    editar_contrato(logado, com_boleto, dia_vencimento=15, pagamento="POS")
+    primeira = geradas[0]
+    primeira.refresh_from_db()
+    assert primeira.vencimento == somar_meses(HOJE, 2).replace(day=15)
+
+
+def test_cancelar_o_contrato_cancela_as_mensalidades_dos_proximos_meses(logado, com_boleto):
+    deste_mes = boleto(com_boleto, referencia=HOJE)
+    Boleto.gerar_mensalidades(somar_meses(HOJE, 1), somar_meses(HOJE, 3))
+    copart = boleto(com_boleto, tipo="COP", referencia=somar_meses(HOJE, 1))
+
+    pagina = editar_contrato(logado, com_boleto, situacao="CAN")
+    assert "3 mensalidades a enviar dos próximos meses foram canceladas" in pagina
+    canceladas = Boleto.objects.cancelados()
+    assert canceladas.count() == 3
+    assert all(b.observacao == "Cancelado junto com o contrato." for b in canceladas)
+    for continua in (deste_mes, copart):
+        continua.refresh_from_db()
+        assert continua.situacao == Situacao.A_ENVIAR
+
+    lista = logado.get(reverse("boletos:lista"), {"situacao": "enviar"}).content.decode()
+    assert "contrato cancelado" in lista

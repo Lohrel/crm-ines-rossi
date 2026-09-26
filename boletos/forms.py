@@ -3,7 +3,7 @@ from datetime import date
 from django import forms
 
 from apolices.models import Contrato
-from boletos.models import Boleto, Situacao
+from boletos.models import DIAS_NA_LISTA, Boleto, Situacao, meses_entre
 from clientes.forms import BootstrapFormMixin, MesField
 from clientes.widgets import CampoData
 
@@ -92,18 +92,43 @@ class EnvioForm(ContatoDoClienteMixin, BootstrapFormMixin, forms.ModelForm):
 
 
 class GerarMensalidadesForm(BootstrapFormMixin, forms.Form):
-    referencia = MesField(
-        label="Mês",
+    MAXIMO_DE_MESES = 12
+
+    de = MesField(label="Do mês")
+    ate = MesField(label="Até o mês", help_text="Até 12 meses de uma vez, como o ano todo.")
+    contrato = forms.ModelChoiceField(
+        queryset=Contrato.objects.none(),
+        required=False,
+        empty_label="Todos em que a corretora envia o boleto",
         help_text=(
-            "Cria a mensalidade deste mês de cada contrato vigente em que a corretora envia "
-            "o boleto, com o vencimento do contrato. As que já existem não são repetidas."
+            "Cria a mensalidade de cada mês com o vencimento do contrato. "
+            "As que já existem não são repetidas."
         ),
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        contratos = Contrato.objects.vigentes().com_boleto_da_corretora()
+        self.fields["contrato"].queryset = contratos.select_related(
+            "cliente", "ramo", "seguradora"
+        ).order_by("cliente__nome", "ramo__nome")
+        self.fields["contrato"].label_from_instance = rotulo_do_contrato
+
+    def clean(self):
+        dados = super().clean()
+        de, ate = dados.get("de"), dados.get("ate")
+        if de and ate:
+            if ate < de:
+                self.add_error("ate", "Escolha um mês igual ou depois do primeiro.")
+            elif len(meses_entre(de, ate)) > self.MAXIMO_DE_MESES:
+                self.add_error("ate", f"Gere no máximo {self.MAXIMO_DE_MESES} meses de uma vez.")
+        return dados
 
 
 class FiltroBoletosForm(BootstrapFormMixin, forms.Form):
     SITUACOES = [
-        ("", "A enviar"),
+        ("", f"A enviar ({DIAS_NA_LISTA} dias)"),
+        (Situacao.A_ENVIAR, "A enviar (todos)"),
         (Situacao.ENVIADO, "Enviados"),
         (Situacao.CANCELADO, "Cancelados"),
         ("todos", "Todos"),
@@ -114,6 +139,11 @@ class FiltroBoletosForm(BootstrapFormMixin, forms.Form):
     mes = MesField(label="Mês de referência", required=False)
     tipo = forms.ChoiceField(
         label="Tipo", choices=[("", "Todos os tipos"), *Boleto.Tipo.choices], required=False
+    )
+    pagamento = forms.ChoiceField(
+        label="Pagamento",
+        choices=[("", "Pré e pós"), *Contrato.Pagamento.choices],
+        required=False,
     )
     fora = forms.BooleanField(label="Só fora do vencimento", required=False)
     contrato = forms.ModelChoiceField(

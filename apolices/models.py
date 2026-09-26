@@ -80,6 +80,10 @@ class Contrato(Registro):
         SUSPENSO = "SUS", "Suspenso"
         CANCELADO = "CAN", "Cancelado"
 
+    class Pagamento(models.TextChoices):
+        PRE = "PRE", "Pré-pagamento"
+        POS = "POS", "Pós-pagamento"
+
     SITUACOES_VIGENTES = [Situacao.IMPLANTACAO, Situacao.ATIVO, Situacao.SUSPENSO]
 
     cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT, related_name="contratos")
@@ -96,6 +100,12 @@ class Contrato(Registro):
     dia_vencimento = models.PositiveSmallIntegerField(
         "dia de vencimento da fatura",
         validators=[MinValueValidator(1), MaxValueValidator(31)],
+    )
+    pagamento = models.CharField(
+        max_length=3,
+        choices=Pagamento.choices,
+        default=Pagamento.PRE,
+        help_text="No pós-pagamento, o boleto de cada mês vence no mês seguinte.",
     )
     dia_fechamento = models.PositiveSmallIntegerField(
         "dia de fechamento das movimentações",
@@ -155,6 +165,17 @@ class Contrato(Registro):
     def vencimento_em(self, ano: int, mes: int) -> date:
         """Vencimento da fatura no mês; em meses mais curtos, o último dia do mês."""
         return date(ano, mes, min(self.dia_vencimento, monthrange(ano, mes)[1]))
+
+    def vencimento_da_referencia(self, referencia: date) -> date:
+        """Vencimento do boleto do mês de referência.
+
+        No pré-pagamento vence no próprio mês. O pós-pagamento cobra o mês já usado,
+        então vence no mês seguinte (o boleto de setembro vence em outubro).
+        """
+        ano, mes = referencia.year, referencia.month
+        if self.pagamento == self.Pagamento.POS:
+            ano, mes = (ano + 1, 1) if mes == 12 else (ano, mes + 1)
+        return self.vencimento_em(ano, mes)
 
     def vigencia_sugerida(self, recebida_em: date) -> date:
         """Dia 1º do mês seguinte; depois do fechamento, dia 1º do outro mês."""

@@ -23,7 +23,8 @@
 <div class="card shadow-sm mb-4"><div class="card-body">
   <dl class="row mb-0">
     <dt class="col-sm-3">Cliente</dt><dd class="col-sm-9"><a href="{{ contrato.cliente.get_absolute_url }}">{{ contrato.cliente }}</a></dd>
-    <dt class="col-sm-3">Plano</dt><dd class="col-sm-9">{{ contrato.ramo }} · {{ contrato.seguradora }} {{ contrato.numero }}</dd>
+    <dt class="col-sm-3">Plano</dt><dd class="col-sm-9">{{ contrato.ramo }} · {{ contrato.seguradora }} {{ contrato.numero }}{% if contrato.situacao == "CAN" %} <span class="badge text-bg-secondary">contrato cancelado</span>{% endif %}</dd>
+    <dt class="col-sm-3">Pagamento</dt><dd class="col-sm-9">{{ contrato.get_pagamento_display }}</dd>
     <dt class="col-sm-3">Mês de referência</dt><dd class="col-sm-9">{{ boleto.referencia|date:"m/Y" }}</dd>
     <dt class="col-sm-3">Vencimento</dt><dd class="col-sm-9">{{ boleto.vencimento|date:"d/m/Y" }}</dd>
     <dt class="col-sm-3">Valor</dt><dd class="col-sm-9">{% if boleto.valor is not None %}R$ {{ boleto.valor|floatformat:"2g" }}{% else %}—{% endif %}</dd>

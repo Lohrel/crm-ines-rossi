@@ -1,3 +1,4 @@
+from django.contrib import messages
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
@@ -6,6 +7,7 @@ from django.views.generic import CreateView, ListView, UpdateView
 from apolices.forms import ContratoForm, FiltroContratosForm, SeguradoraForm
 from apolices.models import Contrato, Seguradora
 from beneficiarios.vidas import anotar_vidas
+from boletos.models import Boleto
 from clientes.models import Cliente
 from clientes.views import FormularioMixin
 
@@ -38,6 +40,8 @@ class ContratoListView(ListView):
             contratos = contratos.filter(seguradora=dados["seguradora"])
         if dados["ramo"]:
             contratos = contratos.filter(ramo=dados["ramo"])
+        if dados["pagamento"]:
+            contratos = contratos.filter(pagamento=dados["pagamento"])
         if dados["boleto"]:
             contratos = contratos.com_boleto_da_corretora()
         if dados["vencimento"]:
@@ -75,6 +79,28 @@ class ContratoUpdateView(FormularioMixin, UpdateView):
     model = Contrato
     form_class = ContratoForm
     mensagem_sucesso = "Contrato atualizado."
+
+    def form_valid(self, form):
+        resposta = super().form_valid(form)
+        self._acompanhar_boletos(self.object, set(form.changed_data))
+        return resposta
+
+    def _acompanhar_boletos(self, contrato: Contrato, mudou: set[str]) -> None:
+        """Ajusta ao contrato as mensalidades a enviar já geradas para os próximos meses."""
+        if "situacao" in mudou and contrato.situacao == Contrato.Situacao.CANCELADO:
+            quantas = Boleto.cancelar_com_o_contrato(contrato)
+            singular, plural = "foi cancelada", "foram canceladas"
+            texto = "dos próximos meses {} junto com o contrato."
+        elif mudou & {"dia_vencimento", "pagamento"}:
+            quantas = Boleto.seguir_novo_vencimento(contrato)
+            singular, plural = "passou", "passaram"
+            texto = "{} para o novo vencimento."
+        else:
+            return
+        if quantas == 1:
+            messages.info(self.request, "1 mensalidade a enviar " + texto.format(singular))
+        elif quantas:
+            messages.info(self.request, f"{quantas} mensalidades a enviar " + texto.format(plural))
 
     def get_titulo(self) -> str:
         return f"Editar contrato {self.object}"

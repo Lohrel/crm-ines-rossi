@@ -1,11 +1,11 @@
-from datetime import date
+from datetime import date, timedelta
 
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.shortcuts import redirect
 from django.urls import reverse
-from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils.http import url_has_allowed_host_and_scheme, urlencode
 from django.views import View
 from django.views.generic import CreateView, DetailView, FormView, ListView, UpdateView
 from django.views.generic.detail import SingleObjectMixin
@@ -19,7 +19,7 @@ from boletos.forms import (
     este_mes,
 )
 from boletos.historico import LinhaDoTempoDoBoleto
-from boletos.models import DIAS_DE_ANTECEDENCIA, Boleto
+from boletos.models import DIAS_DE_ANTECEDENCIA, DIAS_NA_LISTA, Boleto, Situacao, somar_meses
 from clientes.views import FormularioMixin
 
 
@@ -28,10 +28,14 @@ def _quantos(numero: int, singular: str, plural: str) -> str:
 
 
 class BoletoListView(ListView):
-    """Por padrão, o que falta enviar, de qualquer mês, pelo vencimento."""
+    """Por padrão, o que falta enviar e vence nos próximos dias (e os já vencidos)."""
 
     template_name = "boletos/lista.html"
     paginate_by = 100
+
+    @property
+    def limite_da_lista(self) -> date:
+        return date.today() + timedelta(days=DIAS_NA_LISTA)
 
     def get_queryset(self):
         self.filtro = FiltroBoletosForm(self.request.GET or None)
@@ -44,16 +48,22 @@ class BoletoListView(ListView):
             "enviado_por",
         )
         situacao = self.dados.get("situacao", "")
-        if situacao == "":
+        mes = self.dados.get("mes")
+        if situacao in ("", Situacao.A_ENVIAR):
             boletos = boletos.a_enviar()
+            # Com o mês escolhido no filtro, vale o mês inteiro, mesmo mais adiante.
+            if situacao == "" and not mes:
+                boletos = boletos.filter(vencimento__lte=self.limite_da_lista)
         else:
             if situacao != "todos":
                 boletos = boletos.na_situacao(situacao)
             boletos = boletos.order_by("-vencimento", "contrato__cliente__nome")
-        if mes := self.dados.get("mes"):
+        if mes:
             boletos = boletos.filter(referencia=mes)
         if tipo := self.dados.get("tipo"):
             boletos = boletos.filter(tipo=tipo)
+        if pagamento := self.dados.get("pagamento"):
+            boletos = boletos.filter(contrato__pagamento=pagamento)
         if self.dados.get("fora"):
             boletos = boletos.filter(fora_do_vencimento=True)
         if contrato := self.dados.get("contrato"):
@@ -69,12 +79,14 @@ class BoletoListView(ListView):
         hoje = date.today()
         contexto["filtro"] = self.filtro
         contexto["contrato"] = self.dados.get("contrato")
+        a_enviar = Boleto.objects.a_enviar()
         contexto["resumo"] = {
-            "a_enviar": Boleto.objects.a_enviar().count(),
-            "vencidos": Boleto.objects.vencidos(hoje).count(),
-            "vencendo": Boleto.objects.vencendo(hoje).count(),
+            "a_enviar": a_enviar.filter(vencimento__lte=self.limite_da_lista).count(),
+            "vencidos": a_enviar.vencidos(hoje).count(),
+            "vencendo": a_enviar.vencendo(hoje).count(),
         }
         contexto["dias_de_antecedencia"] = DIAS_DE_ANTECEDENCIA
+        contexto["limite_da_lista"] = self.limite_da_lista
         parametros = self.request.GET.copy()
         parametros.pop("page", None)
         contexto["parametros_busca"] = parametros.urlencode()
@@ -173,26 +185,39 @@ class EnviadoHojeView(SingleObjectMixin, View):
 
 class GerarMensalidadesView(FormularioMixin, FormView):
     form_class = GerarMensalidadesForm
-    titulo = "Gerar boletos do mês"
+    titulo = "Gerar boletos"
+    texto_do_botao = "Gerar boletos"
 
     def get_initial(self):
-        return {"referencia": este_mes()}
+        inicio = este_mes()
+        return {"de": inicio, "ate": somar_meses(inicio, 11), **self._contrato_da_url()}
+
+    def _contrato_da_url(self) -> dict:
+        contrato = self.request.GET.get("contrato", "")
+        return {"contrato": contrato} if contrato.isdigit() else {}
 
     def form_valid(self, form):
-        referencia = form.cleaned_data["referencia"]
-        criados, existentes = Boleto.gerar_mensalidades(referencia, self.request.user)
-        mes = f"{referencia:%m/%Y}"
+        de, ate = form.cleaned_data["de"], form.cleaned_data["ate"]
+        contrato = form.cleaned_data["contrato"]
+        criados, existentes = Boleto.gerar_mensalidades(
+            de, ate, contrato=contrato, usuario=self.request.user
+        )
+        periodo = f"{de:%m/%Y}" if de == ate else f"{de:%m/%Y} a {ate:%m/%Y}"
         if criados or existentes:
-            texto = f"{_quantos(criados, 'boleto criado', 'boletos criados')} para {mes}."
+            texto = f"{_quantos(criados, 'boleto criado', 'boletos criados')} para {periodo}."
             if existentes:
                 texto += f" {_quantos(existentes, 'já existia', 'já existiam')}."
             messages.success(self.request, texto)
         else:
             messages.warning(
                 self.request,
-                "Nenhum contrato vigente está marcado com “a corretora envia o boleto”.",
+                "Nenhum boleto criado: nenhum contrato vigente em que a corretora envia o "
+                f"boleto cobre {periodo}.",
             )
-        return redirect(f"{reverse('boletos:lista')}?mes={mes}")
+        filtro = {"mes": f"{de:%m/%Y}"} if de == ate else {"situacao": Situacao.A_ENVIAR}
+        if contrato:
+            filtro["contrato"] = contrato.pk
+        return redirect(f"{reverse('boletos:lista')}?{urlencode(filtro)}")
 
     def get_url_cancelar(self) -> str:
         return reverse("boletos:lista")
