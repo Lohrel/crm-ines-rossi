@@ -15,7 +15,8 @@
   <div class="alert alert-danger">
     <p class="mb-2"><strong>Esta ação não pode ser desfeita.</strong>
     {% if object.eh_empresa %}Serão excluídas também todas as unidades e contatos desta empresa.{% endif %}
-    {% if object.contatos %}Serão excluídos também os contatos desta unidade.{% endif %}</p>
+    {% if object.contatos %}Serão excluídos também os contatos desta unidade.{% endif %}
+    {{ aviso }}</p>
     <p class="mb-0">A exclusão fica registrada no histórico, com seu usuário e o horário.</p>
   </div>
   <form method="post" novalidate class="card shadow-sm"><div class="card-body">

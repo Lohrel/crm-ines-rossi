@@ -85,7 +85,8 @@ Os outros funcionários são criados pelo administrador em `https://crm.local/ad
   - `diario/`: últimos 7 dias
   - `semanal/`: últimos 4 domingos
   - `mensal/`: últimos 12 meses (dia 1)
-- Os arquivos são criptografados (`.dump.gpg`). Sem a `BACKUP_PASSPHRASE` ninguém consegue abri-los.
+- Cada backup gera dois arquivos com o mesmo horário: o banco (`.dump.gpg`) e os anexos dos beneficiários, como DPS e eSocial (`_anexos.tar.gpg`). Os dois são criptografados: sem a `BACKUP_PASSPHRASE` ninguém consegue abri-los.
+- Os anexos ficam num volume do Docker (`anexos`), fora da pasta pública do site. Só são baixados pela tela do beneficiário, com login.
 
 **Cópias fora do servidor (obrigatório):**
 
@@ -114,9 +115,9 @@ Backup que nunca foi restaurado não é garantia. Uma vez por mês, restaure o b
 docker compose exec backup restaurar.sh diario/crm_AAAA-MM-DD_HHMM.dump.gpg
 ```
 
-Abra o sistema e confira se os dados estão lá.
+O comando restaura o banco e, logo em seguida, os anexos do mesmo horário (copie os dois arquivos). Abra o sistema e confira se os dados estão lá e se um anexo abre.
 
-> ⚠️ `restaurar.sh` **substitui** os dados do banco. No servidor em uso, só rode em caso de perda de dados.
+> ⚠️ `restaurar.sh` **substitui** os dados do banco e os anexos. No servidor em uso, só rode em caso de perda de dados.
 
 ## 8. Atualizar o sistema
 
@@ -171,5 +172,5 @@ robocopy C:\caminho\crm-ines-rossi\backups E:\backups-crm /MIR /R:2 /W:5
 
 1. Faça um backup agora: `docker compose exec backup fazer-backup.sh`.
 2. Instale a máquina nova seguindo os passos 1 a 3 com **o mesmo `.env`**.
-3. Copie o arquivo de backup para a pasta `backups/` da máquina nova e restaure: `docker compose exec backup restaurar.sh diario/<arquivo>`.
+3. Copie os dois arquivos do backup (banco e anexos) para a pasta `backups/` da máquina nova e restaure: `docker compose exec backup restaurar.sh diario/<arquivo>.dump.gpg`.
 4. Aponte `crm.local` para o IP da máquina nova (roteador ou arquivo `hosts`) e desligue o sistema no PC antigo com `docker compose down`.

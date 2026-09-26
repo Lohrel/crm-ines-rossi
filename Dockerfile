@@ -14,8 +14,8 @@ COPY . .
 
 # O sistema roda com um usuário sem privilégios de administrador.
 RUN useradd --create-home --uid 1000 crm \
-    && mkdir -p /app/staticfiles \
-    && chown -R crm:crm /app/staticfiles
+    && mkdir -p /app/staticfiles /app/media \
+    && chown -R crm:crm /app/staticfiles /app/media
 USER crm
 
 EXPOSE 8000

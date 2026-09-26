@@ -9,6 +9,7 @@ from django.views import View
 from django.views.generic import CreateView, DeleteView, DetailView, FormView, ListView, UpdateView
 from django.views.generic.detail import SingleObjectMixin
 
+from beneficiarios.vidas import VidasDoCliente, anotar_vidas
 from clientes.forms import (
     BuscaClienteForm,
     ConfirmacaoExclusaoForm,
@@ -57,9 +58,12 @@ class ClienteDetailView(DetailView):
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
         contexto["historico"] = LinhaDoTempo(self.object).eventos()
-        contexto["contratos"] = self.object.contratos.select_related(
-            "seguradora", "ramo"
-        ).prefetch_related("unidades")
+        contratos = self.object.contratos.select_related("seguradora", "ramo")
+        contexto["contratos"] = anotar_vidas(contratos.prefetch_related("unidades"))
+        vidas = VidasDoCliente(self.object)
+        contexto["vidas"] = vidas
+        for unidade in self.object.unidades.all():
+            unidade.vidas = vidas.da_unidade(unidade.pk)
         return contexto
 
 
@@ -234,6 +238,7 @@ class ExclusaoConfirmadaView(PermissionRequiredMixin, SingleObjectMixin, FormVie
     template_name = "clientes/excluir.html"
     form_class = ConfirmacaoExclusaoForm
     raise_exception = True
+    aviso = ""
 
     def dispatch(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -253,6 +258,7 @@ class ExclusaoConfirmadaView(PermissionRequiredMixin, SingleObjectMixin, FormVie
         contexto["bloqueios"] = self.object.bloqueios_para_excluir()
         contexto["texto_esperado"] = self.get_texto_esperado()
         contexto["url_cancelar"] = self.get_url_cancelar()
+        contexto["aviso"] = self.aviso
         return contexto
 
     def form_valid(self, form):
