@@ -201,7 +201,7 @@ class Cliente(ExclusaoProtegida, Endereco, MeiosDeContato, Registro):
     history = HistoricalRecords()
     objects = ClienteQuerySet.as_manager()
 
-    dependentes_proprios = ("unidades",)
+    dependentes_proprios = ("unidades", "contatos")
 
     class Meta:
         ordering = ["nome"]
@@ -242,6 +242,7 @@ class Cliente(ExclusaoProtegida, Endereco, MeiosDeContato, Registro):
             bloqueios = self.bloqueios_para_excluir()
             if bloqueios:
                 raise ValidationError("Não é possível excluir: " + "; ".join(bloqueios) + ".")
+            self.contatos.all().delete()
             for unidade in self.unidades.all():
                 unidade.delete()
             self.delete()
@@ -308,30 +309,50 @@ class Unidade(ExclusaoProtegida, MarcacaoExclusiva, Endereco, MeiosDeContato, Re
     def cnpj_formatado(self) -> str:
         return CNPJ(self.cnpj).formatado()
 
+    def excluir(self) -> None:
+        """Exclui a unidade; contatos que só atendiam esta unidade saem junto."""
+        with transaction.atomic():
+            if bloqueios := self.bloqueios_para_excluir():
+                raise ValidationError("Não é possível excluir: " + "; ".join(bloqueios) + ".")
+            # Conta todas as unidades de cada contato, não só esta (por isso o filtro em pk__in).
+            contatos = Contato.objects.filter(pk__in=self.contatos.values("pk"))
+            contatos.annotate(total=models.Count("unidades")).filter(total=1).delete()
+            self.delete()
+
 
 class Contato(MarcacaoExclusiva, MeiosDeContato, Registro):
-    """Pessoa de contato numa unidade (ex.: RH da filial)."""
+    """Pessoa de contato da empresa (ex.: RH), que pode cuidar de uma ou mais unidades."""
 
     campo_exclusivo = "principal"
-    campo_grupo = "unidade"
+    campo_grupo = "cliente"
 
-    unidade = models.ForeignKey(Unidade, on_delete=models.CASCADE, related_name="contatos")
+    cliente = models.ForeignKey(
+        Cliente,
+        on_delete=models.CASCADE,
+        related_name="contatos",
+        limit_choices_to={"tipo": Cliente.Tipo.PESSOA_JURIDICA},
+    )
+    unidades = models.ManyToManyField(
+        Unidade,
+        related_name="contatos",
+        help_text="Unidades (matriz ou filiais) que esta pessoa atende.",
+    )
     nome = models.CharField(max_length=200)
     cargo = models.CharField("cargo/setor", max_length=100, blank=True)
     principal = models.BooleanField(
-        default=False, help_text="Contato procurado primeiro nesta unidade."
+        default=False, help_text="Contato procurado primeiro nesta empresa."
     )
 
-    history = HistoricalRecords()
+    history = HistoricalRecords(m2m_fields=[unidades])
 
     class Meta:
         ordering = ["-principal", "nome"]
         constraints = [
             models.UniqueConstraint(
-                fields=["unidade"],
+                fields=["cliente"],
                 condition=Q(principal=True),
-                name="contato_um_principal_por_unidade",
-                violation_error_message="Esta unidade já tem um contato principal.",
+                name="contato_um_principal_por_cliente",
+                violation_error_message="Esta empresa já tem um contato principal.",
             ),
         ]
 
@@ -339,4 +360,10 @@ class Contato(MarcacaoExclusiva, MeiosDeContato, Registro):
         return f"{self.nome} ({self.cargo})" if self.cargo else self.nome
 
     def get_absolute_url(self) -> str:
-        return self.unidade.get_absolute_url()
+        return self.cliente.get_absolute_url()
+
+    def validar_unidades(self, unidades: list[Unidade]) -> None:
+        if not unidades:
+            raise ValidationError("Escolha ao menos uma unidade atendida por este contato.")
+        if any(u.cliente_id != self.cliente_id for u in unidades):
+            raise ValidationError("Só é possível escolher unidades desta empresa.")

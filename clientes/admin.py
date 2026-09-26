@@ -20,5 +20,6 @@ class ClienteAdmin(SimpleHistoryAdmin):
 
 @admin.register(Contato)
 class ContatoAdmin(SimpleHistoryAdmin):
-    list_display = ["nome", "cargo", "unidade", "principal"]
-    search_fields = ["nome", "unidade__razao_social"]
+    list_display = ["nome", "cargo", "cliente", "principal"]
+    search_fields = ["nome", "cliente__nome", "unidades__razao_social"]
+    filter_horizontal = ["unidades"]

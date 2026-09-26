@@ -133,13 +133,23 @@ class UnidadeForm(MarcacaoExclusivaFormMixin, BootstrapFormMixin, forms.ModelFor
 class ContatoForm(MarcacaoExclusivaFormMixin, BootstrapFormMixin, forms.ModelForm):
     class Meta:
         model = Contato
-        fields = ["nome", "cargo", *CAMPOS_CONTATO, "principal"]
-        help_texts = {"principal": "Ao marcar, o contato principal anterior deixa de ser."}
+        fields = ["nome", "cargo", *CAMPOS_CONTATO, "unidades", "principal"]
+        help_texts = {
+            "principal": "Ao marcar, o contato principal anterior da empresa deixa de ser.",
+            "unidades": "Marque todas as unidades que esta pessoa atende.",
+        }
+        widgets = {"unidades": forms.CheckboxSelectMultiple}
 
-    def __init__(self, *args, unidade: Unidade | None = None, **kwargs):
+    def __init__(self, *args, cliente: Cliente | None = None, **kwargs):
         super().__init__(*args, **kwargs)
-        if unidade is not None:
-            self.instance.unidade = unidade
+        if cliente is not None:
+            self.instance.cliente = cliente
+        self.fields["unidades"].queryset = self.instance.cliente.unidades.all()
+
+    def clean_unidades(self):
+        unidades = list(self.cleaned_data["unidades"])
+        self.instance.validar_unidades(unidades)
+        return unidades
 
 
 class BuscaClienteForm(BootstrapFormMixin, forms.Form):

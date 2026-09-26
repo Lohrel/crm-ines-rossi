@@ -122,3 +122,12 @@ def test_botoes_de_exclusao_ficam_no_fim_da_pagina(admin, empresa, matriz):
         reverse("clientes:excluir_unidade", args=[matriz.pk]),
     ):
         assert pagina.index(url) > historico
+
+
+def test_excluir_filial_mantem_rh_que_atende_outras_unidades(admin, empresa, matriz, filial):
+    rh = Contato.objects.create(cliente=empresa, nome="Marta RH")
+    rh.unidades.add(matriz, filial)
+    admin.post(
+        reverse("clientes:excluir_unidade", args=[filial.pk]), {"confirmacao": "Exemplo Centro"}
+    )
+    assert list(rh.unidades.all()) == [matriz]

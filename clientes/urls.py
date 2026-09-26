@@ -19,7 +19,7 @@ urlpatterns = [
     path("unidades/<int:pk>/editar/", views.UnidadeUpdateView.as_view(), name="editar_unidade"),
     path("unidades/<int:pk>/excluir/", views.UnidadeDeleteView.as_view(), name="excluir_unidade"),
     path(
-        "unidades/<int:unidade_pk>/contatos/novo/",
+        "<int:cliente_pk>/contatos/novo/",
         views.ContatoCreateView.as_view(),
         name="novo_contato",
     ),

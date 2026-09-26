@@ -24,11 +24,10 @@ FonteDeHistorico = Callable[[Cliente], Iterable]
 
 
 def _cadastro_do_cliente(cliente: Cliente) -> Iterable:
-    unidades_ids = list(cliente.unidades.values_list("pk", flat=True))
     return chain(
         Cliente.history.filter(id=cliente.pk),
         Unidade.history.filter(cliente_id=cliente.pk),
-        Contato.history.filter(unidade_id__in=unidades_ids),
+        Contato.history.filter(cliente_id=cliente.pk),
     )
 
 

@@ -51,5 +51,7 @@ def filial(empresa):
 
 
 @pytest.fixture
-def contato_rh(filial):
-    return Contato.objects.create(unidade=filial, nome="Carla RH", cargo="RH", principal=True)
+def contato_rh(empresa, filial):
+    contato = Contato.objects.create(cliente=empresa, nome="Carla RH", cargo="RH", principal=True)
+    contato.unidades.add(filial)
+    return contato

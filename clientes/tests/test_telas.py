@@ -77,16 +77,60 @@ def test_adicionar_filial_e_contato(logado, empresa, matriz):
     assert filial.cliente == empresa and not filial.matriz
 
     logado.post(
-        reverse("clientes:novo_contato", args=[filial.pk]),
-        {"nome": "Carla", "cargo": "RH", "email": "rh@exemplo.test", "principal": "on"},
+        reverse("clientes:novo_contato", args=[empresa.pk]),
+        {
+            "nome": "Carla",
+            "cargo": "RH",
+            "email": "rh@exemplo.test",
+            "unidades": [filial.pk],
+            "principal": "on",
+        },
     )
     assert filial.contatos.get().principal
 
 
-def test_trocar_contato_principal_pela_tela(logado, contato_rh, filial):
+def test_um_rh_atende_varias_filiais(logado, empresa, matriz, filial):
     resposta = logado.post(
-        reverse("clientes:novo_contato", args=[filial.pk]),
-        {"nome": "Pedro", "principal": "on"},
+        reverse("clientes:novo_contato", args=[empresa.pk]),
+        {"nome": "Marta", "cargo": "RH", "unidades": [matriz.pk, filial.pk]},
+    )
+    assert resposta.status_code == 302
+    marta = Contato.objects.get(nome="Marta")
+    assert set(marta.unidades.all()) == {matriz, filial}
+    pagina = logado.get(empresa.get_absolute_url()).content.decode()
+    assert "Supermercados Exemplo Ltda, Exemplo Centro" in pagina
+
+
+def test_contato_precisa_de_ao_menos_uma_unidade(logado, empresa, matriz):
+    resposta = logado.post(reverse("clientes:novo_contato", args=[empresa.pk]), {"nome": "Sem"})
+    assert resposta.status_code == 200
+    assert not Contato.objects.exists()
+
+
+def test_contato_nao_aceita_unidade_de_outra_empresa(logado, empresa, matriz):
+    outra = Cliente.objects.create(tipo="PJ", nome="Outra Empresa")
+    unidade_alheia = Unidade.objects.create(
+        cliente=outra, cnpj="11444777000161", razao_social="Outra Ltda", matriz=True
+    )
+    resposta = logado.post(
+        reverse("clientes:novo_contato", args=[empresa.pk]),
+        {"nome": "Intruso", "unidades": [unidade_alheia.pk]},
+    )
+    assert resposta.status_code == 200
+    assert not Contato.objects.exists()
+
+
+def test_botao_da_unidade_ja_marca_a_unidade(logado, empresa, matriz, filial):
+    url = reverse("clientes:novo_contato", args=[empresa.pk]) + f"?unidade={filial.pk}"
+    pagina = logado.get(url).content.decode()
+    assert f'value="{filial.pk}"' in pagina
+    assert "checked" in pagina.split(f'value="{filial.pk}"')[1].split(">")[0]
+
+
+def test_trocar_contato_principal_pela_tela(logado, contato_rh, empresa, filial):
+    resposta = logado.post(
+        reverse("clientes:novo_contato", args=[empresa.pk]),
+        {"nome": "Pedro", "unidades": [filial.pk], "principal": "on"},
     )
     assert resposta.status_code == 302
     assert Contato.objects.get(principal=True).nome == "Pedro"

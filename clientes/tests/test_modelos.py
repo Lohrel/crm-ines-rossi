@@ -44,8 +44,8 @@ def test_nova_matriz_desmarca_a_anterior(matriz, filial):
     assert Unidade.objects.filter(cliente=filial.cliente, matriz=True).get() == filial
 
 
-def test_novo_contato_principal_desmarca_o_anterior(contato_rh, filial):
-    novo = Contato.objects.create(unidade=filial, nome="Pedro", principal=True)
+def test_novo_contato_principal_desmarca_o_anterior(contato_rh, empresa):
+    novo = Contato.objects.create(cliente=empresa, nome="Pedro", principal=True)
     contato_rh.refresh_from_db()
     assert not contato_rh.principal
     assert novo.principal

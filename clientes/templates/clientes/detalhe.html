@@ -33,6 +33,40 @@
   </dl>
 </div></div>
 {% else %}
+<div class="card shadow-sm mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">Contatos (RH e outros)</span>
+    <a href="{% url 'clientes:novo_contato' cliente.pk %}" class="btn btn-sm btn-primary">Novo contato</a>
+  </div>
+  {% with contatos=cliente.contatos.all %}
+  {% if contatos %}
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead><tr><th>Nome</th><th>Cargo/setor</th><th>Unidades que atende</th><th>Telefone</th><th>WhatsApp</th><th>E-mail</th><th></th></tr></thead>
+      <tbody>
+      {% for contato in contatos %}
+        <tr>
+          <td>{{ contato.nome }} {% if contato.principal %}<span class="badge text-bg-success">Principal</span>{% endif %}</td>
+          <td>{{ contato.cargo|default:"—" }}</td>
+          <td>{{ contato.unidades.all|join:", " }}</td>
+          <td>{{ contato.telefone|default:"—" }}</td>
+          <td>{{ contato.whatsapp|default:"—" }}</td>
+          <td>{% if contato.email %}<a href="mailto:{{ contato.email }}">{{ contato.email }}</a>{% else %}—{% endif %}</td>
+          <td class="text-end text-nowrap">
+            <a href="{% url 'clientes:editar_contato' contato.pk %}" class="btn btn-sm btn-link">Editar</a>
+            <a href="{% url 'clientes:remover_contato' contato.pk %}" class="btn btn-sm btn-link text-danger">Remover</a>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div class="card-body text-body-secondary">Nenhum contato cadastrado. Use "Novo contato" para registrar o RH ou outra pessoa da empresa.</div>
+  {% endif %}
+  {% endwith %}
+</div>
+
   {% for unidade in cliente.unidades.all %}
   <div class="card shadow-sm mb-3">
     <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
@@ -42,7 +76,7 @@
         {% if not unidade.ativo %}<span class="badge text-bg-secondary">Inativa</span>{% endif %}
       </div>
       <div class="d-flex gap-2">
-        <a href="{% url 'clientes:novo_contato' unidade.pk %}" class="btn btn-sm btn-outline-primary">Novo contato</a>
+        <a href="{% url 'clientes:novo_contato' cliente.pk %}?unidade={{ unidade.pk }}" class="btn btn-sm btn-outline-primary">Novo contato</a>
         <a href="{% url 'clientes:editar_unidade' unidade.pk %}" class="btn btn-sm btn-outline-secondary">Editar unidade</a>
       </div>
     </div>
@@ -55,33 +89,14 @@
         <dt class="col-sm-3">Contato da unidade</dt><dd class="col-sm-9">{{ unidade.telefone }} {{ unidade.email }}</dd>
         {% endif %}
       </dl>
-      <h2 class="h6">Contatos</h2>
-      {% with contatos=unidade.contatos.all %}
-      {% if contatos %}
-      <div class="table-responsive">
-        <table class="table table-sm align-middle mb-0">
-          <thead><tr><th>Nome</th><th>Cargo/setor</th><th>Telefone</th><th>WhatsApp</th><th>E-mail</th><th></th></tr></thead>
-          <tbody>
-          {% for contato in contatos %}
-            <tr>
-              <td>{{ contato.nome }} {% if contato.principal %}<span class="badge text-bg-success">Principal</span>{% endif %}</td>
-              <td>{{ contato.cargo|default:"—" }}</td>
-              <td>{{ contato.telefone|default:"—" }}</td>
-              <td>{{ contato.whatsapp|default:"—" }}</td>
-              <td>{% if contato.email %}<a href="mailto:{{ contato.email }}">{{ contato.email }}</a>{% else %}—{% endif %}</td>
-              <td class="text-end text-nowrap">
-                <a href="{% url 'clientes:editar_contato' contato.pk %}" class="btn btn-sm btn-link">Editar</a>
-                <a href="{% url 'clientes:remover_contato' contato.pk %}" class="btn btn-sm btn-link text-danger">Remover</a>
-              </td>
-            </tr>
-          {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% else %}
-        <p class="text-body-secondary mb-0">Nenhum contato cadastrado nesta unidade.</p>
-      {% endif %}
-      {% endwith %}
+      <h2 class="h6">Contatos desta unidade</h2>
+      {% for contato in unidade.contatos.all %}
+        {% if forloop.first %}<ul class="list-inline mb-0">{% endif %}
+        <li class="list-inline-item">{{ contato }}</li>
+        {% if forloop.last %}</ul>{% endif %}
+      {% empty %}
+        <p class="text-body-secondary mb-0">Nenhum contato atende esta unidade.</p>
+      {% endfor %}
     </div>
   </div>
   {% empty %}
