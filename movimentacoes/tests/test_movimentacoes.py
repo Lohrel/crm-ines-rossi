@@ -1,3 +1,4 @@
+import re
 from datetime import date
 
 import pytest
@@ -305,3 +306,25 @@ def test_aviso_na_exclusao_do_titular_com_dependentes(logado, titular, conjuge, 
     incluir(conjuge, saude)
     pagina = logado.get(reverse("movimentacoes:nova", args=[titular.pk, "exclusao"]))
     assert "dependentes deste plano saem junto" in pagina.content.decode()
+
+
+def test_data_digitada_como_dia_mes_ano(logado, titular, saude):
+    """05/09/2026 é 5 de setembro, qualquer que seja o idioma do navegador."""
+    mov = pedido(titular, saude)
+    url = reverse("movimentacoes:editar", args=[mov.pk])
+    logado.post(url, {"recebida_em": "05/09/2026", "vigencia": "01/10/2026"})
+    mov.refresh_from_db()
+    assert mov.recebida_em == date(2026, 9, 5)
+
+    pagina = logado.get(url).content.decode()
+    campo = re.search(r'<input[^>]*name="recebida_em"[^>]*>', pagina).group(0)
+    assert 'type="text"' in campo
+    assert 'value="05/09/2026"' in campo
+    assert 'placeholder="dd/mm/aaaa"' in campo
+
+
+def test_filtro_por_mes_no_formato_mes_ano(logado, titular, conjuge, saude):
+    pedido(titular, saude, vigencia=date(2026, 9, 1))
+    pedido(conjuge, saude, vigencia=date(2026, 10, 1))
+    pagina = logado.get(reverse("movimentacoes:lista"), {"mes": "09/2026"}).content.decode()
+    assert titular.nome in pagina and conjuge.nome not in pagina

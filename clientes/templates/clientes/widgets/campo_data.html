@@ -1,0 +1,10 @@
+<div class="position-relative" data-grupo-data>
+  <div class="input-group">
+    {% include "django/forms/widgets/input.html" %}
+    <button type="button" class="btn btn-outline-secondary" data-abrir-calendario hidden tabindex="-1" title="Escolher no calendário" aria-label="Escolher no calendário">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 .5a.5.5 0 0 0-1 0V1H2a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-1V.5a.5.5 0 0 0-1 0V1H4zM1 4h14v10a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1zm2 2v2h2V6zm4 0v2h2V6zm4 0v2h2V6zm-8 4v2h2v-2zm4 0v2h2v-2z"/></svg>
+    </button>
+  </div>
+  {# Fora do input-group para não mexer nos cantos arredondados; o calendário abre logo abaixo do campo. #}
+  <input type="date" class="visually-hidden" tabindex="-1" aria-hidden="true" data-calendario>
+</div>

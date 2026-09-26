@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 from django import forms
 from django.core.exceptions import ValidationError
@@ -9,9 +9,10 @@ from apolices.models import Contrato
 from beneficiarios.models import Beneficiario
 from clientes.forms import BootstrapFormMixin
 from clientes.models import Cliente
+from clientes.widgets import CampoData
 from movimentacoes.models import Etapa, Movimentacao
 
-DATA = forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d")
+DATA = CampoData()
 
 
 def rotulo_do_plano(contrato: Contrato) -> str:
@@ -239,7 +240,9 @@ class FiltroMovimentacoesForm(BootstrapFormMixin, forms.Form):
     mes = forms.CharField(
         label="Mês da vigência",
         required=False,
-        widget=forms.DateInput(attrs={"type": "month"}),
+        widget=forms.TextInput(
+            attrs={"placeholder": "mm/aaaa", "inputmode": "numeric", "maxlength": "7"}
+        ),
     )
     cliente = forms.ModelChoiceField(
         queryset=Cliente.objects.empresas(), required=False, empty_label="Todos os clientes"
@@ -257,12 +260,13 @@ class FiltroMovimentacoesForm(BootstrapFormMixin, forms.Form):
         ).distinct()
 
     def clean_mes(self) -> tuple[int, int] | None:
-        texto = self.cleaned_data["mes"]
+        texto = self.cleaned_data["mes"].strip()
         if not texto:
             return None
-        try:
-            ano, mes = (int(parte) for parte in texto.split("-"))
-            date(ano, mes, 1)
-        except ValueError as erro:
-            raise forms.ValidationError("Mês inválido.") from erro
-        return ano, mes
+        for formato in ("%m/%Y", "%Y-%m"):
+            try:
+                data = datetime.strptime(texto, formato)
+            except ValueError:
+                continue
+            return data.year, data.month
+        raise forms.ValidationError("Mês inválido. Use mm/aaaa, por exemplo 09/2026.")
