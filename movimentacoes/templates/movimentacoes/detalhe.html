@@ -43,11 +43,16 @@
 <div class="card shadow-sm mb-4"><div class="card-body">
   <dl class="row mb-0">
     <dt class="col-sm-3">Cliente</dt><dd class="col-sm-9">{{ mov.cliente }}{% if mov.beneficiario.unidade_efetiva %} · {{ mov.beneficiario.unidade_efetiva }}{% endif %}</dd>
-    <dt class="col-sm-3">Plano</dt><dd class="col-sm-9">{{ mov.contrato.ramo }} · {{ mov.contrato.seguradora }} {{ mov.contrato.numero }}</dd>
+    {% if mov.eh_alteracao %}
+    <dt class="col-sm-3">Plano anterior</dt><dd class="col-sm-9">{% include "movimentacoes/_plano.html" with contrato=mov.contrato_anterior %}</dd>
+    <dt class="col-sm-3">Novo plano</dt><dd class="col-sm-9">{% include "movimentacoes/_plano.html" with contrato=mov.contrato %}</dd>
+    {% else %}
+    <dt class="col-sm-3">Plano</dt><dd class="col-sm-9">{% include "movimentacoes/_plano.html" with contrato=mov.contrato %}</dd>
+    {% endif %}
     <dt class="col-sm-3">Solicitante</dt><dd class="col-sm-9">{{ mov.solicitante|default:"—" }}</dd>
     <dt class="col-sm-3">Recebida em</dt><dd class="col-sm-9">{{ mov.recebida_em|date:"d/m/Y" }}</dd>
     <dt class="col-sm-3">Enviada à operadora</dt><dd class="col-sm-9">{{ mov.enviada_em|date:"d/m/Y"|default:"—" }}</dd>
-    <dt class="col-sm-3">{% if mov.eh_inclusao %}Início de vigência{% else %}Data da exclusão{% endif %}</dt><dd class="col-sm-9">{{ mov.vigencia|date:"d/m/Y" }}</dd>
+    <dt class="col-sm-3">{% if mov.eh_inclusao %}Início de vigência{% elif mov.eh_alteracao %}Início no novo plano{% else %}Data da exclusão{% endif %}</dt><dd class="col-sm-9">{{ mov.vigencia|date:"d/m/Y" }}</dd>
     {% if mov.eh_inclusao %}
     <dt class="col-sm-3">Carteirinha</dt><dd class="col-sm-9">{{ mov.carteirinha|default:"—" }}{% if mov.carteirinha_enviada_em %} · enviada em {{ mov.carteirinha_enviada_em|date:"d/m/Y" }}{% endif %}</dd>
     {% endif %}

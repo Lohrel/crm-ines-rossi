@@ -3,7 +3,10 @@
 {% block conteudo %}
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
   <h1 class="h3 mb-0">Movimentações</h1>
-  <span class="text-body-secondary">{{ total_em_aberto }} em aberto no total</span>
+  <div class="d-flex align-items-center gap-3">
+    <span class="text-body-secondary">{{ total_em_aberto }} em aberto no total</span>
+    <a href="{% url 'movimentacoes:planilha' %}" class="btn btn-outline-primary">Planilha mensal</a>
+  </div>
 </div>
 
 <form method="get" class="card card-body shadow-sm mb-3">
@@ -33,13 +36,16 @@
       <tbody>
       {% for mov in object_list %}
         <tr>
-          <td>{% if mov.eh_inclusao %}<span class="badge text-bg-primary">Inclusão</span>{% else %}<span class="badge text-bg-dark">Exclusão</span>{% endif %}</td>
+          <td>{% include "movimentacoes/_tipo.html" %}</td>
           <td>
             <a href="{{ mov.get_absolute_url }}" class="fw-semibold">{{ mov.beneficiario.nome }}</a>
             {% if mov.beneficiario.matricula_efetiva %}<div class="small text-body-secondary">Matr. {{ mov.beneficiario.matricula_efetiva }}</div>{% endif %}
           </td>
           <td>{{ mov.cliente }}<div class="small text-body-secondary">{{ mov.beneficiario.unidade_efetiva|default:"" }}</div></td>
-          <td>{{ mov.contrato.ramo }}<div class="small text-body-secondary">{{ mov.contrato.seguradora }}</div></td>
+          <td>
+            {{ mov.contrato.ramo }}
+            <div class="small text-body-secondary">{% if mov.eh_alteracao %}{{ mov.contrato_anterior.nome_do_plano }} para {{ mov.contrato.nome_do_plano }}{% else %}{{ mov.contrato.seguradora }}{% if mov.contrato.produto %} · {{ mov.contrato.produto }}{% endif %}{% endif %}</div>
+          </td>
           <td class="small">{{ mov.solicitante.nome|default:"—" }}</td>
           <td class="text-nowrap">{{ mov.enviada_em|date:"d/m/Y"|default:"—" }}</td>
           <td class="text-nowrap">

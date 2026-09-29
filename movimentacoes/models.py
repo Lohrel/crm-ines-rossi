@@ -1,9 +1,9 @@
-"""Movimentações: pedidos de inclusão e exclusão enviados às operadoras.
+"""Movimentações: pedidos de inclusão, exclusão e alteração de plano enviados às operadoras.
 
 O pedido só é registrado depois de enviado à operadora, então já começa em
 análise. Quando a operadora aprova, a pessoa entra no plano (ou sai dele) a
 partir da data de vigência, e só então passa a contar (ou deixa de contar)
-como vida.
+como vida. Na alteração de plano, sai de um plano e entra no outro na mesma data.
 """
 
 from datetime import date
@@ -29,6 +29,8 @@ class Etapa(models.TextChoices):
 
 
 ETAPAS_EM_ABERTO = [Etapa.EM_ANALISE, Etapa.APROVADA]
+EM_ABERTO_NO_PLANO = "Já existe uma movimentação em aberto desta pessoa neste plano."
+AVISO_DO_DEPENDENTE = "Se o titular também está entrando neste plano, aprove-o primeiro."
 
 # Para onde cada etapa pode ir.
 PROXIMAS_ETAPAS = {
@@ -64,6 +66,7 @@ class Movimentacao(Registro):
     class Tipo(models.TextChoices):
         INCLUSAO = "INC", "Inclusão"
         EXCLUSAO = "EXC", "Exclusão"
+        ALTERACAO = "ALT", "Alteração de plano"
 
     class Motivo(models.TextChoices):
         RASURA = "RAS", "Rasura ou erro no formulário"
@@ -81,6 +84,15 @@ class Movimentacao(Registro):
     )
     contrato = models.ForeignKey(
         Contrato, on_delete=models.PROTECT, related_name="movimentacoes", verbose_name="plano"
+    )
+    contrato_anterior = models.ForeignKey(
+        Contrato,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="alteracoes_de_saida",
+        verbose_name="plano anterior",
+        help_text="Só na alteração de plano: o plano de onde a pessoa sai.",
     )
     solicitante = models.ForeignKey(
         Contato,
@@ -140,8 +152,14 @@ class Movimentacao(Registro):
                 fields=["tipo", "beneficiario", "contrato"],
                 condition=Q(etapa__in=ETAPAS_EM_ABERTO),
                 name="movimentacao_uma_em_aberto_por_plano",
+                violation_error_message=EM_ABERTO_NO_PLANO,
+            ),
+            models.CheckConstraint(
+                condition=Q(tipo="ALT", contrato_anterior__isnull=False)
+                | ~Q(tipo="ALT") & Q(contrato_anterior__isnull=True),
+                name="movimentacao_plano_anterior_so_na_alteracao",
                 violation_error_message=(
-                    "Já existe uma movimentação em aberto desta pessoa neste plano."
+                    "Só a alteração de plano tem plano anterior, e ela precisa dele."
                 ),
             ),
         ]
@@ -155,6 +173,22 @@ class Movimentacao(Registro):
     @property
     def eh_inclusao(self) -> bool:
         return self.tipo == self.Tipo.INCLUSAO
+
+    @property
+    def eh_alteracao(self) -> bool:
+        return self.tipo == self.Tipo.ALTERACAO
+
+    @property
+    def entra_no_plano(self) -> bool:
+        """Inclusão e alteração põem a pessoa no plano do pedido."""
+        return self.tipo in (self.Tipo.INCLUSAO, self.Tipo.ALTERACAO)
+
+    @property
+    def plano_de_saida_id(self) -> int | None:
+        """Plano de onde a pessoa sai: o da exclusão ou o anterior, na alteração."""
+        if self.eh_alteracao:
+            return self.contrato_anterior_id
+        return self.contrato_id if self.tipo == self.Tipo.EXCLUSAO else None
 
     @property
     def em_aberto(self) -> bool:
@@ -184,11 +218,45 @@ class Movimentacao(Registro):
         if self.solicitante_id and self.solicitante.cliente_id != pessoa.cliente_id:
             raise ValidationError({"solicitante": "O solicitante deve ser desta empresa."})
         if self._state.adding:
-            no_plano = pessoa.vinculos.filter(contrato=self.contrato, data_exclusao__isnull=True)
-            if self.eh_inclusao and no_plano.exists():
-                raise ValidationError({"contrato": "Esta pessoa já está neste plano."})
-            if not self.eh_inclusao and not no_plano.exists():
-                raise ValidationError({"contrato": "Esta pessoa não está neste plano."})
+            if self.eh_alteracao:
+                self._validar_troca_de_plano()
+            self._validar_planos_da_pessoa()
+
+    def _validar_troca_de_plano(self) -> None:
+        anterior = self.contrato_anterior
+        if anterior is None:
+            raise ValidationError({"contrato_anterior": "Informe o plano de onde a pessoa sai."})
+        if anterior.pk == self.contrato_id:
+            raise ValidationError({"contrato": "Escolha um plano diferente do atual."})
+        if anterior.cliente_id != self.beneficiario.cliente_id:
+            raise ValidationError(
+                {"contrato_anterior": "O plano deve ser do mesmo cliente da pessoa."}
+            )
+        if anterior.ramo_id != self.contrato.ramo_id:
+            raise ValidationError(
+                {"contrato": f"A alteração é entre planos do mesmo ramo ({anterior.ramo})."}
+            )
+
+    def _validar_planos_da_pessoa(self) -> None:
+        """Quem entra não pode já estar no plano, quem sai precisa estar, e um pedido por vez."""
+        pessoa = self.beneficiario
+        saida = self.plano_de_saida_id
+        campo_da_saida = "contrato_anterior" if self.eh_alteracao else "contrato"
+        ativos = pessoa.vinculos.filter(data_exclusao__isnull=True)
+        if self.entra_no_plano and ativos.filter(contrato=self.contrato_id).exists():
+            raise ValidationError({"contrato": "Esta pessoa já está neste plano."})
+        if saida and not ativos.filter(contrato=saida).exists():
+            raise ValidationError({campo_da_saida: "Esta pessoa não está neste plano."})
+        # Um pedido em aberto por vez para entrar em cada plano, e outro para sair dele.
+        em_aberto = pessoa.movimentacoes.em_aberto()
+        entrando = Q(tipo__in=[self.Tipo.INCLUSAO, self.Tipo.ALTERACAO], contrato=self.contrato_id)
+        if self.entra_no_plano and em_aberto.filter(entrando).exists():
+            raise ValidationError({"contrato": EM_ABERTO_NO_PLANO})
+        saindo = Q(tipo=self.Tipo.EXCLUSAO, contrato=saida) | Q(
+            tipo=self.Tipo.ALTERACAO, contrato_anterior=saida
+        )
+        if saida and em_aberto.filter(saindo).exists():
+            raise ValidationError({campo_da_saida: EM_ABERTO_NO_PLANO})
 
     def save(self, *args, **kwargs):
         self.cliente_id = self.beneficiario.cliente_id
@@ -216,31 +284,70 @@ class Movimentacao(Registro):
 
     def _aplicar_no_plano(self) -> None:
         if self.eh_inclusao:
-            vinculo = Vinculo(
-                beneficiario=self.beneficiario,
-                contrato=self.contrato,
-                data_inclusao=self.vigencia,
-                carteirinha=self.carteirinha,
-            )
-            try:
-                vinculo.full_clean()
-            except ValidationError as erro:
-                mensagens = erro.messages
-                if not self.beneficiario.eh_titular:
-                    mensagens.append("Se o titular também está sendo incluído, aprove-o primeiro.")
-                raise ValidationError(mensagens) from erro
-            vinculo.save()
+            self.vinculo = self._entrar_no_plano(self.beneficiario, self.vigencia, self.carteirinha)
+        elif self.eh_alteracao:
+            self.vinculo = self._trocar_de_plano()
         else:
-            do_plano = self.beneficiario.vinculos.filter(contrato=self.contrato)
-            vinculo = do_plano.filter(data_exclusao__isnull=True).first()
-            if vinculo:
-                vinculo.encerrar(self.vigencia)
-            else:
-                # Já saiu (ex.: junto com o titular): só liga o pedido ao plano encerrado.
-                vinculo = do_plano.order_by("-data_exclusao").first()
-                if vinculo is None:
-                    raise ValidationError("Esta pessoa não está neste plano.")
-        self.vinculo = vinculo
+            self.vinculo = self._sair_do_plano()
+
+    def _entrar_no_plano(self, pessoa: Beneficiario, inicio: date, carteirinha: str) -> Vinculo:
+        vinculo = Vinculo(
+            beneficiario=pessoa,
+            contrato=self.contrato,
+            data_inclusao=inicio,
+            carteirinha=carteirinha,
+        )
+        try:
+            vinculo.full_clean()
+        except ValidationError as erro:
+            mensagens = erro.messages
+            if pessoa != self.beneficiario:
+                mensagens = [f"{pessoa}: {mensagem}" for mensagem in mensagens]
+            elif not pessoa.eh_titular:
+                mensagens.append(AVISO_DO_DEPENDENTE)
+            raise ValidationError(mensagens) from erro
+        vinculo.save()
+        return vinculo
+
+    def _sair_do_plano(self) -> Vinculo:
+        do_plano = self.beneficiario.vinculos.filter(contrato=self.contrato)
+        vinculo = do_plano.filter(data_exclusao__isnull=True).first()
+        if vinculo:
+            vinculo.encerrar(self.vigencia)
+            return vinculo
+        # Já saiu (ex.: junto com o titular): só liga o pedido ao plano encerrado.
+        vinculo = do_plano.order_by("-data_exclusao").first()
+        if vinculo is None:
+            raise ValidationError("Esta pessoa não está neste plano.")
+        return vinculo
+
+    def _trocar_de_plano(self) -> Vinculo:
+        """Sai do plano anterior e entra no novo na mesma data; os dependentes vão junto.
+
+        A carteirinha continua a mesma; se a operadora emitir outra, corrige-se no plano.
+        """
+        pessoa = self.beneficiario
+        anterior = pessoa.vinculos.filter(
+            contrato=self.contrato_anterior, data_exclusao__isnull=True
+        ).first()
+        if anterior is None:
+            # Já mudou (ex.: junto com o titular): só liga o pedido ao novo plano.
+            vinculo = pessoa.vinculos.filter(
+                contrato=self.contrato, data_exclusao__isnull=True
+            ).first()
+            if vinculo is None:
+                raise ValidationError("Esta pessoa não está mais no plano anterior.")
+            return vinculo
+        novos = []
+        # O titular vem primeiro, para os dependentes já o encontrarem no novo plano.
+        for saiu in anterior.encerrar(self.vigencia):
+            quem = saiu.beneficiario
+            ja_no_novo = quem.vinculos.filter(contrato=self.contrato, data_exclusao__isnull=True)
+            if quem != pessoa and ja_no_novo.exists():
+                continue
+            inicio = max(self.vigencia, saiu.data_inclusao)
+            novos.append(self._entrar_no_plano(quem, inicio, saiu.carteirinha))
+        return novos[0]
 
     def _concluir(self) -> None:
         if not self.eh_inclusao:
@@ -263,6 +370,7 @@ class Movimentacao(Registro):
             cliente=self.cliente,
             beneficiario=self.beneficiario,
             contrato=self.contrato,
+            contrato_anterior=self.contrato_anterior,
             solicitante=self.solicitante,
             recebida_em=hoje,
             enviada_em=hoje,

@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.views.generic import CreateView, DetailView, FormView, ListView, UpdateView
 from django.views.generic.detail import SingleObjectMixin
 
+from apolices.models import Contrato
 from beneficiarios.forms import (
     AnexoForm,
     BuscaBeneficiarioForm,
@@ -93,9 +94,18 @@ class BeneficiarioDetailView(DetailView):
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
         pessoa = self.object
-        contexto["planos"] = pessoa.vinculos.select_related(
-            "contrato__seguradora", "contrato__ramo"
+        contexto["planos"] = planos = list(
+            pessoa.vinculos.select_related("contrato__seguradora", "contrato__ramo")
         )
+        # "Alterar plano" só aparece quando há outro plano vigente do mesmo ramo.
+        vigentes = Contrato.objects.vigentes().filter(cliente=pessoa.cliente)
+        vigentes = list(vigentes.values_list("pk", "ramo_id"))
+        for plano in planos:
+            plano.pode_alterar = (
+                pessoa.eh_titular
+                and plano.data_exclusao is None
+                and any(r == plano.contrato.ramo_id and c != plano.contrato_id for c, r in vigentes)
+            )
         contexto["dependentes"] = pessoa.dependentes.prefetch_related(
             Prefetch(
                 "vinculos",
@@ -104,9 +114,9 @@ class BeneficiarioDetailView(DetailView):
             )
         )
         contexto["anexos"] = pessoa.anexos.select_related("enviado_por")
-        contexto["movimentacoes"] = pessoa.movimentacoes.select_related("contrato__ramo").order_by(
-            "-recebida_em"
-        )
+        contexto["movimentacoes"] = pessoa.movimentacoes.select_related(
+            "contrato__ramo", "contrato_anterior"
+        ).order_by("-recebida_em")
         contexto["historico"] = LinhaDoTempoDoBeneficiario(pessoa).eventos()
         return contexto
 

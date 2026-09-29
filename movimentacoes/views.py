@@ -1,32 +1,53 @@
+from datetime import date
+from io import BytesIO
+
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import F
-from django.http import Http404
+from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.views import View
-from django.views.generic import CreateView, DetailView, ListView, UpdateView
+from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView
 from django.views.generic.detail import SingleObjectMixin
 
-from beneficiarios.models import Beneficiario
+from beneficiarios.models import Beneficiario, Vinculo
 from clientes.views import FormularioMixin
 from movimentacoes.forms import (
     EdicaoMovimentacaoForm,
     FiltroMovimentacoesForm,
     MovimentacaoForm,
+    PlanilhaForm,
     formulario_da_etapa,
 )
 from movimentacoes.historico import LinhaDoTempoDaMovimentacao
 from movimentacoes.models import Etapa, Movimentacao
+from movimentacoes.planilha import TIPO_XLSX, PlanilhaDoMes
 
-TIPOS_NA_URL = {"inclusao": Movimentacao.Tipo.INCLUSAO, "exclusao": Movimentacao.Tipo.EXCLUSAO}
-AVISO_EXCLUSAO_DO_TITULAR = (
-    "Ao aprovar a exclusão do titular, os dependentes deste plano saem junto."
-)
+TIPOS_NA_URL = {
+    "inclusao": Movimentacao.Tipo.INCLUSAO,
+    "exclusao": Movimentacao.Tipo.EXCLUSAO,
+    "alteracao": Movimentacao.Tipo.ALTERACAO,
+}
+AVISOS_DO_TITULAR = {
+    Movimentacao.Tipo.EXCLUSAO: (
+        "Ao aprovar a exclusão do titular, os dependentes deste plano saem junto."
+    ),
+    Movimentacao.Tipo.ALTERACAO: (
+        "Ao aprovar a alteração do titular, os dependentes do plano atual mudam junto "
+        "para o novo plano."
+    ),
+}
 
 
-def exclusao_de_titular_com_dependentes(tipo: str, pessoa: Beneficiario) -> bool:
-    return tipo == Movimentacao.Tipo.EXCLUSAO and pessoa.eh_titular and pessoa.dependentes.exists()
+def aviso_dos_dependentes(tipo: str, pessoa: Beneficiario, plano_de_saida=None) -> str:
+    """Na exclusão e na alteração do titular, avisa que os dependentes do plano vão junto."""
+    if tipo not in AVISOS_DO_TITULAR or not pessoa.eh_titular:
+        return ""
+    dependentes = Vinculo.objects.filter(beneficiario__titular=pessoa, data_exclusao__isnull=True)
+    if plano_de_saida:
+        dependentes = dependentes.filter(contrato=plano_de_saida)
+    return AVISOS_DO_TITULAR[tipo] if dependentes.exists() else ""
 
 
 class MovimentacaoListView(ListView):
@@ -43,6 +64,7 @@ class MovimentacaoListView(ListView):
             "beneficiario__unidade",
             "contrato__ramo",
             "contrato__seguradora",
+            "contrato_anterior",
             "solicitante",
         )
         dados = self.filtro.cleaned_data if self.filtro.is_valid() else {}
@@ -77,7 +99,13 @@ class MovimentacaoDetailView(DetailView):
 
     def get_queryset(self):
         return Movimentacao.objects.select_related(
-            "cliente", "beneficiario__titular", "contrato__ramo", "contrato__seguradora", "origem"
+            "cliente",
+            "beneficiario__titular",
+            "contrato__ramo",
+            "contrato__seguradora",
+            "contrato_anterior__ramo",
+            "contrato_anterior__seguradora",
+            "origem",
         )
 
     def get_context_data(self, **kwargs):
@@ -113,14 +141,24 @@ class MovimentacaoCreateView(FormularioMixin, CreateView):
             "usuario": self.request.user,
         }
 
-    def get_initial(self):
+    def plano_do_botao(self) -> int | None:
+        """O plano da linha em que se clicou (Solicitar exclusão, Alterar plano)."""
         contrato = self.request.GET.get("contrato", "")
-        return {"contrato": contrato} if contrato.isdigit() else {}
+        return int(contrato) if contrato.isdigit() else None
+
+    def get_initial(self):
+        plano = self.plano_do_botao()
+        if plano is None:
+            return {}
+        # Na alteração, o plano do botão é o atual, de onde a pessoa sai.
+        campo = "contrato_anterior" if self.tipo == Movimentacao.Tipo.ALTERACAO else "contrato"
+        return {campo: plano}
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
-        if exclusao_de_titular_com_dependentes(self.tipo, self.beneficiario):
-            contexto["aviso"] = AVISO_EXCLUSAO_DO_TITULAR
+        contexto["aviso"] = aviso_dos_dependentes(
+            self.tipo, self.beneficiario, self.plano_do_botao()
+        )
         return contexto
 
     @transaction.atomic
@@ -174,10 +212,10 @@ class MudarEtapaView(FormularioMixin, UpdateView):
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
         mov = self.object
-        if self.etapa == Etapa.APROVADA and exclusao_de_titular_com_dependentes(
-            mov.tipo, mov.beneficiario
-        ):
-            contexto["aviso"] = AVISO_EXCLUSAO_DO_TITULAR
+        if self.etapa == Etapa.APROVADA:
+            contexto["aviso"] = aviso_dos_dependentes(
+                mov.tipo, mov.beneficiario, mov.plano_de_saida_id
+            )
         return contexto
 
     def form_valid(self, form):
@@ -209,3 +247,26 @@ class RefazerView(SingleObjectMixin, View):
             return redirect(rejeitada.get_absolute_url())
         messages.success(request, "Nova movimentação criada a partir da rejeitada.")
         return redirect(nova.get_absolute_url())
+
+
+class PlanilhaView(TemplateView):
+    """Baixa a planilha de controle das inclusões de uma empresa, em Excel."""
+
+    template_name = "movimentacoes/planilha.html"
+
+    def get(self, request, *args, **kwargs):
+        self.form = PlanilhaForm(request.GET or None, initial={"mes": date.today()})
+        if not self.form.is_valid():
+            return super().get(request, *args, **kwargs)
+        planilha = PlanilhaDoMes(self.form.cleaned_data["cliente"], self.form.cleaned_data["mes"])
+        resposta = FileResponse(
+            BytesIO(planilha.gerar()),
+            as_attachment=True,
+            filename=planilha.nome_do_arquivo,
+            content_type=TIPO_XLSX,
+        )
+        resposta["Cache-Control"] = "private, no-store"
+        return resposta
+
+    def get_context_data(self, **kwargs):
+        return {**super().get_context_data(**kwargs), "form": self.form}

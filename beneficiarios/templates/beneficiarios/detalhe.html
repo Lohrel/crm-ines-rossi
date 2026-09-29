@@ -59,6 +59,7 @@
           <td>{% if plano.ativo %}<span class="badge text-bg-success">Ativo</span>{% elif plano.data_exclusao %}<span class="badge text-bg-secondary">Excluído</span>{% else %}<span class="badge text-bg-warning">A partir de {{ plano.data_inclusao|date:"d/m" }}</span>{% endif %}</td>
           <td class="text-end text-nowrap">
             <a href="{% url 'beneficiarios:editar_plano' plano.pk %}" class="btn btn-sm btn-link">Editar</a>
+            {% if plano.pode_alterar %}<a href="{% url 'movimentacoes:nova' object.pk 'alteracao' %}?contrato={{ plano.contrato_id }}" class="btn btn-sm btn-link">Alterar plano</a>{% endif %}
             {% if not plano.data_exclusao %}<a href="{% url 'movimentacoes:nova' object.pk 'exclusao' %}?contrato={{ plano.contrato_id }}" class="btn btn-sm btn-link text-danger">Solicitar exclusão</a>{% endif %}
           </td>
         </tr>
@@ -94,7 +95,7 @@
   <ul class="list-group list-group-flush">
   {% for mov in movimentacoes %}
     <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2">
-      <span><a href="{{ mov.get_absolute_url }}">{{ mov.get_tipo_display }} em {{ mov.contrato.ramo }}</a>
+      <span><a href="{{ mov.get_absolute_url }}">{{ mov.get_tipo_display }} em {{ mov.contrato.ramo }}{% if mov.eh_alteracao %} ({{ mov.contrato_anterior.nome_do_plano }} para {{ mov.contrato.nome_do_plano }}){% endif %}</a>
         <span class="small text-body-secondary">· vigência {{ mov.vigencia|date:"d/m/Y" }}</span></span>
       {% include "movimentacoes/_etapa.html" %}
     </li>
