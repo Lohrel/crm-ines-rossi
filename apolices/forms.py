@@ -34,7 +34,6 @@ class ContratoForm(BootstrapFormMixin, forms.ModelForm):
             "inicio_vigencia",
             "data_renovacao",
             "dia_vencimento",
-            "pagamento",
             "dia_fechamento",
             "valor_mensal",
             "corretora_envia_boleto",
@@ -89,9 +88,6 @@ class FiltroContratosForm(BootstrapFormMixin, forms.Form):
         label="Situação",
         required=False,
         choices=[("", "Vigentes"), ("todas", "Todas"), *Contrato.Situacao.choices],
-    )
-    pagamento = forms.ChoiceField(
-        label="Pagamento", required=False, choices=[("", "Pré e pós"), *Contrato.Pagamento.choices]
     )
     boleto = forms.BooleanField(label="Só boletos enviados pela corretora", required=False)
     vencimento = forms.IntegerField(

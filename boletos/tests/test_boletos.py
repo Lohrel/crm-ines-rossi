@@ -70,9 +70,8 @@ def test_mensalidade_cancelada_nao_volta_ao_gerar_de_novo(com_boleto):
     boleto(com_boleto, vencimento=date(2026, 10, 20))
 
 
-def test_gerar_o_ano_com_pos_pagamento_vencendo_no_mes_seguinte(com_boleto, dental):
+def test_gerar_varios_meses_de_uma_vez(com_boleto, dental):
     dental.corretora_envia_boleto = True
-    dental.pagamento = Contrato.Pagamento.POS
     dental.dia_vencimento = 5
     dental.save()
     assert Boleto.gerar_mensalidades(OUTUBRO, date(2026, 12, 1)) == (6, 0)
@@ -81,7 +80,7 @@ def test_gerar_o_ano_com_pos_pagamento_vencendo_no_mes_seguinte(com_boleto, dent
         return [b.vencimento for b in plano.boletos.order_by("referencia")]
 
     assert vencimentos(com_boleto) == [date(2026, 10, 10), date(2026, 11, 10), date(2026, 12, 10)]
-    assert vencimentos(dental) == [date(2026, 11, 5), date(2026, 12, 5), date(2027, 1, 5)]
+    assert vencimentos(dental) == [date(2026, 10, 5), date(2026, 11, 5), date(2026, 12, 5)]
     assert not Boleto.objects.filter(fora_do_vencimento=True).exists()
     # Com um mês a mais, só o mês novo é criado.
     assert Boleto.gerar_mensalidades(OUTUBRO, date(2027, 1, 1)) == (2, 6)
@@ -367,19 +366,6 @@ def test_lista_padrao_mostra_os_proximos_30_dias(logado, com_boleto):
     assert longe.get_absolute_url() in logado.get(url, {"mes": "10/2026"}).content.decode()
 
 
-def test_filtro_e_marca_de_pre_e_pos_pagamento(logado, com_boleto, dental):
-    dental.pagamento = Contrato.Pagamento.POS
-    dental.save()
-    pre, pos = boleto(com_boleto), boleto(dental)
-    assert pos.vencimento == date(2026, 11, 10) and not pos.fora_do_vencimento
-
-    url = reverse("boletos:lista")
-    so_pos = logado.get(url, {"situacao": "enviar", "pagamento": "POS"}).content.decode()
-    assert pos.get_absolute_url() in so_pos and pre.get_absolute_url() not in so_pos
-    assert 'title="Pós-pagamento">pós</span>' in so_pos
-    assert "Pós-pagamento" in logado.get(pos.get_absolute_url()).content.decode()
-
-
 # ------------------------------------------------------------------
 # Mudanças no contrato
 # ------------------------------------------------------------------
@@ -394,7 +380,6 @@ def editar_contrato(cliente_http, plano, **mudancas):
         "situacao": plano.situacao,
         "inicio_vigencia": f"{plano.inicio_vigencia:%d/%m/%Y}",
         "dia_vencimento": plano.dia_vencimento,
-        "pagamento": plano.pagamento,
         "corretora_envia_boleto": "on",
         "unidades": [unidade.pk for unidade in plano.unidades.all()],
         **mudancas,
@@ -424,11 +409,6 @@ def test_novo_vencimento_do_contrato_vale_para_as_mensalidades_a_enviar(
         antes = intocado.vencimento
         intocado.refresh_from_db()
         assert intocado.vencimento == antes
-
-    editar_contrato(logado, com_boleto, dia_vencimento=15, pagamento="POS")
-    primeira = geradas[0]
-    primeira.refresh_from_db()
-    assert primeira.vencimento == somar_meses(HOJE, 2).replace(day=15)
 
 
 def test_cancelar_o_contrato_cancela_as_mensalidades_dos_proximos_meses(logado, com_boleto):

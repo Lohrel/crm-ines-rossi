@@ -21,8 +21,7 @@
     <div class="col-md-3">{{ filtro.situacao.label_tag }}{{ filtro.situacao }}</div>
     <div class="col-md-2">{{ filtro.mes.label_tag }}{{ filtro.mes }}</div>
     <div class="col-md-3">{{ filtro.tipo.label_tag }}{{ filtro.tipo }}</div>
-    <div class="col-md-3">{{ filtro.pagamento.label_tag }}{{ filtro.pagamento }}</div>
-    <div class="col-md-6">
+    <div class="col-md-9">
       <div class="form-check mb-2">{{ filtro.fora }}<label class="form-check-label" for="{{ filtro.fora.id_for_label }}">{{ filtro.fora.label }}</label></div>
     </div>
     <div class="col-md-3"><button type="submit" class="btn btn-outline-primary w-100">Filtrar</button></div>
@@ -60,7 +59,7 @@
             {% if boleto.contrato.situacao == "CAN" %}<span class="badge text-bg-secondary">contrato cancelado</span>{% endif %}
             <div class="small text-body-secondary">{{ boleto.contrato.ramo }} · {{ boleto.contrato.seguradora }} {{ boleto.contrato.numero }}</div>
           </td>
-          <td>{{ boleto.get_tipo_display }}<div class="small text-body-secondary">ref. {{ boleto.referencia|date:"m/Y" }} · {% include "boletos/_pagamento.html" with contrato=boleto.contrato %}</div></td>
+          <td>{{ boleto.get_tipo_display }}<div class="small text-body-secondary">ref. {{ boleto.referencia|date:"m/Y" }}</div></td>
           <td>{% include "boletos/_situacao.html" %}</td>
           <td class="small">
             {% if boleto.enviado_em %}{{ boleto.enviado_em|date:"d/m/Y" }}{% if boleto.enviado_para %} para {{ boleto.enviado_para.nome }}{% endif %}{% if boleto.enviado_por %}<div class="text-body-secondary">por {{ boleto.enviado_por }}</div>{% endif %}{% else %}—{% endif %}

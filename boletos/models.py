@@ -145,7 +145,7 @@ class Boleto(Registro):
 
     @property
     def vencimento_habitual(self) -> date:
-        return self.contrato.vencimento_da_referencia(self.referencia)
+        return self.contrato.vencimento_em(self.referencia.year, self.referencia.month)
 
     @property
     def situacao(self) -> Situacao:
@@ -241,7 +241,7 @@ class Boleto(Registro):
                         contrato=plano,
                         tipo=cls.Tipo.MENSALIDADE,
                         referencia=referencia,
-                        vencimento=plano.vencimento_da_referencia(referencia),
+                        vencimento=plano.vencimento_em(referencia.year, referencia.month),
                         registrado_por=usuario,
                     )
                     criados += 1
@@ -249,7 +249,7 @@ class Boleto(Registro):
 
     @classmethod
     def seguir_novo_vencimento(cls, contrato: Contrato) -> int:
-        """O contrato mudou o dia de vencimento ou o pré/pós-pagamento.
+        """O contrato mudou o dia de vencimento.
 
         As mensalidades a enviar que ainda não venceram, e que estavam no vencimento de
         costume, passam para o novo. Devolve quantas mudaram.
@@ -263,7 +263,7 @@ class Boleto(Registro):
         )
         for boleto in mensalidades:
             boleto.contrato = contrato
-            novo = contrato.vencimento_da_referencia(boleto.referencia)
+            novo = contrato.vencimento_em(boleto.referencia.year, boleto.referencia.month)
             if boleto.vencimento != novo:
                 boleto.vencimento = novo
                 boleto.save()
@@ -274,8 +274,8 @@ class Boleto(Registro):
     def cancelar_com_o_contrato(cls, contrato: Contrato) -> int:
         """O contrato foi cancelado: cancela as mensalidades a enviar dos próximos meses.
 
-        As do mês atual e anteriores ficam, porque ainda podem precisar ser enviadas
-        (no pós-pagamento, a do último mês vence depois). Devolve quantas cancelou.
+        As do mês atual e anteriores ficam, porque ainda podem precisar ser enviadas.
+        Devolve quantas cancelou.
         """
         proximo_mes = somar_meses(date.today(), 1)
         mensalidades = cls.objects.a_enviar().filter(

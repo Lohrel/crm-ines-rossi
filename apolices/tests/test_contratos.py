@@ -21,7 +21,6 @@ def dados_contrato(seguradora, ramo, **extra):
         "inicio_vigencia": "2026-01-01",
         "data_renovacao": "2027-01-01",
         "dia_vencimento": "15",
-        "pagamento": "PRE",
         "valor_mensal": "1234.56",
         **extra,
     }
@@ -202,20 +201,6 @@ def test_lista_de_contratos_filtra(logado, contrato_empresa, pessoa, seguradora,
     assert "SAU-001" in conteudo and "IND-9" not in conteudo
     conteudo = logado.get(url, {"q": "IND"}).content.decode()
     assert "IND-9" in conteudo and "SAU-001" not in conteudo
-
-
-def test_pre_ou_pos_pagamento(logado, contrato_empresa):
-    assert contrato_empresa.pagamento == Contrato.Pagamento.PRE
-    assert contrato_empresa.vencimento_da_referencia(date(2026, 12, 1)) == date(2026, 12, 10)
-    contrato_empresa.pagamento = Contrato.Pagamento.POS
-    contrato_empresa.save()
-    # O pós-pagamento cobra o mês já usado: o boleto de dezembro vence em janeiro.
-    assert contrato_empresa.vencimento_da_referencia(date(2026, 12, 1)) == date(2027, 1, 10)
-
-    url = reverse("apolices:contratos")
-    so_pos = logado.get(url, {"pagamento": "POS"}).content.decode()
-    assert "SAU-001" in so_pos and 'title="Pós-pagamento">pós</span>' in so_pos
-    assert "SAU-001" not in logado.get(url, {"pagamento": "PRE"}).content.decode()
 
 
 def test_cancelados_so_aparecem_quando_pedidos(logado, contrato_empresa):

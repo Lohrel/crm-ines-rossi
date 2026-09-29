@@ -62,8 +62,6 @@ class BoletoListView(ListView):
             boletos = boletos.filter(referencia=mes)
         if tipo := self.dados.get("tipo"):
             boletos = boletos.filter(tipo=tipo)
-        if pagamento := self.dados.get("pagamento"):
-            boletos = boletos.filter(contrato__pagamento=pagamento)
         if self.dados.get("fora"):
             boletos = boletos.filter(fora_do_vencimento=True)
         if contrato := self.dados.get("contrato"):

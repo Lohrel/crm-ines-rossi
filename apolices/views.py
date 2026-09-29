@@ -40,8 +40,6 @@ class ContratoListView(ListView):
             contratos = contratos.filter(seguradora=dados["seguradora"])
         if dados["ramo"]:
             contratos = contratos.filter(ramo=dados["ramo"])
-        if dados["pagamento"]:
-            contratos = contratos.filter(pagamento=dados["pagamento"])
         if dados["boleto"]:
             contratos = contratos.com_boleto_da_corretora()
         if dados["vencimento"]:
@@ -91,7 +89,7 @@ class ContratoUpdateView(FormularioMixin, UpdateView):
             quantas = Boleto.cancelar_com_o_contrato(contrato)
             singular, plural = "foi cancelada", "foram canceladas"
             texto = "dos próximos meses {} junto com o contrato."
-        elif mudou & {"dia_vencimento", "pagamento"}:
+        elif "dia_vencimento" in mudou:
             quantas = Boleto.seguir_novo_vencimento(contrato)
             singular, plural = "passou", "passaram"
             texto = "{} para o novo vencimento."

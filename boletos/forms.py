@@ -140,11 +140,6 @@ class FiltroBoletosForm(BootstrapFormMixin, forms.Form):
     tipo = forms.ChoiceField(
         label="Tipo", choices=[("", "Todos os tipos"), *Boleto.Tipo.choices], required=False
     )
-    pagamento = forms.ChoiceField(
-        label="Pagamento",
-        choices=[("", "Pré e pós"), *Contrato.Pagamento.choices],
-        required=False,
-    )
     fora = forms.BooleanField(label="Só fora do vencimento", required=False)
     contrato = forms.ModelChoiceField(
         queryset=Contrato.objects.all(), required=False, widget=forms.HiddenInput

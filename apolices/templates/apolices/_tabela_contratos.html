@@ -17,7 +17,6 @@
         <td>{{ contrato.vidas }}</td>
         <td>
           {{ contrato.dia_vencimento }}
-          <span class="badge text-bg-light border" title="{{ contrato.get_pagamento_display }}">{% if contrato.pagamento == "POS" %}pós{% else %}pré{% endif %}</span>
           {% if contrato.corretora_envia_boleto %}<span class="badge text-bg-info" title="A corretora envia o boleto">boleto</span>{% endif %}
           {% if contrato.coparticipacao %}<span class="badge text-bg-light border" title="Tem coparticipação">copart.</span>{% endif %}
         </td>
