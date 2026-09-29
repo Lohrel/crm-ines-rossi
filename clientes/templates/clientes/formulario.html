@@ -12,7 +12,7 @@
     </div>
   {% endfor %}
   <div class="d-flex gap-2">
-    <button type="submit" class="btn btn-primary">Salvar</button>
+    <button type="submit" class="btn btn-primary">{{ texto_do_botao|default:"Salvar" }}</button>
     <a href="{{ url_cancelar }}" class="btn btn-outline-secondary">Cancelar</a>
   </div>
 </form>

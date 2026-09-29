@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block titulo %}{{ object }}{% endblock %}
+{% block conteudo %}
+{% with boleto=object contrato=object.contrato %}
+<nav aria-label="breadcrumb"><ol class="breadcrumb">
+  <li class="breadcrumb-item"><a href="{% url 'boletos:lista' %}">Boletos</a></li>
+  <li class="breadcrumb-item"><a href="{% url 'boletos:lista' %}?contrato={{ contrato.pk }}&situacao=todos">{{ contrato.cliente }} · {{ contrato.ramo }}</a></li>
+  <li class="breadcrumb-item active">{{ boleto.get_tipo_display }} {{ boleto.referencia|date:"m/Y" }}</li>
+</ol></nav>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-1">{{ boleto.get_tipo_display }} de {{ boleto.referencia|date:"m/Y" }}</h1>
+    {% include "boletos/_situacao.html" %}
+    {% if boleto.fora_do_vencimento %}<span class="badge text-bg-warning">Fora do vencimento (o contrato vence dia {{ contrato.dia_vencimento }})</span>{% endif %}
+  </div>
+  <div class="d-flex gap-2">
+    {% if boleto.situacao == "enviar" %}<a href="{% url 'boletos:registrar_envio' boleto.pk %}" class="btn btn-primary">Registrar envio</a>{% endif %}
+    <a href="{% url 'boletos:editar' boleto.pk %}" class="btn btn-outline-primary">Editar</a>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-4"><div class="card-body">
+  <dl class="row mb-0">
+    <dt class="col-sm-3">Cliente</dt><dd class="col-sm-9"><a href="{{ contrato.cliente.get_absolute_url }}">{{ contrato.cliente }}</a></dd>
+    <dt class="col-sm-3">Plano</dt><dd class="col-sm-9">{{ contrato.ramo }} · {{ contrato.seguradora }} {{ contrato.numero }}{% if contrato.situacao == "CAN" %} <span class="badge text-bg-secondary">contrato cancelado</span>{% endif %}</dd>
+    <dt class="col-sm-3">Mês de referência</dt><dd class="col-sm-9">{{ boleto.referencia|date:"m/Y" }}</dd>
+    <dt class="col-sm-3">Vencimento</dt><dd class="col-sm-9">{{ boleto.vencimento|date:"d/m/Y" }}</dd>
+    <dt class="col-sm-3">Valor</dt><dd class="col-sm-9">{% if boleto.valor is not None %}R$ {{ boleto.valor|floatformat:"2g" }}{% else %}—{% endif %}</dd>
+    <dt class="col-sm-3">Envio</dt>
+    <dd class="col-sm-9">
+      {% if boleto.enviado_em %}{{ boleto.enviado_em|date:"d/m/Y" }}{% if boleto.enviado_para %} para {{ boleto.enviado_para }}{% endif %}{% if boleto.enviado_por %} · por {{ boleto.enviado_por }}{% endif %}
+      {% else %}—{% endif %}
+    </dd>
+    <dt class="col-sm-3">Registrado por</dt><dd class="col-sm-9">{{ boleto.registrado_por|default:"—" }}</dd>
+    {% if boleto.observacao %}<dt class="col-sm-3">Observação</dt><dd class="col-sm-9" style="white-space: pre-line">{{ boleto.observacao }}</dd>{% endif %}
+  </dl>
+</div></div>
+
+<div class="card shadow-sm">
+  <div class="card-header fw-semibold">Histórico</div>
+  <ul class="list-group list-group-flush">
+    {% for evento in historico %}
+      <li class="list-group-item small">
+        <span class="text-body-secondary">{{ evento.quando|date:"d/m/Y H:i" }}</span> ·
+        <strong>{{ evento.quem }}</strong> {{ evento.acao|lower }} o boleto · {{ evento.registro }}
+        {% if evento.campos %}<span class="text-body-secondary">({{ evento.campos|join:", " }})</span>{% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endwith %}
+{% endblock %}

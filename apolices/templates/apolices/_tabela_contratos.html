@@ -29,7 +29,10 @@
           {% elif contrato.situacao == "CAN" %}<span class="badge text-bg-secondary">{{ contrato.get_situacao_display }}</span>
           {% else %}<span class="badge text-bg-warning">{{ contrato.get_situacao_display }}</span>{% endif %}
         </td>
-        <td class="text-end"><a href="{% url 'apolices:editar_contrato' contrato.pk %}" class="btn btn-sm btn-link">Editar</a></td>
+        <td class="text-end text-nowrap">
+          {% if contrato.corretora_envia_boleto %}<a href="{% url 'boletos:lista' %}?contrato={{ contrato.pk }}&situacao=todos" class="btn btn-sm btn-link">Boletos</a>{% endif %}
+          <a href="{% url 'apolices:editar_contrato' contrato.pk %}" class="btn btn-sm btn-link">Editar</a>
+        </td>
       </tr>
     {% empty %}
       <tr><td colspan="9" class="text-center text-body-secondary py-3">Nenhum contrato.</td></tr>

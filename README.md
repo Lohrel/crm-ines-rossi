@@ -25,7 +25,7 @@ Cada etapa só começa quando a anterior está testada e em uso.
   - [x] 1b. Seguradoras, ramos e contratos (vencimento da fatura, boleto pela corretora, coparticipação, filiais cobertas)
 - [x] **2.** Beneficiários (titulares e dependentes, cada um nos planos escolhidos), anexos como DPS e eSocial, e número de vidas por grupo, filial e contrato
 - [x] **3.** Movimentações de inclusão e exclusão: etapas até a carteirinha enviada, rejeição com motivo e nova inclusão, dia de fechamento por contrato
-- [ ] **4.** Acompanhamento de boletos: atrasos, boleto fora do vencimento, reajuste e coparticipação
+- [x] **4.** Boletos a enviar: lembrete dos boletos que a corretora envia, geração das mensalidades de um mês ou do ano todo, boleto fora do vencimento, reajuste e coparticipação
 - [ ] **5.** Pendências com "marcar como concluído"
 - [ ] **6.** Importação e exportação da planilha mensal de inclusão
 - [ ] **7.** Painel e relatórios
@@ -63,7 +63,8 @@ clientes/        Clientes PF/PJ, unidades (filiais) e contatos, com histórico
 apolices/        Seguradoras, ramos e contratos
 beneficiarios/   Titulares, dependentes, planos de cada pessoa, anexos e contagem de vidas
 movimentacoes/   Pedidos de inclusão e exclusão, com etapas, fechamento do mês e histórico
+boletos/         Boletos que a corretora envia: a enviar, enviados e fora do vencimento
 templates/       Layout base e tela de login
-static/vendor/   Bootstrap servido localmente (funciona sem internet)
+static/          Bootstrap servido localmente (funciona sem internet) e campos de data
 docker/          Entrypoint, Caddy (HTTPS) e scripts de backup/restauração
 ```

@@ -1,10 +1,10 @@
-// Campos de data: sempre dia/mês/ano, qualquer que seja o idioma do navegador.
+// Campos de data (dd/mm/aaaa) e de mês (mm/aaaa), qualquer que seja o idioma do navegador.
 // O texto digitado é o que vale; o calendário do navegador é só um atalho.
 (function () {
   "use strict";
 
   // Enquanto a pessoa digita só números, coloca as barras: 05092026 -> 05/09/2026.
-  function formatar(valor) {
+  function formatarData(valor) {
     const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(valor);
     if (iso) return iso[3] + "/" + iso[2] + "/" + iso[1];
     const partes = valor.split("/");
@@ -22,6 +22,17 @@
     return valor;
   }
 
+  // O mesmo para o mês: 092026 -> 09/2026. Mês que começa com 2 a 9 ganha o zero: 92026 -> 09/2026.
+  function formatarMes(valor) {
+    const iso = /^(\d{4})-(\d{2})$/.exec(valor);
+    if (iso) return iso[2] + "/" + iso[1];
+    if (valor.includes("/")) return valor;
+    let d = valor.replace(/\D/g, "");
+    if (/^[2-9]/.test(d)) d = "0" + d;
+    d = d.slice(0, 6);
+    return d.length <= 2 ? d : d.slice(0, 2) + "/" + d.slice(2);
+  }
+
   function paraIso(texto) {
     const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(texto.trim());
     if (!m) return "";
@@ -33,11 +44,33 @@
     return m ? m[3] + "/" + m[2] + "/" + m[1] : "";
   }
 
-  document.querySelectorAll("[data-campo-data]").forEach(function (campo) {
+  function formatarAoDigitar(campo, formatar) {
     campo.addEventListener("input", function (evento) {
       if (evento.inputType && !evento.inputType.startsWith("insert")) return;
       campo.value = formatar(campo.value);
     });
+  }
+
+  // Clicar no campo seleciona o que está escrito, então é só digitar a nova data por cima.
+  // Com o campo já em uso, o clique só posiciona o cursor, para corrigir um pedaço.
+  function selecionarAoClicar(campo) {
+    let jaEstavaEmUso = false;
+    campo.addEventListener("mousedown", function () {
+      jaEstavaEmUso = document.activeElement === campo;
+    });
+    campo.addEventListener("click", function () {
+      if (!jaEstavaEmUso && campo.selectionStart === campo.selectionEnd) campo.select();
+    });
+  }
+
+  document.querySelectorAll("[data-campo-mes]").forEach(function (campo) {
+    formatarAoDigitar(campo, formatarMes);
+    selecionarAoClicar(campo);
+  });
+
+  document.querySelectorAll("[data-campo-data]").forEach(function (campo) {
+    formatarAoDigitar(campo, formatarData);
+    selecionarAoClicar(campo);
 
     const grupo = campo.closest("[data-grupo-data]");
     const botao = grupo && grupo.querySelector("[data-abrir-calendario]");
@@ -62,6 +95,7 @@
     calendario.addEventListener("change", function () {
       if (calendario.value) campo.value = paraTexto(calendario.value);
       campo.focus();
+      campo.select();
     });
   });
 })();

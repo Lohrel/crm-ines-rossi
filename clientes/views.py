@@ -73,6 +73,7 @@ class FormularioMixin:
     template_name = "clientes/formulario.html"
     titulo = ""
     mensagem_sucesso = "Salvo com sucesso."
+    texto_do_botao = "Salvar"
 
     def get_titulo(self) -> str:
         return self.titulo
@@ -84,6 +85,7 @@ class FormularioMixin:
         contexto = super().get_context_data(**kwargs)
         contexto["titulo"] = self.get_titulo()
         contexto["url_cancelar"] = self.get_url_cancelar()
+        contexto["texto_do_botao"] = self.texto_do_botao
         contexto["formularios"] = [("", contexto["form"])]
         return contexto
 

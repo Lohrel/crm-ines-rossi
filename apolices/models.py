@@ -1,3 +1,4 @@
+from calendar import monthrange
 from datetime import date
 
 from django.core.exceptions import ValidationError
@@ -150,6 +151,10 @@ class Contrato(Registro):
 
     def get_absolute_url(self) -> str:
         return self.cliente.get_absolute_url()
+
+    def vencimento_em(self, ano: int, mes: int) -> date:
+        """Vencimento da fatura no mês; em meses mais curtos, o último dia do mês."""
+        return date(ano, mes, min(self.dia_vencimento, monthrange(ano, mes)[1]))
 
     def vigencia_sugerida(self, recebida_em: date) -> date:
         """Dia 1º do mês seguinte; depois do fechamento, dia 1º do outro mês."""

@@ -1,0 +1,3 @@
+{% if boleto.situacao == "cancelado" %}<span class="badge text-bg-secondary">Cancelado</span>
+{% elif boleto.situacao == "enviado" %}<span class="badge text-bg-success">Enviado</span>
+{% else %}<span class="badge {% if boleto.dias_para_vencer < 0 %}text-bg-danger{% elif boleto.pede_atencao %}text-bg-warning{% else %}text-bg-light border{% endif %}">A enviar · {{ boleto.prazo }}</span>{% endif %}

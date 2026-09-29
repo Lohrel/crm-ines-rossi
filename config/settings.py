@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "apolices",
     "beneficiarios",
     "movimentacoes",
+    "boletos",
 ]
 
 MIDDLEWARE = [

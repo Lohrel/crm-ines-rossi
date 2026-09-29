@@ -51,7 +51,7 @@ class MovimentacaoListView(ListView):
         elif situacao != "todas":
             movimentacoes = movimentacoes.filter(etapa=situacao)
         if mes := dados.get("mes"):
-            movimentacoes = movimentacoes.com_vigencia_no_mes(*mes)
+            movimentacoes = movimentacoes.com_vigencia_no_mes(mes.year, mes.month)
         if cliente := dados.get("cliente"):
             movimentacoes = movimentacoes.filter(cliente=cliente)
         if tipo := dados.get("tipo"):
