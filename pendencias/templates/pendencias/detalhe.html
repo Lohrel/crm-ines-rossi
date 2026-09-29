@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block titulo %}Pendência de {{ object.cliente }}{% endblock %}
+{% block conteudo %}
+{% with pendencia=object %}
+<nav aria-label="breadcrumb"><ol class="breadcrumb">
+  <li class="breadcrumb-item"><a href="{% url 'pendencias:lista' %}">Pendências</a></li>
+  <li class="breadcrumb-item"><a href="{% url 'pendencias:lista' %}?cliente={{ pendencia.cliente.pk }}&situacao=todas">{{ pendencia.cliente }}</a></li>
+  <li class="breadcrumb-item active">Prazo {{ pendencia.prazo|date:"d/m/Y" }}</li>
+</ol></nav>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <h1 class="h4 mb-1">{{ pendencia.descricao }}</h1>
+    {% include "pendencias/_situacao.html" %}
+  </div>
+  <div class="d-flex gap-2">
+    {% if pendencia.concluida %}
+    <form method="post" action="{% url 'pendencias:reabrir' pendencia.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-outline-secondary">Reabrir</button>
+    </form>
+    {% else %}
+    <form method="post" action="{% url 'pendencias:concluir' pendencia.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-success">Marcar como concluída</button>
+    </form>
+    {% endif %}
+    <a href="{% url 'pendencias:editar' pendencia.pk %}" class="btn btn-outline-primary">Editar</a>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-4"><div class="card-body">
+  <dl class="row mb-0">
+    <dt class="col-sm-3">Cliente</dt>
+    <dd class="col-sm-9"><a href="{{ pendencia.cliente.get_absolute_url }}">{{ pendencia.cliente }}</a>{% if pendencia.unidade %} · {{ pendencia.unidade }}{% endif %}</dd>
+    <dt class="col-sm-3">Prazo</dt><dd class="col-sm-9">{{ pendencia.prazo|date:"d/m/Y" }}</dd>
+    <dt class="col-sm-3">Responsável</dt><dd class="col-sm-9">{{ pendencia.responsavel }}</dd>
+    {% if pendencia.contrato %}
+    <dt class="col-sm-3">Contrato</dt><dd class="col-sm-9">{{ pendencia.contrato.ramo }} · {{ pendencia.contrato }}</dd>
+    {% endif %}
+    {% if pendencia.movimentacao %}
+    <dt class="col-sm-3">Movimentação</dt>
+    <dd class="col-sm-9"><a href="{{ pendencia.movimentacao.get_absolute_url }}">{{ pendencia.movimentacao }}</a> ({{ pendencia.movimentacao.get_etapa_display|lower }})</dd>
+    {% endif %}
+    {% if pendencia.concluida %}
+    <dt class="col-sm-3">Concluída</dt>
+    <dd class="col-sm-9">em {{ pendencia.concluida_em|date:"d/m/Y" }}{% if pendencia.concluida_por %} por {{ pendencia.concluida_por }}{% endif %}</dd>
+    {% endif %}
+    <dt class="col-sm-3">Registrada</dt>
+    <dd class="col-sm-9">em {{ pendencia.criado_em|date:"d/m/Y" }}{% if pendencia.registrada_por %} por {{ pendencia.registrada_por }}{% endif %}</dd>
+    {% if pendencia.observacao %}
+    <dt class="col-sm-3">Observação</dt><dd class="col-sm-9" style="white-space: pre-line">{{ pendencia.observacao }}</dd>
+    {% endif %}
+  </dl>
+</div></div>
+
+<div class="card shadow-sm">
+  <div class="card-header fw-semibold">Histórico</div>
+  <ul class="list-group list-group-flush">
+    {% for evento in historico %}
+      <li class="list-group-item small">
+        <span class="text-body-secondary">{{ evento.quando|date:"d/m/Y H:i" }}</span> ·
+        <strong>{{ evento.quem }}</strong> {{ evento.acao|lower }} a pendência · {{ evento.registro }}
+        {% if evento.campos %}<span class="text-body-secondary">({{ evento.campos|join:", " }})</span>{% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endwith %}
+{% endblock %}

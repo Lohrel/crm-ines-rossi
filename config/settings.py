@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "beneficiarios",
     "movimentacoes",
     "boletos",
+    "pendencias",
 ]
 
 MIDDLEWARE = [

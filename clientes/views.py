@@ -5,6 +5,7 @@ from django.db import transaction
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
 from django.views.generic import CreateView, DeleteView, DetailView, FormView, ListView, UpdateView
 from django.views.generic.detail import SingleObjectMixin
@@ -58,6 +59,7 @@ class ClienteDetailView(DetailView):
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
         contexto["historico"] = LinhaDoTempo(self.object).eventos()
+        contexto["pendencias"] = self.object.pendencias.em_aberto().para_tabela()
         contratos = self.object.contratos.select_related("seguradora", "ramo")
         contexto["contratos"] = anotar_vidas(contratos.prefetch_related("unidades"))
         vidas = VidasDoCliente(self.object)
@@ -65,6 +67,15 @@ class ClienteDetailView(DetailView):
         for unidade in self.object.unidades.all():
             unidade.vidas = vidas.da_unidade(unidade.pk)
         return contexto
+
+
+def destino_seguro(request, padrao: str) -> str:
+    """A página de volta enviada em "proximo", se for deste sistema; senão, a padrão."""
+    proximo = request.POST.get("proximo") or request.GET.get("proximo", "")
+    seguro = url_has_allowed_host_and_scheme(
+        proximo, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    )
+    return proximo if seguro else padrao
 
 
 class FormularioMixin:
@@ -252,6 +263,10 @@ class ExclusaoConfirmadaView(PermissionRequiredMixin, SingleObjectMixin, FormVie
     def get_url_cancelar(self) -> str:
         return self.object.get_absolute_url()
 
+    def get_aviso(self) -> str:
+        """O que sai junto com o registro, mostrado antes da confirmação."""
+        return self.aviso
+
     def get_form_kwargs(self):
         return {**super().get_form_kwargs(), "texto_esperado": self.get_texto_esperado()}
 
@@ -260,7 +275,7 @@ class ExclusaoConfirmadaView(PermissionRequiredMixin, SingleObjectMixin, FormVie
         contexto["bloqueios"] = self.object.bloqueios_para_excluir()
         contexto["texto_esperado"] = self.get_texto_esperado()
         contexto["url_cancelar"] = self.get_url_cancelar()
-        contexto["aviso"] = self.aviso
+        contexto["aviso"] = self.get_aviso()
         return contexto
 
     def form_valid(self, form):
@@ -275,9 +290,22 @@ class ExclusaoConfirmadaView(PermissionRequiredMixin, SingleObjectMixin, FormVie
         return redirect(destino)
 
 
+def pendencias_que_saem_junto(registro: Cliente | Unidade, de: str) -> str:
+    quantas = registro.pendencias.count()
+    if quantas == 1:
+        return f"A pendência {de} também será excluída."
+    return f"As {quantas} pendências {de} também serão excluídas." if quantas else ""
+
+
 class ClienteDeleteView(ExclusaoConfirmadaView):
     model = Cliente
     permission_required = "clientes.delete_cliente"
+
+    def get_aviso(self) -> str:
+        avisos = [pendencias_que_saem_junto(self.object, "deste cliente")]
+        if self.object.eh_empresa:
+            avisos.insert(0, "Serão excluídas também todas as unidades e contatos desta empresa.")
+        return " ".join(aviso for aviso in avisos if aviso)
 
     def get_success_url(self) -> str:
         return reverse("clientes:lista")
@@ -286,6 +314,11 @@ class ClienteDeleteView(ExclusaoConfirmadaView):
 class UnidadeDeleteView(ExclusaoConfirmadaView):
     model = Unidade
     permission_required = "clientes.delete_unidade"
+    aviso = "Os contatos que atendem só esta unidade também serão excluídos."
+
+    def get_aviso(self) -> str:
+        pendencias = pendencias_que_saem_junto(self.object, "desta unidade")
+        return f"{self.aviso} {pendencias}".strip()
 
     def get_success_url(self) -> str:
         return self.object.cliente.get_absolute_url()

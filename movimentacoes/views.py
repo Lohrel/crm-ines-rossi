@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import F
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.views import View
@@ -83,6 +84,10 @@ class MovimentacaoDetailView(DetailView):
         contexto = super().get_context_data(**kwargs)
         contexto["proximas"] = [Etapa(e) for e in self.object.proximas_etapas]
         contexto["refeitas"] = self.object.refeitas.all()
+        # As em aberto primeiro; depois as concluídas, da mais recente.
+        contexto["pendencias"] = self.object.pendencias.para_tabela().order_by(
+            F("concluida_em").desc(nulls_first=True), "prazo"
+        )
         contexto["historico"] = LinhaDoTempoDaMovimentacao(self.object).eventos()
         return contexto
 
