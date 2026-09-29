@@ -77,8 +77,17 @@ class BootstrapFormMixin:
         super().full_clean()
         for nome in self.errors:
             if nome in self.fields:
+                self._sem_aviso_repetido(nome)
                 widget = self.fields[nome].widget
                 widget.attrs["class"] = f"{widget.attrs.get('class', '')} is-invalid".strip()
+
+    def _sem_aviso_repetido(self, nome: str) -> None:
+        # Campo vazio que o modelo também cobra (ex.: a filial nas empresas): fica só o aviso
+        # do modelo, que diz o que falta, em vez de "Este campo é obrigatório." junto.
+        erros = self.errors[nome].as_data()
+        especificos = [erro for erro in erros if erro.code != "required"]
+        if especificos and len(especificos) < len(erros):
+            self.errors[nome] = self.error_class(especificos, renderer=self.renderer)
 
 
 class MarcacaoExclusivaFormMixin:

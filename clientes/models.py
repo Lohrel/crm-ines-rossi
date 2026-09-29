@@ -201,7 +201,7 @@ class Cliente(ExclusaoProtegida, Endereco, MeiosDeContato, Registro):
     history = HistoricalRecords()
     objects = ClienteQuerySet.as_manager()
 
-    dependentes_proprios = ("unidades", "contatos")
+    dependentes_proprios = ("unidades", "contatos", "pendencias")
 
     class Meta:
         ordering = ["nome"]
@@ -237,11 +237,12 @@ class Cliente(ExclusaoProtegida, Endereco, MeiosDeContato, Registro):
         return bloqueios
 
     def excluir(self) -> None:
-        """Exclui o cliente junto com as suas unidades e contatos."""
+        """Exclui o cliente junto com as suas unidades, contatos e pendências."""
         with transaction.atomic():
             bloqueios = self.bloqueios_para_excluir()
             if bloqueios:
                 raise ValidationError("Não é possível excluir: " + "; ".join(bloqueios) + ".")
+            self.pendencias.all().delete()
             self.contatos.all().delete()
             for unidade in self.unidades.all():
                 unidade.delete()
@@ -268,7 +269,7 @@ class Cliente(ExclusaoProtegida, Endereco, MeiosDeContato, Registro):
 class Unidade(ExclusaoProtegida, MarcacaoExclusiva, Endereco, MeiosDeContato, Registro):
     """Matriz ou filial de uma empresa cliente, com CNPJ próprio."""
 
-    dependentes_proprios = ("contatos",)
+    dependentes_proprios = ("contatos", "pendencias")
 
     campo_exclusivo = "matriz"
     campo_grupo = "cliente"
@@ -310,10 +311,11 @@ class Unidade(ExclusaoProtegida, MarcacaoExclusiva, Endereco, MeiosDeContato, Re
         return CNPJ(self.cnpj).formatado()
 
     def excluir(self) -> None:
-        """Exclui a unidade; contatos que só atendiam esta unidade saem junto."""
+        """Exclui a unidade e as pendências dela; contatos que só a atendiam saem junto."""
         with transaction.atomic():
             if bloqueios := self.bloqueios_para_excluir():
                 raise ValidationError("Não é possível excluir: " + "; ".join(bloqueios) + ".")
+            self.pendencias.all().delete()
             # Conta todas as unidades de cada contato, não só esta (por isso o filtro em pk__in).
             contatos = Contato.objects.filter(pk__in=self.contatos.values("pk"))
             contatos.annotate(total=models.Count("unidades")).filter(total=1).delete()

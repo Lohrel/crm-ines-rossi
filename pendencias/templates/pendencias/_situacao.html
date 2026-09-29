@@ -1,0 +1,2 @@
+{% if pendencia.concluida %}<span class="badge text-bg-success">Concluída</span>
+{% else %}<span class="badge {% if pendencia.dias_para_o_prazo < 0 %}text-bg-danger{% elif pendencia.pede_atencao %}text-bg-warning{% else %}text-bg-light border{% endif %}">{{ pendencia.texto_do_prazo|capfirst }}</span>{% endif %}

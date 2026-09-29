@@ -31,6 +31,7 @@
         </td>
         <td class="text-end text-nowrap">
           {% if contrato.corretora_envia_boleto %}<a href="{% url 'boletos:lista' %}?contrato={{ contrato.pk }}&situacao=todos" class="btn btn-sm btn-link">Boletos</a>{% endif %}
+          <a href="{% url 'pendencias:lista' %}?contrato={{ contrato.pk }}" class="btn btn-sm btn-link">Pendências</a>
           <a href="{% url 'apolices:editar_contrato' contrato.pk %}" class="btn btn-sm btn-link">Editar</a>
         </td>
       </tr>

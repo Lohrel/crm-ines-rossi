@@ -26,7 +26,7 @@ Cada etapa só começa quando a anterior está testada e em uso.
 - [x] **2.** Beneficiários (titulares e dependentes, cada um nos planos escolhidos), anexos como DPS e eSocial, e número de vidas por grupo, filial e contrato
 - [x] **3.** Movimentações de inclusão e exclusão: etapas até a carteirinha enviada, rejeição com motivo e nova inclusão, dia de fechamento por contrato
 - [x] **4.** Boletos a enviar: lembrete dos boletos que a corretora envia, geração das mensalidades de um mês ou do ano todo, boleto fora do vencimento, reajuste e coparticipação
-- [ ] **5.** Pendências com "marcar como concluído"
+- [x] **5.** Pendências do dia a dia: responsável, prazo e "marcar como concluída", sempre ligadas ao cliente e, nas empresas, à filial
 - [ ] **6.** Importação e exportação da planilha mensal de inclusão
 - [ ] **7.** Painel e relatórios
 - [ ] **8.** Campos específicos de auto e imóvel
@@ -64,6 +64,7 @@ apolices/        Seguradoras, ramos e contratos
 beneficiarios/   Titulares, dependentes, planos de cada pessoa, anexos e contagem de vidas
 movimentacoes/   Pedidos de inclusão e exclusão, com etapas, fechamento do mês e histórico
 boletos/         Boletos que a corretora envia: a enviar, enviados e fora do vencimento
+pendencias/      Pendências com responsável e prazo, ligadas ao cliente, filial, contrato ou movimentação
 templates/       Layout base e tela de login
 static/          Bootstrap servido localmente (funciona sem internet) e campos de data
 docker/          Entrypoint, Caddy (HTTPS) e scripts de backup/restauração

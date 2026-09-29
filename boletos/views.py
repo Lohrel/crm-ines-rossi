@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.shortcuts import redirect
 from django.urls import reverse
-from django.utils.http import url_has_allowed_host_and_scheme, urlencode
+from django.utils.http import urlencode
 from django.views import View
 from django.views.generic import CreateView, DetailView, FormView, ListView, UpdateView
 from django.views.generic.detail import SingleObjectMixin
@@ -20,7 +20,7 @@ from boletos.forms import (
 )
 from boletos.historico import LinhaDoTempoDoBoleto
 from boletos.models import DIAS_DE_ANTECEDENCIA, DIAS_NA_LISTA, Boleto, Situacao, somar_meses
-from clientes.views import FormularioMixin
+from clientes.views import FormularioMixin, destino_seguro
 
 
 def _quantos(numero: int, singular: str, plural: str) -> str:
@@ -174,11 +174,7 @@ class EnviadoHojeView(SingleObjectMixin, View):
             messages.error(request, " ".join(erro.messages))
         else:
             messages.success(request, f"Envio registrado: {boleto}.")
-        proximo = request.POST.get("proximo", "")
-        seguro = url_has_allowed_host_and_scheme(
-            proximo, allowed_hosts={request.get_host()}, require_https=request.is_secure()
-        )
-        return redirect(proximo if seguro else reverse("boletos:lista"))
+        return redirect(destino_seguro(request, reverse("boletos:lista")))
 
 
 class GerarMensalidadesView(FormularioMixin, FormView):

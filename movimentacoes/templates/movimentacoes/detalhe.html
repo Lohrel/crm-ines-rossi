@@ -59,6 +59,18 @@
   </dl>
 </div></div>
 
+<div class="card shadow-sm mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">Pendências desta movimentação</span>
+    <a href="{% url 'pendencias:nova' %}?movimentacao={{ mov.pk }}" class="btn btn-sm btn-primary">Nova pendência</a>
+  </div>
+  {% if pendencias %}
+    {% include "pendencias/_tabela.html" with pendencias=pendencias na_movimentacao=True %}
+  {% else %}
+    <div class="card-body text-body-secondary">Nenhuma pendência ligada a esta movimentação.</div>
+  {% endif %}
+</div>
+
 <div class="card shadow-sm">
   <div class="card-header fw-semibold">Histórico (quem fez cada etapa)</div>
   <ul class="list-group list-group-flush">

@@ -15,6 +15,7 @@ from simple_history.models import HistoricalRecords
 
 from apolices.models import Contrato
 from clientes.models import Contato, Registro
+from clientes.prazos import texto_do_prazo
 
 # Quantos dias antes do vencimento o boleto não enviado passa a pedir atenção.
 DIAS_DE_ANTECEDENCIA = 7
@@ -170,10 +171,7 @@ class Boleto(Registro):
     def prazo(self) -> str:
         """Prazo dos que faltam enviar, ex.: "vence em 3 dias" ou "venceu há 2 dias"."""
         dias = self.dias_para_vencer
-        textos = {None: "", -1: "venceu ontem", 0: "vence hoje", 1: "vence amanhã"}
-        if dias in textos:
-            return textos[dias]
-        return f"vence em {dias} dias" if dias > 0 else f"venceu há {-dias} dias"
+        return "" if dias is None else texto_do_prazo(dias)
 
     def validate_constraints(self, exclude=None) -> None:
         # Os formulários não mostram todos os campos da regra "uma mensalidade por mês"
