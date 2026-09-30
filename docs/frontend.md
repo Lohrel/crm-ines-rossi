@@ -40,7 +40,8 @@ As telas novas seguem o que já existe:
 | Prazos | vencido em vermelho e perto de vencer em amarelo (boletos: 7 dias; pendências: 3 dias), com o texto de `clientes/prazos.py` ("vence em 3 dias") |
 | Formulários | cadastros e edições usam o `FormularioMixin` (`clientes/views.py`), com a tela comum `clientes/formulario.html`; os campos saem de `clientes/_campos.html`, com asterisco vermelho nos obrigatórios. Nas listas de escolha, a opção vazia é "Escolha" (o `BootstrapFormMixin` troca o "---------" do Django). Botão ao lado de campos com rótulo: ponha em cima dele um `<div class="form-label invisible" aria-hidden="true">.</div>`, da altura do rótulo |
 | Selos de movimentação | Inclusão em marinho, Alteração de plano em marinho claro e Exclusão com contorno escuro (`movimentacoes/_tipo.html`) |
-| Cor da seguradora | escolhida no cadastro da seguradora, numa paleta de 10 tons (`Seguradora.Cor`, com os tons em `crm.css` nas classes `cor-<valor>`). Nas listas, a linha ganha uma faixa à esquerda (`<tr class="faixa-seguradora cor-...">`); onde o nome aparece, use `apolices/_seguradora.html`, que põe um ponto e o nome na cor. Sem cor escolhida, nada muda. A paleta não tem o vermelho, o amarelo e o verde claro dos avisos |
+| Cor da seguradora | escolhida no cadastro da seguradora, numa paleta de 10 tons (`Seguradora.Cor`, com os tons em `crm.css` nas classes `cor-<valor>`). Nas listas, a linha ganha uma faixa à esquerda (`<tr class="faixa-seguradora cor-...">`, ou `<li class="list-group-item faixa-seguradora cor-...">` nos quadros do painel); onde o nome aparece, use `apolices/_seguradora.html`, que põe um ponto e o nome na cor. Sem cor escolhida, nada muda. A paleta não tem o vermelho, o amarelo e o verde claro dos avisos |
+| Painel | cada quadro é um `card` com o título no cabeçalho, o número em destaque (`numero-do-quadro`), que leva à lista já filtrada com os mesmos registros, e até 3 registros embaixo (`list-group-flush`), o mais urgente primeiro. Nos registros, o nome vem na primeira linha e o prazo, em selo, no começo da segunda |
 | Datas e meses | `CampoData` e `MesField`: a barra entra sozinha, o primeiro clique seleciona a data inteira (para digitar por cima) e há um botão de calendário |
 | Exclusão | caixa `<details>` "Excluir registros" no fim da página, à direita, e página de confirmação digitada (`ExclusaoConfirmadaView` com `clientes/excluir.html`) |
 | Importação | prévia de cada linha antes de gravar; se a prévia tem um campo de texto, o primeiro botão do formulário (escondido) só atualiza a prévia, para o Enter nunca confirmar |
@@ -57,8 +58,8 @@ telas ficam dentro de outras:
 - Beneficiários: botão na página do cliente.
 - Planilha mensal (baixar e importar): botão em Movimentações.
 - Planilha do seguro de vida: "Planilha de vidas" na tabela de contratos e na Planilha mensal.
-- Início (`contas/templates/contas/inicio.html`): hoje só tem atalhos. O painel da etapa 8 entra
-  aqui.
+- Início (`contas/templates/contas/inicio.html`): o painel da etapa 8a, com um arquivo por quadro em
+  `contas/templates/contas/painel/` e as contas em `contas/painel.py`, e os atalhos de novo cliente.
 
 ## Problemas conhecidos
 
@@ -94,7 +95,7 @@ outras telas. No celular, a faixa aparece mesmo quando a tabela esconde a coluna
 Falta:
 
 - Menu: reorganizar com o Lohrel, incluindo "Relatórios" se a etapa 8 criar esse item.
-- Painel inicial com o visual final, depois da etapa 8.
+- Painel inicial: feito na etapa 8a, já no visual da corretora. Falta a equipe aprovar.
 - Celular: nenhuma tela rola mais para o lado a 390 px, mas os filtros ocupam a primeira tela e, nas
   tabelas largas (que rolam dentro de `.table-responsive`), os botões da última coluna (ex.: "Enviado
   hoje", "Concluir") ficam escondidos à direita.

@@ -3,7 +3,7 @@ from datetime import date
 from django import forms
 
 from apolices.models import Contrato
-from boletos.models import DIAS_NA_LISTA, Boleto, Situacao, meses_entre
+from boletos.models import DIAS_DE_ANTECEDENCIA, DIAS_NA_LISTA, Boleto, Situacao, meses_entre
 from clientes.forms import BootstrapFormMixin, MesField
 from clientes.widgets import CampoData
 
@@ -126,8 +126,11 @@ class GerarMensalidadesForm(BootstrapFormMixin, forms.Form):
 
 
 class FiltroBoletosForm(BootstrapFormMixin, forms.Form):
+    # Vencidos e dos próximos dias, os que pedem atenção (quadro do painel).
+    ATENCAO = "atencao"
     SITUACOES = [
         ("", f"A enviar ({DIAS_NA_LISTA} dias)"),
+        (ATENCAO, f"A enviar ({DIAS_DE_ANTECEDENCIA} dias)"),
         (Situacao.A_ENVIAR, "A enviar (todos)"),
         (Situacao.ENVIADO, "Enviados"),
         (Situacao.CANCELADO, "Cancelados"),

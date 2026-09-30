@@ -1,0 +1,28 @@
+<section class="card shadow-sm h-100 quadro" aria-labelledby="quadro-boletos">
+  <div class="card-header d-flex justify-content-between align-items-baseline gap-2">
+    <h2 class="h6 mb-0" id="quadro-boletos">Boletos a enviar</h2>
+    <a href="{{ quadro.url }}" class="small">Ver lista</a>
+  </div>
+  <div class="card-body">
+    <a href="{{ quadro.url }}" class="destaque-do-quadro"><span class="numero-do-quadro">{{ quadro.total }}</span> a enviar</a>
+    {% if quadro.total %}
+    <div class="small mt-2">
+      <span class="{% if quadro.vencidos %}text-danger fw-semibold{% endif %}">{{ quadro.vencidos }} vencido{{ quadro.vencidos|pluralize }}</span> ·
+      {{ quadro.vencendo }} {{ quadro.vencendo|pluralize:"vence,vencem" }} nos próximos {{ quadro.dias }} dias
+    </div>
+    {% else %}
+    <p class="small text-body-secondary mt-2 mb-0">Nenhum boleto vencido nem vencendo nos próximos {{ quadro.dias }} dias.</p>
+    {% endif %}
+  </div>
+  {% if quadro.itens %}
+  <div class="titulo-da-lista">Próximos</div>
+  <ul class="list-group list-group-flush">
+    {% for item in quadro.itens %}{% with boleto=item.registro %}
+    <li class="list-group-item{% if boleto.contrato.seguradora.cor %} faixa-seguradora cor-{{ boleto.contrato.seguradora.cor }}{% endif %}">
+      <a href="{{ boleto.get_absolute_url }}" class="fw-semibold">{{ boleto.contrato.cliente }}</a>
+      <div class="small text-body-secondary"><span class="badge {% if item.venceu %}text-bg-danger{% else %}text-bg-warning{% endif %}">{{ item.prazo|capfirst }}</span> {{ boleto.get_tipo_display }} {{ boleto.referencia|date:"m/Y" }} · {% include "apolices/_seguradora.html" with seguradora=boleto.contrato.seguradora %}</div>
+    </li>
+    {% endwith %}{% endfor %}
+  </ul>
+  {% endif %}
+</section>

@@ -8,7 +8,7 @@ from clientes.models import Cliente, Unidade
 from clientes.widgets import CampoData
 from movimentacoes.forms import rotulo_do_plano
 from movimentacoes.models import ETAPAS_EM_ABERTO, Movimentacao
-from pendencias.models import Pendencia
+from pendencias.models import DIAS_DE_ANTECEDENCIA, Pendencia
 
 
 def rotulo_da_unidade(unidade: Unidade) -> str:
@@ -96,7 +96,14 @@ class PendenciaForm(BootstrapFormMixin, forms.ModelForm):
 
 
 class FiltroPendenciasForm(BootstrapFormMixin, forms.Form):
-    SITUACOES = [("", "Em aberto"), ("concluidas", "Concluídas"), ("todas", "Todas")]
+    # Em aberto e com o prazo vencido ou nos próximos dias (quadro do painel).
+    ATENCAO = "atencao"
+    SITUACOES = [
+        ("", "Em aberto"),
+        (ATENCAO, f"Pedem atenção ({DIAS_DE_ANTECEDENCIA} dias)"),
+        ("concluidas", "Concluídas"),
+        ("todas", "Todas"),
+    ]
 
     q = forms.CharField(label="Buscar", required=False)
     situacao = forms.ChoiceField(label="Situação", choices=SITUACOES, required=False)

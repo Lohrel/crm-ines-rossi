@@ -13,6 +13,9 @@ from clientes.documentos import CNPJ
 from clientes.models import Cliente, Registro, Unidade
 from clientes.validators import validar_cnpj
 
+# O painel e a lista de contratos avisam as renovações com esta antecedência.
+DIAS_PARA_RENOVACAO = 60
+
 
 class Seguradora(Registro):
     class Cor(models.TextChoices):
@@ -84,6 +87,7 @@ class ContratoQuerySet(models.QuerySet):
         return self.filter(corretora_envia_boleto=True)
 
     def renovam_ate(self, data: date):
+        """Vigentes que renovam até a data, inclusive os com a data de renovação já passada."""
         return self.vigentes().filter(data_renovacao__lte=data)
 
     def com_capital(self):
@@ -225,6 +229,12 @@ class Contrato(Registro):
     @property
     def vigente(self) -> bool:
         return self.situacao in self.SITUACOES_VIGENTES
+
+    @property
+    def renovacao_passou(self) -> bool:
+        """Vigente com a data de renovação já passada: falta pôr a data da próxima."""
+        hoje = date.today()
+        return self.vigente and self.data_renovacao is not None and self.data_renovacao < hoje
 
     @property
     def nome_do_plano(self) -> str:

@@ -1,0 +1,28 @@
+<section class="card shadow-sm h-100 quadro" aria-labelledby="quadro-movimentacoes">
+  <div class="card-header d-flex justify-content-between align-items-baseline gap-2">
+    <h2 class="h6 mb-0" id="quadro-movimentacoes">Movimentações em aberto</h2>
+    <a href="{{ quadro.url }}" class="small">Ver lista</a>
+  </div>
+  <div class="card-body">
+    <a href="{{ quadro.url }}" class="destaque-do-quadro"><span class="numero-do-quadro">{{ quadro.total }}</span> em aberto</a>
+    {% if quadro.total %}
+    <div class="small mt-2">
+      <a href="{{ quadro.url_em_analise }}">{{ quadro.em_analise }} em análise</a> ·
+      <a href="{{ quadro.url_aprovadas }}">{{ quadro.aprovadas }} aprovada{{ quadro.aprovadas|pluralize }}</a>, falta concluir
+    </div>
+    {% else %}
+    <p class="small text-body-secondary mt-2 mb-0">Nenhum pedido esperando a operadora.</p>
+    {% endif %}
+  </div>
+  {% if quadro.itens %}
+  <div class="titulo-da-lista">Há mais tempo em aberto</div>
+  <ul class="list-group list-group-flush">
+    {% for item in quadro.itens %}{% with mov=item.movimentacao %}
+    <li class="list-group-item{% if mov.contrato.seguradora.cor %} faixa-seguradora cor-{{ mov.contrato.seguradora.cor }}{% endif %}">
+      <a href="{{ mov.get_absolute_url }}" class="fw-semibold">{{ mov.beneficiario.nome }}</a>
+      <div class="small text-body-secondary"><span class="text-body fw-semibold">{{ item.dias }} dia{{ item.dias|pluralize }}</span> · {{ mov.get_tipo_display }} · {{ mov.contrato.ramo }} · {{ mov.cliente }}</div>
+    </li>
+    {% endwith %}{% endfor %}
+  </ul>
+  {% endif %}
+</section>

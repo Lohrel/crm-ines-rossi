@@ -211,6 +211,19 @@ def test_filtros_por_mes_tipo_contrato_e_fora_do_vencimento(logado, com_boleto, 
     assert "Mês inválido" in logado.get(url, {"mes": "13/2026"}).content.decode()
 
 
+def test_filtro_dos_que_pedem_atencao(logado, com_boleto, usuario):
+    vencido = boleto(com_boleto, tipo="COP", vencimento=HOJE - timedelta(days=1))
+    na_semana = boleto(com_boleto, tipo="REA", vencimento=HOJE + timedelta(days=7))
+    depois = boleto(com_boleto, tipo="ESP", vencimento=HOJE + timedelta(days=8))
+    enviado = boleto(com_boleto, tipo="ESP", vencimento=HOJE)
+    enviado.registrar_envio(usuario)
+
+    pagina = logado.get(reverse("boletos:lista"), {"situacao": "atencao"}).content.decode()
+    assert '<option value="atencao" selected>A enviar (7 dias)</option>' in pagina
+    mostrados = {b for b in (vencido, na_semana, depois, enviado) if b.get_absolute_url() in pagina}
+    assert mostrados == {vencido, na_semana}
+
+
 def test_enviado_hoje_pela_lista(logado, com_boleto, usuario):
     novo = boleto(com_boleto)
     url = reverse("boletos:enviado_hoje", args=[novo.pk])

@@ -1,4 +1,5 @@
-from datetime import date
+import re
+from datetime import date, timedelta
 
 import pytest
 from django.core.exceptions import ValidationError
@@ -209,6 +210,45 @@ def test_cancelados_so_aparecem_quando_pedidos(logado, contrato_empresa):
     url = reverse("apolices:contratos")
     assert "SAU-001" not in logado.get(url).content.decode()
     assert "SAU-001" in logado.get(url, {"situacao": "todas"}).content.decode()
+
+
+def test_filtro_das_renovacoes_dos_proximos_60_dias(logado, contrato_empresa, seguradora, saude):
+    hoje = date.today()
+
+    def contrato(numero, renovacao, situacao="ATV"):
+        return Contrato.objects.create(
+            cliente=contrato_empresa.cliente,
+            seguradora=seguradora,
+            ramo=saude,
+            numero=numero,
+            modalidade="EM",
+            situacao=situacao,
+            inicio_vigencia=hoje - timedelta(days=365),
+            data_renovacao=renovacao,
+            dia_vencimento=10,
+        )
+
+    contrato("PASSOU", hoje - timedelta(days=3))
+    contrato("PERTO", hoje + timedelta(days=60))
+    contrato("LONGE", hoje + timedelta(days=61))
+    contrato("CANCELADO", hoje, situacao="CAN")
+    contrato_empresa.data_renovacao = None
+    contrato_empresa.save()
+
+    url = reverse("apolices:contratos")
+    conteudo = logado.get(url, {"renovacao": "on"}).content.decode()
+    # A data já passada vem primeiro, em vermelho, para ser atualizada.
+    numeros = re.findall(r'<div class="small text-body-secondary">(PASSOU|PERTO)</div>', conteudo)
+    assert numeros == ["PASSOU", "PERTO"]
+    assert "LONGE" not in conteudo and "CANCELADO" not in conteudo and "SAU-001" not in conteudo
+    passou = f"{hoje - timedelta(days=3):%d/%m/%Y}"
+    assert f'<div class="small text-nowrap text-danger">Renovação {passou}</div>' in conteudo
+    perto = f"{hoje + timedelta(days=60):%d/%m/%Y}"
+    assert f'<div class="small text-nowrap text-body-secondary">Renovação {perto}</div>' in conteudo
+    # Sem o filtro, a data aparece nos vigentes; nos cancelados, não.
+    todos = logado.get(url, {"situacao": "todas"}).content.decode()
+    assert f"Renovação {hoje + timedelta(days=61):%d/%m/%Y}" in todos
+    assert f"Renovação {hoje:%d/%m/%Y}" not in todos
 
 
 def test_cadastrar_seguradora_sem_cnpj_duas_vezes(logado):

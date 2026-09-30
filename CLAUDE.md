@@ -157,16 +157,25 @@ pytest -q
   pelo PR #11 antes do teste com a planilha real, que o Lohrel faz no computador dele (a importação
   ignora linhas sem nome). Se ele achar um problema, corrija num branch novo a partir do `main`, com
   um PR novo. A descrição do PR #11 explica como a importação funciona.
+- **8a**, painel na página inicial: PR #17, branch `etapa-8a-painel`, esperando o Lohrel testar. Os quadros
+  seguem a proposta do [guia da etapa 8](docs/etapa-8-painel-e-relatorios.md), com o mesmo painel
+  para todos e as pendências de quem entrou em destaque (escolhas a confirmar no teste). Se ele pedir
+  ajustes, corrija nesse mesmo branch.
+- **Calendário** (pedido do Lohrel em 30/09/2026): um calendário que todos veem, no lugar do quadro
+  branco em que a chefe anota datas importantes (férias de funcionário, aniversário de apólice,
+  prazos das pendências). Escopo a confirmar com ele antes de começar.
 - A instalação no servidor do escritório, com os 4 logins, ainda não foi confirmada.
 - Próximas etapas:
-  - **8. Painel e relatórios**: proposta em
-    [docs/etapa-8-painel-e-relatorios.md](docs/etapa-8-painel-e-relatorios.md).
+  - **8b. Relatórios**: proposta em
+    [docs/etapa-8-painel-e-relatorios.md](docs/etapa-8-painel-e-relatorios.md), com as perguntas a
+    fazer ao Lohrel antes de começar.
   - **9. Campos de auto e imóvel**: poucos clientes. Os campos (dados do veículo, endereço do imóvel)
     ainda precisam ser levantados com o Lohrel.
   - **10. Acabamento visual**: as partes 10a (cores, fonte e logo da corretora, menu que recolhe no
-    celular, tela de entrada e textos organizados) e 10b (cor de cada seguradora) estão feitas.
-    Faltam a organização do menu, o painel inicial com o visual final e ajustes finos no celular.
-    Veja [docs/frontend.md](docs/frontend.md).
+    celular, tela de entrada e textos organizados) e 10b (cor de cada seguradora) estão feitas, e o
+    painel da 8a já saiu no visual da corretora. Faltam a organização do menu (com "Relatórios", se
+    a 8b criar esse item), a aprovação do painel pela equipe e ajustes finos no celular. Veja
+    [docs/frontend.md](docs/frontend.md).
 
 ## Decisões do escritório que valem para as próximas etapas
 
@@ -186,6 +195,8 @@ pytest -q
 - Visual (etapa 10a): menu marinho com o logo branco e tela de entrada escura, a partir do cartão de
   visita e dos envelopes da corretora. O logo e o nome da corretora podem ficar no repositório
   (autorizado pelo Lohrel em 30/09/2026); se o software passar a ser proprietário, eles saem.
+- Painel (etapa 8a): o número de vidas não fica na página inicial, porque o escritório não consulta
+  todo dia.
 - Cada seguradora tem uma cor, escolhida no cadastro, para a equipe saber qual portal abrir sem ler.
   Ela aparece como uma faixa discreta à esquerda da linha nas listas (o Lohrel preferiu a faixa a uma
   etiqueta colorida, menos poluída) e como um ponto antes do nome nas outras telas.
