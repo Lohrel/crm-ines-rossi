@@ -44,4 +44,26 @@
     <a href="{% url 'movimentacoes:importar_planilha' %}" class="btn btn-outline-primary">Importar planilha</a>
   </div>
 </div>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-header fw-semibold">Planilha do seguro de vida</div>
+  <div class="card-body">
+    <p class="text-body-secondary">
+      Todas as vidas do mês, com salário, capital e fatura, no layout que vai para a seguradora (Tokio Marine). Aparecem
+      aqui os contratos com o capital configurado (em Editar contrato, cartão "Só para seguro de vida").
+    </p>
+    {% if contratos_de_vida %}
+    <div class="list-group">
+      {% for contrato in contratos_de_vida %}
+      <a href="{% url 'beneficiarios:seguro_de_vida' contrato.pk %}" class="list-group-item list-group-item-action d-flex flex-wrap justify-content-between gap-2">
+        <span class="fw-semibold">{{ contrato.cliente }}</span>
+        <span class="text-body-secondary">{{ contrato.seguradora }} {{ contrato.numero }}{% if contrato.produto %} · {{ contrato.produto }}{% endif %}</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="small text-body-secondary mb-0">Nenhum contrato com o capital configurado ainda.</p>
+    {% endif %}
+  </div>
+</div>
 {% endblock %}

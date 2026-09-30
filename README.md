@@ -31,7 +31,9 @@ Cada etapa só começa quando a anterior está testada e em uso.
 - [x] **6.** Planilha mensal de inclusões, no formato da planilha de controle do escritório
   - [x] 6a. Baixar a planilha do mês (uma aba por ramo, com o plano de cada pessoa, e a aba de alterações de plano) e a movimentação "Alteração de plano"
   - [x] 6b. Importar a planilha do mês, com prévia de cada linha antes de gravar: titular novo entra com nome e matrícula, e o pedido em aberto que a planilha dá como Processado avança
-- [ ] **7.** Planilha de vidas da Tokio Marine (seguro de vida)
+- [ ] **7.** Planilha do seguro de vida, no layout que vai para a Tokio Marine
+  - [x] 7a. Salário (opcional) no plano de vida, capital e taxa no contrato, subfatura de cada filial e a planilha do mês, com o resumo da fatura para conferir a cobrança
+  - [ ] 7b. Importar a planilha atual da seguradora, para não digitar as vidas de novo
 - [ ] **8.** Painel e relatórios
 - [ ] **9.** Campos específicos de auto e imóvel
 - [ ] **10.** Acabamento visual: cores e logo da corretora, menu, painel inicial e ajustes para celular
@@ -64,8 +66,9 @@ Para rodar o sistema completo como no servidor, use o Docker (veja `docs/instala
 config/          Configurações do Django (lidas do arquivo .env)
 contas/          Usuários, login e página inicial
 clientes/        Clientes PF/PJ, unidades (filiais) e contatos, com histórico
-apolices/        Seguradoras, ramos e contratos
-beneficiarios/   Titulares, dependentes, planos de cada pessoa, anexos e contagem de vidas
+apolices/        Seguradoras, ramos, contratos e subfaturas das filiais
+beneficiarios/   Titulares, dependentes, planos de cada pessoa, anexos, contagem de vidas e a planilha
+                 do seguro de vida
 movimentacoes/   Pedidos de inclusão, exclusão e alteração de plano, com etapas, fechamento do mês,
                  histórico e a planilha mensal (baixar e importar)
 boletos/         Boletos que a corretora envia: a enviar, enviados e fora do vencimento

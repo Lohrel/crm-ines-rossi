@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block titulo %}Planilha do seguro de vida{% endblock %}
+{% block conteudo %}
+{% with cliente=contrato.cliente %}
+<nav aria-label="breadcrumb"><ol class="breadcrumb">
+  <li class="breadcrumb-item"><a href="{{ cliente.get_absolute_url }}">{{ cliente }}</a></li>
+  <li class="breadcrumb-item active">Planilha do seguro de vida</li>
+</ol></nav>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-1">Planilha do seguro de vida</h1>
+    <div class="text-body-secondary">{{ contrato.seguradora }} {{ contrato.numero }}{% if contrato.produto %} · {{ contrato.produto }}{% endif %} · {{ contrato.ramo }}</div>
+  </div>
+  <a href="{% url 'apolices:editar_contrato' contrato.pk %}" class="btn btn-outline-primary">Editar contrato</a>
+</div>
+
+{% if not contrato.calcula_capital %}
+<div class="alert alert-warning">
+  Este contrato ainda não tem o capital configurado. Em <a href="{% url 'apolices:editar_contrato' contrato.pk %}" class="alert-link">Editar contrato</a>,
+  preencha o cartão "Só para seguro de vida": quantas vezes o salário vale o capital, o capital máximo e a taxa por mil.
+</div>
+{% else %}
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <form method="get" class="row g-2 align-items-end" novalidate>
+      <div class="col-sm-4 col-md-3">
+        {{ form.mes.label_tag }}{{ form.mes }}
+        {% for erro in form.mes.errors %}<div class="invalid-feedback d-block">{{ erro }}</div>{% endfor %}
+      </div>
+      <div class="col-sm-3 col-md-2"><button type="submit" class="btn btn-outline-primary w-100">Ver o mês</button></div>
+      {% if planilha %}
+      <div class="col-sm-5 col-md-7 text-sm-end">
+        <a href="?mes={{ planilha.data|date:'m/Y' }}&amp;baixar=1" class="btn btn-primary">Baixar planilha (Excel)</a>
+      </div>
+      {% endif %}
+    </form>
+    {% if planilha %}
+    <p class="small text-body-secondary mt-2 mb-0">
+      Vidas em {{ planilha.data|date:"d/m/Y" }}, no layout que vai para a seguradora. Prazo de envio: até {{ planilha.prazo_de_envio|date:"d/m/Y" }}.
+    </p>
+    {% endif %}
+  </div>
+</div>
+
+{% if planilha %}
+<div class="card shadow-sm mb-4">
+  <div class="card-header fw-semibold">Resumo para conferir a cobrança</div>
+  <div class="card-body">
+    <div class="row g-3 text-center">
+      <div class="col-4"><div class="small text-body-secondary">Vidas</div><div class="fs-4 fw-semibold">{{ planilha.vidas|length }}</div></div>
+      <div class="col-4"><div class="small text-body-secondary">Capital total</div><div class="fs-5 fw-semibold text-nowrap">R$ {{ planilha.capital_total|floatformat:"2g" }}</div></div>
+      <div class="col-4"><div class="small text-body-secondary">Fatura total</div><div class="fs-5 fw-semibold text-nowrap">{% if planilha.fatura_total is not None %}R$ {{ planilha.fatura_total|floatformat:"2g" }}{% else %}—{% endif %}</div></div>
+    </div>
+    {% if planilha.fatura_total is None %}<p class="small text-body-secondary mt-3 mb-0">Sem a taxa por mil no contrato, a planilha sai sem a fatura.</p>{% endif %}
+    {% if planilha.boletos_separados %}
+    <table class="table table-sm mt-3 mb-0">
+      <tbody>
+      {% for grupo in planilha.boletos_separados %}
+        <tr><td>{{ grupo.rotulo }} <span class="text-body-secondary small">· {{ grupo.vidas|length }} vida{{ grupo.vidas|length|pluralize }}</span></td><td class="text-end text-nowrap">R$ {{ grupo.fatura|floatformat:"2g" }}</td></tr>
+      {% endfor %}
+        <tr class="fw-semibold"><td>Total sem o boleto separado</td><td class="text-end text-nowrap">R$ {{ planilha.fatura_sem_os_separados|floatformat:"2g" }}</td></tr>
+      </tbody>
+    </table>
+    {% endif %}
+  </div>
+</div>
+
+{% if planilha.sem_salario %}
+<div class="card shadow-sm mb-4 border-warning">
+  <div class="card-header fw-semibold">{{ planilha.sem_salario|length }} vida{{ planilha.sem_salario|length|pluralize }} sem salário</div>
+  <div class="card-body">
+    <p class="small text-body-secondary">Saem com o salário em branco e capital zero. Dá para preencher aqui ou direto no Excel, que recalcula capital e fatura.</p>
+    <ul class="list-unstyled mb-0">
+    {% for vida in planilha.sem_salario %}
+      <li class="d-flex flex-wrap gap-2 align-items-center py-1"><a href="{{ vida.pessoa.get_absolute_url }}">{{ vida.pessoa.nome }}</a><span class="small text-body-secondary">{{ vida.empresa }}</span><a href="{% url 'beneficiarios:editar_plano' vida.vinculo.pk %}" class="btn btn-sm btn-link">Preencher salário</a></li>
+    {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+
+{% if planilha.sem_subfatura %}
+<div class="alert alert-warning">
+  {{ planilha.sem_subfatura|length }} vida{{ planilha.sem_subfatura|length|pluralize }} {{ planilha.sem_subfatura|length|pluralize:"está,estão" }} em filiais sem subfatura e {{ planilha.sem_subfatura|length|pluralize:"sai,saem" }} com Local e SUB em branco. Preencha as subfaturas abaixo.
+</div>
+{% endif %}
+{% endif %}
+{% endif %}
+
+{% if subfaturas %}
+<div class="card shadow-sm mb-4">
+  <div class="card-header fw-semibold">Subfaturas das filiais</div>
+  <div class="card-body pb-0">
+    <p class="small text-body-secondary">
+      Como a seguradora identifica cada filial neste contrato. O Local e o identificador saem em todas as vidas da filial.
+      Marque "Boleto separado" na filial que paga um boleto à parte: a planilha mostra o valor dela e o do restante.
+    </p>
+  </div>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% if planilha %}<input type="hidden" name="mes" value="{{ planilha.data|date:'m/Y' }}">{% endif %}
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead class="table-light"><tr><th>Filial</th><th style="min-width: 7rem">Local</th><th style="min-width: 9rem">Identificador de SUB</th><th class="text-center">Boleto separado</th></tr></thead>
+        <tbody>
+        {% for unidade, sub in subfaturas %}
+          <tr>
+            <td>{{ unidade }}<div class="small text-body-secondary">{{ unidade.razao_social }} · {{ unidade.cnpj_formatado }}</div></td>
+            <td>{{ sub.local }}{% for erro in sub.local.errors %}<div class="invalid-feedback d-block">{{ erro }}</div>{% endfor %}</td>
+            <td>{{ sub.identificador }}{% for erro in sub.identificador.errors %}<div class="invalid-feedback d-block">{{ erro }}</div>{% endfor %}</td>
+            <td class="text-center">{{ sub.boleto_separado }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="card-body"><button type="submit" class="btn btn-outline-primary">Salvar subfaturas</button></div>
+  </form>
+</div>
+{% endif %}
+{% endwith %}
+{% endblock %}

@@ -269,7 +269,7 @@ class Cliente(ExclusaoProtegida, Endereco, MeiosDeContato, Registro):
 class Unidade(ExclusaoProtegida, MarcacaoExclusiva, Endereco, MeiosDeContato, Registro):
     """Matriz ou filial de uma empresa cliente, com CNPJ próprio."""
 
-    dependentes_proprios = ("contatos", "pendencias")
+    dependentes_proprios = ("contatos", "pendencias", "subfaturas")
 
     campo_exclusivo = "matriz"
     campo_grupo = "cliente"

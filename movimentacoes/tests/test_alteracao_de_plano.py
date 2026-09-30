@@ -1,6 +1,7 @@
 """Alteração de plano: a pessoa sai de um plano e entra noutro do mesmo ramo na mesma data."""
 
 from datetime import date
+from decimal import Decimal
 
 import pytest
 from django.core.exceptions import ValidationError
@@ -78,6 +79,23 @@ def test_aprovada_sai_do_plano_atual_e_entra_no_novo(empresa, titular, pleno, fl
     # Concluir não pede carteirinha, como na exclusão.
     mov.mudar_etapa(Etapa.CONCLUIDA)
     assert mov.etapa == Etapa.CONCLUIDA and mov.carteirinha_enviada_em is None
+
+
+def test_no_seguro_de_vida_o_salario_vai_para_o_novo_plano(
+    titular, empresa, seguradora, matriz, filial
+):
+    antigo = plano(empresa, seguradora, "V-100", "VIDA A", [matriz, filial], ramo="Vida")
+    novo = plano(empresa, seguradora, "V-200", "VIDA B", [matriz, filial], ramo="Vida")
+    for contrato_de_vida in (antigo, novo):
+        contrato_de_vida.capital_multiplo = 24
+        contrato_de_vida.save()
+    vinculo = incluir(titular, antigo, inclusao=date(2026, 1, 1))
+    vinculo.salario = Decimal("3000")
+    vinculo.save()
+
+    alteracao(titular, antigo, novo).mudar_etapa(Etapa.APROVADA)
+
+    assert titular.vinculos.get(contrato=novo).salario == Decimal("3000")
 
 
 def test_dependentes_do_plano_atual_mudam_junto(titular, conjuge, filho, pleno, flex, dental):

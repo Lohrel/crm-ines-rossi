@@ -1,10 +1,11 @@
 from datetime import date
+from decimal import Decimal
 from pathlib import Path
 from uuid import uuid4
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.validators import FileExtensionValidator
+from django.core.validators import FileExtensionValidator, MinValueValidator
 from django.db import models, transaction
 from django.db.models import Q
 from django.urls import reverse
@@ -175,6 +176,15 @@ class Vinculo(Registro):
         blank=True,
         help_text="A partir desta data a pessoa deixa de contar como vida no plano.",
     )
+    salario = models.DecimalField(
+        "salário (R$)",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal("0.01"))],
+        help_text="Só no seguro de vida, para calcular o capital. Pode ficar em branco.",
+    )
 
     history = HistoricalRecords()
     objects = VinculoQuerySet.as_manager()
@@ -210,6 +220,15 @@ class Vinculo(Registro):
         return self.data_inclusao <= hoje and (
             self.data_exclusao is None or self.data_exclusao > hoje
         )
+
+    @property
+    def capital(self) -> Decimal | None:
+        """Capital segurado no seguro de vida (sem salário, fica em branco)."""
+        return self.contrato.capital_de(self.salario)
+
+    @property
+    def fatura(self) -> Decimal | None:
+        return self.contrato.fatura_de(self.capital)
 
     def clean(self) -> None:
         super().clean()

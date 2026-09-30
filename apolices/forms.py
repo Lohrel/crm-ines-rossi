@@ -40,6 +40,7 @@ class ContratoForm(BootstrapFormMixin, forms.ModelForm):
             "coparticipacao",
             "unidades",
             "observacoes",
+            *Contrato.CAMPOS_DO_SEGURO_DE_VIDA,
         ]
         widgets = {
             "inicio_vigencia": CampoData(),
@@ -67,6 +68,9 @@ class ContratoForm(BootstrapFormMixin, forms.ModelForm):
         else:
             del self.fields["unidades"]
             self.initial.setdefault("modalidade", Contrato.Modalidade.INDIVIDUAL)
+        if self.instance.taxa_por_mil is not None:
+            # Mostra 0.35, e não 0.350000.
+            self.initial["taxa_por_mil"] = format(self.instance.taxa_por_mil.normalize(), "f")
 
     def clean(self):
         dados = super().clean()

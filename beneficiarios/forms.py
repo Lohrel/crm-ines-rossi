@@ -2,10 +2,10 @@ from datetime import date
 
 from django import forms
 
-from apolices.models import Contrato
+from apolices.models import Contrato, Subfatura
 from beneficiarios.models import Anexo, Beneficiario, Vinculo
 from clientes.documentos import CPF
-from clientes.forms import BootstrapFormMixin, DocumentoField
+from clientes.forms import BootstrapFormMixin, DocumentoField, MesField
 from clientes.models import Cliente, Unidade
 from clientes.widgets import CampoData
 
@@ -83,7 +83,7 @@ class VinculoForm(BootstrapFormMixin, forms.ModelForm):
 
     class Meta:
         model = Vinculo
-        fields = ["contrato", "carteirinha", "data_inclusao", "data_exclusao"]
+        fields = ["contrato", "carteirinha", "data_inclusao", "data_exclusao", "salario"]
         widgets = {"data_inclusao": DATA, "data_exclusao": DATA}
 
     def __init__(self, *args, beneficiario: Beneficiario | None = None, **kwargs):
@@ -98,6 +98,7 @@ class VinculoForm(BootstrapFormMixin, forms.ModelForm):
         if self.instance.pk:
             del self.fields["dependentes"]
             self.fields["contrato"].disabled = True
+            usam_salario = self.instance.contrato.usa_salario
         else:
             del self.fields["data_exclusao"]
             self.initial.setdefault("data_inclusao", date.today())
@@ -105,6 +106,12 @@ class VinculoForm(BootstrapFormMixin, forms.ModelForm):
                 self.fields["dependentes"].queryset = pessoa.dependentes.all()
             else:
                 del self.fields["dependentes"]
+            usam_salario = (
+                self.fields["contrato"].queryset.filter(capital_multiplo__isnull=False).exists()
+            )
+        # O salário só aparece para o titular, quando há seguro de vida com capital pelo salário.
+        if not (usam_salario and pessoa.eh_titular):
+            del self.fields["salario"]
 
     @staticmethod
     def _contratos_possiveis(pessoa: Beneficiario):
@@ -130,6 +137,9 @@ class VinculoForm(BootstrapFormMixin, forms.ModelForm):
     def clean(self):
         dados = super().clean()
         contrato = dados.get("contrato")
+        if contrato and not contrato.usa_salario and dados.get("salario") is not None:
+            # Salário digitado para um plano que não é seguro de vida: não é guardado.
+            dados["salario"] = None
         for dependente in dados.get("dependentes") or []:
             if dependente.vinculos.filter(contrato=contrato, data_exclusao__isnull=True).exists():
                 self.add_error("dependentes", f"{dependente} já está neste plano.")
@@ -186,3 +196,15 @@ class BuscaBeneficiarioForm(BootstrapFormMixin, forms.Form):
             self.fields["unidade"].queryset = cliente.unidades.all()
         else:
             del self.fields["unidade"]
+
+
+class MesDaPlanilhaForm(BootstrapFormMixin, forms.Form):
+    mes = MesField(label="Mês da planilha")
+
+
+class SubfaturaForm(BootstrapFormMixin, forms.ModelForm):
+    """Local e subfatura de uma filial no contrato, como a seguradora a identifica."""
+
+    class Meta:
+        model = Subfatura
+        fields = ["local", "identificador", "boleto_separado"]
