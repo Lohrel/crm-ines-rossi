@@ -3,9 +3,10 @@ from io import BytesIO
 from urllib.parse import urlencode
 
 from django.contrib import messages
+from django.core import signing
 from django.db import transaction
 from django.db.models import Prefetch
-from django.http import FileResponse
+from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic import (
@@ -24,12 +25,20 @@ from beneficiarios.forms import (
     BuscaBeneficiarioForm,
     DependenteForm,
     EncerrarVinculoForm,
+    EntradaDasVidasNovasForm,
+    ImportacaoDeVidasForm,
     MesDaPlanilhaForm,
     SubfaturaForm,
     TitularForm,
     VinculoForm,
 )
 from beneficiarios.historico import LinhaDoTempoDoBeneficiario
+from beneficiarios.importacao_de_vidas import (
+    ImportacaoDeVidas,
+    PlanilhaLida,
+    desempacotar,
+    empacotar,
+)
 from beneficiarios.models import Anexo, Beneficiario, Vinculo
 from beneficiarios.seguro_de_vida import TIPO_XLSX, PlanilhaDoSeguroDeVida, mes_sugerido
 from beneficiarios.vidas import VidasDoCliente, filtro_de_ativos
@@ -394,3 +403,80 @@ class SeguroDeVidaView(TemplateView):
 
     def get_context_data(self, **kwargs):
         return {**super().get_context_data(**kwargs), "contrato": self.contrato, "form": self.form}
+
+
+class ImportarVidasView(TemplateView):
+    """Lê a planilha atual do seguro de vida, mostra a prévia de cada vida e importa."""
+
+    template_name = "beneficiarios/importar_vidas.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.contrato = get_object_or_404(
+            Contrato.objects.select_related("cliente", "seguradora", "ramo"),
+            pk=kwargs["contrato_pk"],
+        )
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        return self._mostrar(form=ImportacaoDeVidasForm())
+
+    def post(self, request, *args, **kwargs):
+        if not self.contrato.calcula_capital:
+            return redirect("beneficiarios:importar_vidas", self.contrato.pk)
+        if "dados" not in request.POST:
+            return self._ler_arquivo()
+        try:
+            contrato, planilha = desempacotar(request.POST["dados"])
+        except signing.BadSignature:
+            messages.error(request, "A prévia expirou. Envie a planilha de novo.")
+            return redirect("beneficiarios:importar_vidas", self.contrato.pk)
+        if contrato != self.contrato.pk:
+            raise Http404
+        entrada = EntradaDasVidasNovasForm(request.POST)
+        data = entrada.cleaned_data["entrada"] if entrada.is_valid() else self._sugerida(planilha)
+        importacao = ImportacaoDeVidas(self.contrato, planilha, data, self._filiais_escolhidas())
+        if request.POST.get("acao") != "confirmar" or not entrada.is_valid():
+            return self._mostrar(planilha, importacao.previa(), entrada, data)
+        relatorio = importacao.gravar()
+        if not relatorio.gravado:
+            messages.warning(request, "Escolha a filial das pessoas novas antes de confirmar.")
+        return self._mostrar(planilha, relatorio, entrada, data, concluida=relatorio.gravado)
+
+    def _ler_arquivo(self):
+        form = ImportacaoDeVidasForm(self.request.POST, self.request.FILES)
+        if not form.is_valid():
+            return self._mostrar(form=form)
+        planilha = form.planilha
+        data = self._sugerida(planilha)
+        relatorio = ImportacaoDeVidas(self.contrato, planilha, data).previa()
+        entrada = EntradaDasVidasNovasForm(initial={"entrada": data})
+        return self._mostrar(planilha, relatorio, entrada, data)
+
+    @staticmethod
+    def _sugerida(planilha: PlanilhaLida) -> date:
+        """A data da planilha (no nome da aba) ou, sem ela, o dia 1º do mês corrente."""
+        return planilha.data or date.today().replace(day=1)
+
+    def _filiais_escolhidas(self) -> dict[str, int]:
+        """A filial escolhida na prévia para cada subfatura (campo filial-<SUB>)."""
+        return {
+            nome.removeprefix("filial-"): int(valor)
+            for nome, valor in self.request.POST.items()
+            if nome.startswith("filial-") and valor.isdigit()
+        }
+
+    def _mostrar(
+        self, planilha=None, relatorio=None, entrada=None, data=None, form=None, concluida=False
+    ):
+        contexto = {
+            "contrato": self.contrato,
+            "form": form,
+            "planilha": planilha,
+            "relatorio": relatorio,
+            "entrada": entrada,
+            "data": data,
+            "concluida": concluida,
+        }
+        if relatorio and not concluida:
+            contexto["dados"] = empacotar(self.contrato, planilha)
+        return self.render_to_response(self.get_context_data(**contexto))

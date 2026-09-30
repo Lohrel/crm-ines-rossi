@@ -20,7 +20,6 @@ from beneficiarios.seguro_de_vida import (
     mes_sugerido,
     telefone_em_partes,
 )
-from beneficiarios.tests.fixtures import contrato
 from clientes.models import Unidade
 from clientes.tests.fixtures import CPF_2
 
@@ -43,25 +42,6 @@ TITULOS = {
     "T": "Capital Segurado",
     "U": "Fatura",
 }
-
-
-@pytest.fixture
-def vida(empresa, seguradora, matriz, filial):
-    """Contrato fictício: capital de 24 salários, até R$ 300 mil, taxa de 0,35 por mil."""
-    novo = contrato(empresa, seguradora, "Vida", "V-1", [matriz, filial])
-    novo.capital_multiplo = 24
-    novo.capital_maximo = Decimal("300000")
-    novo.taxa_por_mil = Decimal("0.35")
-    novo.save()
-    return novo
-
-
-@pytest.fixture
-def irma(empresa):
-    """Outra empresa do grupo, que paga um boleto à parte."""
-    return Unidade.objects.create(
-        cliente=empresa, cnpj="44777000100040", razao_social="Mercado Irmão Ltda"
-    )
 
 
 def pessoa(empresa, unidade, nome, **dados):

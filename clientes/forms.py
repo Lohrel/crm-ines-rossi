@@ -2,9 +2,11 @@ from datetime import date, datetime
 
 from django import forms
 from django.core.exceptions import ValidationError
+from django.core.validators import FileExtensionValidator
 
 from clientes.documentos import CNPJ, CPF, Documento
 from clientes.models import Cliente, Contato, Unidade
+from clientes.planilhas import PlanilhaInvalidaError
 from clientes.widgets import CampoData
 
 CAMPOS_ENDERECO = ["cep", "logradouro", "numero", "complemento", "bairro", "cidade", "uf"]
@@ -109,6 +111,36 @@ class BootstrapFormMixin:
         especificos = [erro for erro in erros if erro.code != "required"]
         if especificos and len(especificos) < len(erros):
             self.errors[nome] = self.error_class(especificos, renderer=self.renderer)
+
+
+class EnvioDePlanilhaForm(BootstrapFormMixin, forms.Form):
+    """Envio de uma planilha (.xlsx) para importar: confere o arquivo e o lê com `ler`."""
+
+    TAMANHO_MAXIMO_MB = 5
+
+    arquivo = forms.FileField(
+        label="Planilha (Excel)",
+        validators=[FileExtensionValidator(["xlsx"])],
+        help_text=f"Arquivo .xlsx de até {TAMANHO_MAXIMO_MB} MB.",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["arquivo"].widget.attrs["accept"] = ".xlsx"
+
+    def clean_arquivo(self):
+        arquivo = self.cleaned_data["arquivo"]
+        if arquivo.size > self.TAMANHO_MAXIMO_MB * 1024 * 1024:
+            raise ValidationError(f"O arquivo passa de {self.TAMANHO_MAXIMO_MB} MB.")
+        try:
+            self.ler(arquivo)
+        except PlanilhaInvalidaError as erro:
+            raise ValidationError(str(erro)) from erro
+        return arquivo
+
+    def ler(self, arquivo) -> None:
+        """Lê a planilha e guarda o resultado no formulário; levanta PlanilhaInvalidaError."""
+        raise NotImplementedError
 
 
 class MarcacaoExclusivaFormMixin:

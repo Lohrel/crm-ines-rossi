@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block titulo %}Importar planilha do seguro de vida{% endblock %}
+{% block conteudo %}
+{% with cliente=contrato.cliente %}
+<nav aria-label="breadcrumb"><ol class="breadcrumb">
+  <li class="breadcrumb-item"><a href="{{ cliente.get_absolute_url }}">{{ cliente }}</a></li>
+  <li class="breadcrumb-item"><a href="{% url 'beneficiarios:seguro_de_vida' contrato.pk %}">Planilha do seguro de vida</a></li>
+  <li class="breadcrumb-item active">Importar</li>
+</ol></nav>
+
+<h1 class="h3 mb-1">{% if concluida %}Planilha importada{% elif relatorio %}Prévia da importação{% else %}Importar a planilha do seguro de vida{% endif %}</h1>
+<div class="text-body-secondary mb-3">{{ contrato.seguradora }} {{ contrato.numero }}{% if contrato.produto %} · {{ contrato.produto }}{% endif %} · {{ contrato.ramo }}</div>
+
+{% if not contrato.calcula_capital %}
+<div class="alert alert-warning">
+  Antes de importar, configure o capital deste contrato em <a href="{% url 'apolices:editar_contrato' contrato.pk %}" class="alert-link">Editar contrato</a>
+  (cartão "Só para seguro de vida"), para o sistema conferir o capital e a fatura de cada vida.
+</div>
+
+{% elif form %}
+<div class="card shadow-sm mb-4">
+  <div class="card-header fw-semibold">Enviar a planilha atual, a que vai para a seguradora</div>
+  <div class="card-body">
+    <p class="text-body-secondary">
+      Carrega de uma vez as vidas deste contrato, com o salário de cada uma e a subfatura de cada filial.
+      Nada é gravado antes da sua confirmação: primeiro aparece uma prévia do que vai acontecer com cada vida.
+    </p>
+    <ul class="small text-body-secondary">
+      <li>A pessoa é achada pelo CPF ou pelo nome. Quem ainda não tem cadastro entra como titular novo, com os dados da planilha.</li>
+      <li>Quem ainda não está no plano entra na data da planilha (a do nome da aba, como "seguro de vida 01.05.2026"). Dá para mudar na prévia.</li>
+      <li>De quem já está no plano, só o salário é atualizado. No cadastro da pessoa, a planilha só preenche o que está em branco.</li>
+      <li>O capital e a fatura de cada vida são conferidos com as regras do contrato.</li>
+      <li>Local e SUB de cada filial ficam guardados. O boleto separado se marca depois, na tabela de subfaturas.</li>
+    </ul>
+    <form method="post" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      <div class="row g-2 align-items-start">
+        <div class="col-md-6">
+          {{ form.arquivo.label_tag }}{{ form.arquivo }}
+          {% for erro in form.arquivo.errors %}<div class="invalid-feedback d-block">{{ erro }}</div>{% endfor %}
+          <div class="form-text">{{ form.arquivo.help_text }}</div>
+        </div>
+        <div class="col-md-3">
+          <div class="invisible" aria-hidden="true">.</div>
+          <button type="submit" class="btn btn-primary w-100">Ver prévia</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% else %}
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <div class="d-flex flex-wrap column-gap-4 row-gap-1">
+      {% if planilha.arquivo %}<div class="text-break"><span class="text-body-secondary">Arquivo:</span> {{ planilha.arquivo }}</div>{% endif %}
+      <div class="text-break"><span class="text-body-secondary">Aba:</span> {{ planilha.aba }}</div>
+      <div><span class="text-body-secondary">Vidas na planilha:</span> {{ relatorio.resultados|length }}</div>
+      {% if concluida %}<div><span class="text-body-secondary">Vidas novas no plano a partir de:</span> {{ data|date:"d/m/Y" }}</div>{% endif %}
+    </div>
+    {% with c=relatorio.contagem %}
+    <div class="d-flex flex-wrap gap-2 mt-2">
+      {% if c.importar %}<span class="badge text-bg-success">{{ c.importar }} {% if concluida %}importada{{ c.importar|pluralize }}{% else %}a importar{% endif %}</span>{% endif %}
+      {% if c.atualizar %}<span class="badge text-bg-info">{{ c.atualizar }} {% if concluida %}atualizada{{ c.atualizar|pluralize }}{% else %}a atualizar{% endif %}</span>{% endif %}
+      {% if c.filial %}<span class="badge text-bg-warning">{{ c.filial }} sem filial</span>{% endif %}
+      {% if c.problema %}<span class="badge text-bg-danger">{{ c.problema }} com problema</span>{% endif %}
+      {% if c.pular %}<span class="badge text-bg-secondary">{{ c.pular }} sem mudança</span>{% endif %}
+    </div>
+    {% if concluida %}
+      {% if c.problema or c.filial %}<p class="small text-body-secondary mt-2 mb-0">As vidas com problema ficaram de fora. Corrija o que a mensagem pede e importe a planilha de novo: o que já entrou não se repete.</p>{% endif %}
+    {% elif relatorio.muda_alguma_coisa %}
+      <p class="small text-body-secondary mt-2 mb-0">
+        Nada foi gravado ainda. Confira as vidas e confirme no fim da página.
+        {% if c.filial %}Antes, escolha a filial das subfaturas com pessoas novas.{% endif %}
+        {% if c.problema %}As vidas com problema ficam de fora.{% endif %}
+      </p>
+    {% else %}
+      <p class="small text-body-secondary mt-2 mb-0">Nenhuma vida desta planilha muda algo no sistema.</p>
+    {% endif %}
+    {% endwith %}
+  </div>
+</div>
+
+{% for aviso in planilha.avisos %}<div class="alert alert-warning py-2">{{ aviso }}</div>{% endfor %}
+{% if relatorio.nao_conferem %}
+<div class="alert alert-warning">
+  Em {{ relatorio.nao_conferem }} vida{{ relatorio.nao_conferem|pluralize }}, o capital ou a fatura da planilha não bate com a conta pelas regras do contrato.
+  Se forem muitas, confira em <a href="{% url 'apolices:editar_contrato' contrato.pk %}" class="alert-link">Editar contrato</a> o número de salários, o capital máximo e a taxa.
+</div>
+{% endif %}
+
+{% if not concluida %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  <input type="hidden" name="dados" value="{{ dados }}">
+  {# Enter num campo atualiza a prévia; só o botão "Confirmar importação" grava. #}
+  <button type="submit" name="acao" value="previa" class="visually-hidden" tabindex="-1" aria-hidden="true">Atualizar prévia</button>
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="row g-2 align-items-start">
+        <div class="col-sm-7 col-md-5">
+          {{ entrada.entrada.label_tag }}{{ entrada.entrada }}
+          {% for erro in entrada.entrada.errors %}<div class="invalid-feedback d-block">{{ erro }}</div>{% endfor %}
+          <div class="form-text">{{ entrada.entrada.help_text }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+  {% for grupo in relatorio.grupos %}
+  <div class="card shadow-sm mb-3">
+    <div class="card-header">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div>
+          <span class="fw-semibold">{% if grupo.codigo %}SUB {{ grupo.codigo }}{% if grupo.local %} · Local {{ grupo.local }}{% endif %}{% elif cliente.eh_empresa %}Sem SUB{% else %}Vidas{% endif %}</span>
+          <span class="text-body-secondary">· {{ grupo.resultados|length }} vida{{ grupo.resultados|length|pluralize }}{% if grupo.empresa %} · {{ grupo.empresa }}{% endif %}</span>
+        </div>
+        {% if grupo.opcoes and not concluida %}
+        <div class="d-flex align-items-center gap-2">
+          <label class="small text-nowrap mb-0" for="filial-{{ forloop.counter }}">Filial</label>
+          <select name="filial-{{ grupo.codigo }}" id="filial-{{ forloop.counter }}" class="form-select form-select-sm">
+            <option value="">Escolha</option>
+            {% for unidade in grupo.opcoes %}<option value="{{ unidade.pk }}"{% if unidade.pk == grupo.unidade.pk %} selected{% endif %}>{{ unidade }}</option>{% endfor %}
+          </select>
+        </div>
+        {% elif grupo.unidade %}
+        <div class="small">Filial <span class="fw-semibold">{{ grupo.unidade }}</span>{% if grupo.cadastrada %} <span class="text-body-secondary">(subfatura já cadastrada)</span>{% endif %}</div>
+        {% endif %}
+      </div>
+      {% for mensagem in grupo.mensagens %}<div class="small text-body-secondary">{{ mensagem }}</div>{% endfor %}
+      {% if grupo.problema %}<div class="small text-danger">{{ grupo.problema }}</div>{% endif %}
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead class="table-light">
+          <tr><th>Linha</th><th>Nome</th><th>Nascimento</th><th>CPF</th><th class="text-end">Salário</th><th>Resultado</th></tr>
+        </thead>
+        <tbody>
+        {% for r in grupo.resultados %}
+          <tr>
+            <td class="text-body-secondary">{{ r.linha.numero }}</td>
+            <td class="fw-semibold">{% if r.pessoa and concluida or r.pessoa and not r.pessoa_nova %}<a href="{{ r.pessoa.get_absolute_url }}">{{ r.dados.nome }}</a>{% else %}{{ r.dados.nome }}{% endif %}</td>
+            <td class="text-nowrap">{{ r.dados.nascimento|date:"d/m/Y"|default:"—" }}</td>
+            <td class="text-nowrap">{{ r.dados.cpf_formatado|default:"—" }}</td>
+            <td class="text-end text-nowrap">{% if r.dados.salario is not None %}R$ {{ r.dados.salario|floatformat:"2g" }}{% else %}—{% endif %}</td>
+            <td style="min-width: 18rem">
+              {% if r.situacao == "importar" %}<span class="badge text-bg-success">{% if concluida %}Importada{% else %}Importar{% endif %}</span>
+              {% elif r.situacao == "atualizar" %}<span class="badge text-bg-info">{% if concluida %}Atualizada{% else %}Atualizar{% endif %}</span>
+              {% elif r.situacao == "pular" %}<span class="badge text-bg-secondary">Sem mudança</span>
+              {% elif r.situacao == "filial" %}<span class="badge text-bg-warning">{% if concluida %}Não importada{% else %}Falta a filial{% endif %}</span>
+              {% else %}<span class="badge text-bg-danger">{% if concluida %}Não importada{% else %}Problema{% endif %}</span>{% endif %}
+              {{ r.mensagem }}
+              {% for aviso in r.avisos %}<div class="small text-body-secondary">{{ aviso }}</div>{% endfor %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endfor %}
+
+{% if relatorio.fora_da_planilha %}
+<div class="card shadow-sm mb-3 border-warning">
+  <div class="card-header fw-semibold">{{ relatorio.fora_da_planilha|length }} vida{{ relatorio.fora_da_planilha|length|pluralize }} no sistema e fora da planilha</div>
+  <div class="card-body">
+    <p class="small text-body-secondary">
+      Estão neste plano em {{ data|date:"d/m/Y" }}, mas não aparecem na planilha.
+      Se saíram da empresa, solicite a exclusão na página da pessoa.
+    </p>
+    <ul class="list-unstyled mb-0">
+    {% for vinculo in relatorio.fora_da_planilha %}
+      <li class="py-1"><a href="{{ vinculo.beneficiario.get_absolute_url }}">{{ vinculo.beneficiario.nome }}</a>{% if vinculo.beneficiario.unidade %} <span class="small text-body-secondary">· {{ vinculo.beneficiario.unidade }}</span>{% endif %}</li>
+    {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+
+{% if concluida %}
+<div class="d-flex flex-wrap gap-2 mb-4">
+  <a href="{% url 'beneficiarios:seguro_de_vida' contrato.pk %}" class="btn btn-primary">Ver a planilha do seguro de vida</a>
+  <a href="{% url 'beneficiarios:lista' cliente.pk %}" class="btn btn-outline-secondary">Ver os beneficiários</a>
+</div>
+{% else %}
+  <div class="d-flex flex-wrap gap-2 mb-4">
+    {% if relatorio.muda_alguma_coisa %}<button type="submit" name="acao" value="confirmar" class="btn btn-primary">Confirmar importação</button>{% endif %}
+    <button type="submit" name="acao" value="previa" class="btn btn-outline-primary">Atualizar prévia</button>
+    <a href="{% url 'beneficiarios:importar_vidas' contrato.pk %}" class="btn btn-outline-secondary">{% if relatorio.muda_alguma_coisa %}Cancelar{% else %}Enviar outra planilha{% endif %}</a>
+  </div>
+</form>
+{% endif %}
+{% endif %}
+{% endwith %}
+{% endblock %}
