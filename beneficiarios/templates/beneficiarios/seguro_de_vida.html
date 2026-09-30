@@ -12,7 +12,10 @@
     <h1 class="h3 mb-1">Planilha do seguro de vida</h1>
     <div class="text-body-secondary">{{ contrato.seguradora }} {{ contrato.numero }}{% if contrato.produto %} · {{ contrato.produto }}{% endif %} · {{ contrato.ramo }}</div>
   </div>
-  <a href="{% url 'apolices:editar_contrato' contrato.pk %}" class="btn btn-outline-primary">Editar contrato</a>
+  <div class="d-flex flex-wrap gap-2">
+    {% if contrato.calcula_capital %}<a href="{% url 'beneficiarios:importar_vidas' contrato.pk %}" class="btn btn-outline-secondary" title="Carregar as vidas e os salários da planilha que já vai para a seguradora">Importar planilha</a>{% endif %}
+    <a href="{% url 'apolices:editar_contrato' contrato.pk %}" class="btn btn-outline-primary">Editar contrato</a>
+  </div>
 </div>
 
 {% if not contrato.calcula_capital %}

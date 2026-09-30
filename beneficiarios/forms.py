@@ -3,9 +3,10 @@ from datetime import date
 from django import forms
 
 from apolices.models import Contrato, Subfatura
+from beneficiarios.importacao_de_vidas import ler_planilha
 from beneficiarios.models import Anexo, Beneficiario, Vinculo
 from clientes.documentos import CPF
-from clientes.forms import BootstrapFormMixin, DocumentoField, MesField
+from clientes.forms import BootstrapFormMixin, DocumentoField, EnvioDePlanilhaForm, MesField
 from clientes.models import Cliente, Unidade
 from clientes.widgets import CampoData
 
@@ -208,3 +209,18 @@ class SubfaturaForm(BootstrapFormMixin, forms.ModelForm):
     class Meta:
         model = Subfatura
         fields = ["local", "identificador", "boleto_separado"]
+
+
+class ImportacaoDeVidasForm(EnvioDePlanilhaForm):
+    """Arquivo da planilha do seguro de vida a importar."""
+
+    def ler(self, arquivo) -> None:
+        self.planilha = ler_planilha(arquivo)
+
+
+class EntradaDasVidasNovasForm(BootstrapFormMixin, forms.Form):
+    entrada = forms.DateField(
+        label="Quem ainda não está no plano entra em",
+        widget=DATA,
+        help_text="Em geral, a data da planilha.",
+    )

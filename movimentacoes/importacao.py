@@ -14,8 +14,6 @@ Processado avança.
 """
 
 import re
-import unicodedata
-import zipfile
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime, timedelta
 
@@ -28,6 +26,13 @@ from openpyxl.utils.datetime import from_excel
 from apolices.models import Contrato
 from beneficiarios.models import Beneficiario
 from clientes.models import Cliente, Contato, Unidade
+from clientes.planilhas import (
+    NAO_LEU,
+    PlanilhaInvalidaError,
+    chave,
+    conferir_tamanho,
+    mesmo_codigo,
+)
 from movimentacoes.models import Etapa, Movimentacao
 
 # Nome de cada coluna da planilha (sem acento, em maiúsculas) e o dado que ela traz.
@@ -61,7 +66,6 @@ LIMITE_DE_LINHAS = 2000
 # O .xlsx é um .zip: descompactado, uma planilha mensal fica bem abaixo disto.
 LIMITE_DESCOMPACTADO = 20 * 1024 * 1024
 VALIDADE_DA_PREVIA = timedelta(hours=2)
-NAO_LEU = "Não foi possível ler o arquivo. Salve-o como Excel (.xlsx) e envie de novo."
 
 # O que acontece com cada linha.
 IMPORTAR = "importar"
@@ -71,24 +75,9 @@ UNIDADE = "unidade"
 PROBLEMA = "problema"
 
 
-def chave(texto) -> str:
-    """Texto para comparar: sem acento, em maiúsculas e com espaços simples."""
-    texto = unicodedata.normalize("NFKD", str(texto or ""))
-    texto = "".join(letra for letra in texto if not unicodedata.combining(letra))
-    return " ".join(re.sub(r"[^0-9A-Za-z]+", " ", texto).upper().split())
-
-
 def _rotulo(contrato: Contrato) -> str:
     """Como o plano pode ser escrito na coluna PLANO: o produto ou o número do contrato."""
     return f"{contrato.produto} ou {contrato.numero}" if contrato.produto else contrato.numero
-
-
-def mesma_matricula(uma: str, outra: str) -> bool:
-    """04521 e 4521 são a mesma matrícula: o Excel tira o zero da frente dos números."""
-    uma, outra = chave(uma), chave(outra)
-    if uma.isdigit() and outra.isdigit():
-        return uma.lstrip("0") == outra.lstrip("0")
-    return uma == outra
 
 
 @dataclass
@@ -115,10 +104,6 @@ class Linha:
         return chave(self["cadastro"]) in ("DEPENDENTE", "DEP")
 
 
-class PlanilhaInvalidaError(Exception):
-    pass
-
-
 def _texto(valor, coluna: str) -> str:
     if valor is None:
         return ""
@@ -141,22 +126,9 @@ def _cabecalho(linhas: list[tuple]) -> tuple[int, dict[int, str]] | None:
     return None
 
 
-def _conferir_tamanho(arquivo) -> None:
-    """Recusa o arquivo que, descompactado, ficaria enorme (proteção contra "zip bomb")."""
-    try:
-        with zipfile.ZipFile(arquivo) as pacote:
-            total = sum(item.file_size for item in pacote.infolist())
-    except zipfile.BadZipFile as erro:
-        raise PlanilhaInvalidaError(NAO_LEU) from erro
-    finally:
-        arquivo.seek(0)
-    if total > LIMITE_DESCOMPACTADO:
-        raise PlanilhaInvalidaError("A planilha é grande demais para importar.")
-
-
 def ler_planilha(arquivo) -> tuple[list[Linha], list[str]]:
     """As linhas com nome de todas as abas, e avisos sobre as abas que ficaram de fora."""
-    _conferir_tamanho(arquivo)
+    conferir_tamanho(arquivo, LIMITE_DESCOMPACTADO)
     try:
         livro = load_workbook(arquivo, read_only=True, data_only=True, keep_links=False)
         try:
@@ -484,7 +456,7 @@ class Importacao:
         titulares = [p for p in self.pessoas if p.eh_titular]
         matricula = linha["cadastro"]
         if matricula:
-            achados = [p for p in titulares if mesma_matricula(p.matricula, matricula)]
+            achados = [p for p in titulares if mesmo_codigo(p.matricula, matricula)]
             if len(achados) > 1:
                 raise ValidationError(f"Há mais de um titular com a matrícula {matricula}.")
             if achados:
@@ -502,7 +474,7 @@ class Importacao:
         return self._novo_titular(linha, matricula, solicitante)
 
     def _completar_matricula(self, pessoa: Beneficiario, matricula: str) -> Beneficiario:
-        if matricula and pessoa.matricula and not mesma_matricula(pessoa.matricula, matricula):
+        if matricula and pessoa.matricula and not mesmo_codigo(pessoa.matricula, matricula):
             raise ValidationError(f"No sistema, {pessoa.nome} tem a matrícula {pessoa.matricula}.")
         if matricula and not pessoa.matricula:
             pessoa.matricula = matricula

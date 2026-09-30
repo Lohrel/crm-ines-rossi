@@ -28,4 +28,9 @@ urlpatterns = [
         views.SeguroDeVidaView.as_view(),
         name="seguro_de_vida",
     ),
+    path(
+        "seguro-de-vida/<int:contrato_pk>/importar/",
+        views.ImportarVidasView.as_view(),
+        name="importar_vidas",
+    ),
 ]
