@@ -1,0 +1,2 @@
+{# Uma data na grade do mês: a cor vem da categoria (e, nas renovações, da seguradora). #}
+<a href="{{ item.url }}" class="item-calendario item-{{ item.categoria }}{% if item.atrasada %} atrasada{% endif %}{% if item.cor %} cor-{{ item.cor }}{% endif %}" title="{{ item.rotulo }}: {% if item.hora %}{{ item.hora|time:'H:i' }} {% endif %}{{ item.titulo }}{% if item.detalhe %} ({{ item.detalhe }}){% endif %}">{% if item.hora %}<strong>{{ item.hora|time:"H:i" }}</strong> {% endif %}{{ item.titulo }}</a>

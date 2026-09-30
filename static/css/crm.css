@@ -347,6 +347,129 @@ main .escolha-de-cor input:focus-visible + label {
   outline-offset: 2px;
 }
 
+/* Calendário: cada data tem a cor da sua categoria (a das renovações é a da seguradora).
+   Na grade do mês vira uma etiqueta de uma linha; na lista do celular, uma faixa à esquerda. */
+.item-ferias { --cor-item: #0f766e; --fundo-item: #e3f2ef; }
+.item-evento { --cor-item: var(--crm-marinho); --fundo-item: #e8eaf5; }
+.item-prazo { --cor-item: #8a5a00; --fundo-item: #fbf0d9; }
+.item-renovacao { --cor-item: var(--cor-seguradora, #5a5e70); --fundo-item: #fff; }
+.item-pendencia { --cor-item: #6c7084; --fundo-item: #fff; }
+.item-pendencia.atrasada { --cor-item: var(--crm-alerta); }
+
+.item-calendario {
+  display: block;
+  margin-top: 2px;
+  padding: 1px 6px;
+  overflow: hidden;
+  border: 1px solid var(--crm-borda);
+  border-left: 3px solid var(--cor-item);
+  border-radius: 3px;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-decoration: none;
+  color: var(--bs-body-color);
+  background-color: var(--fundo-item);
+}
+.item-calendario.atrasada {
+  color: var(--crm-alerta);
+}
+a.item-calendario:hover {
+  color: var(--bs-body-color);
+  text-decoration: underline;
+}
+.legenda-calendario .item-calendario {
+  display: inline-block;
+  margin-top: 0.25rem;
+}
+/* Na grade, cada data ocupa até duas linhas; o texto inteiro aparece ao passar o mouse. */
+.calendario-mes .item-calendario {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.item-da-lista {
+  padding-left: 1.1rem;
+  box-shadow: inset 5px 0 0 var(--cor-item);
+}
+.item-da-lista.atrasada > a {
+  color: var(--crm-alerta);
+}
+
+/* Grade do mês, de domingo a sábado, como o quadro branco do escritório. */
+.calendario-mes {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+.calendario-mes th {
+  padding: 0.4rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--crm-texto-discreto);
+  background-color: #eef0f6;
+}
+.calendario-mes td {
+  height: 7.5rem;
+  padding: 0.3rem 0.35rem 0.45rem;
+  vertical-align: top;
+  border-top: 1px solid var(--crm-borda);
+  border-right: 1px solid var(--crm-borda);
+}
+.calendario-mes td:last-child {
+  border-right: 0;
+}
+.calendario-mes td.fim-de-semana {
+  background-color: #fafbfd;
+}
+.calendario-mes td.fora-do-mes {
+  background-color: #f3f4f8;
+}
+.calendario-mes td.fora-do-mes .numero-do-dia,
+.calendario-mes td.fora-do-mes .item-calendario {
+  opacity: 0.6;
+}
+.cabecalho-do-dia {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.numero-do-dia {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.calendario-mes td.hoje .numero-do-dia {
+  color: #fff;
+  background-color: var(--crm-marinho);
+}
+/* O "+" para anotar num dia aparece ao passar o mouse (ou com o teclado). */
+.calendario-mes .anotar {
+  padding: 0 0.4rem;
+  border-radius: 4px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-decoration: none;
+  opacity: 0;
+}
+.calendario-mes td:hover .anotar,
+.calendario-mes .anotar:focus-visible {
+  opacity: 1;
+}
+.calendario-mes .anotar:hover {
+  background-color: #e8eaf5;
+}
+
 /* Menu: fundo marinho, logo branco e uma linha vermelha embaixo, como a faixa do cartão.
    No celular, os itens recolhem atrás do botão de três linhas. */
 .navbar.navbar-crm {

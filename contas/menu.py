@@ -10,6 +10,7 @@ ITENS = [
     ("Movimentações", "movimentacoes:lista", {"movimentacoes"}),
     ("Boletos", "boletos:lista", {"boletos"}),
     ("Pendências", "pendencias:lista", {"pendencias"}),
+    ("Calendário", "calendario:mes", {"calendario"}),
 ]
 
 
