@@ -216,6 +216,16 @@ def test_editar_salario_fica_no_historico(logado, titular, vida):
     assert "salário (R$)" in pagina  # no histórico de alterações
 
 
+def test_pagina_da_pessoa_leva_a_preencher_o_salario(logado, titular, conjuge, vida):
+    vinculo = na_vida(titular, vida, None)
+    na_vida(conjuge, vida, None)
+    pagina = logado.get(titular.get_absolute_url()).content.decode()
+    editar = reverse("beneficiarios:editar_plano", args=[vinculo.pk])
+    assert f'não informado</span> (<a href="{editar}">preencher</a>)' in pagina
+    # Dependente não tem salário: a linha do plano mostra só o capital.
+    assert "Salário" not in logado.get(conjuge.get_absolute_url()).content.decode()
+
+
 def test_contrato_tem_cartao_do_seguro_de_vida(logado, vida):
     url = reverse("apolices:editar_contrato", args=[vida.pk])
     pagina = logado.get(url).content.decode()
