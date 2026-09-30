@@ -10,4 +10,11 @@ class MovimentacaoAdmin(SimpleHistoryAdmin):
     list_filter = ["tipo", "etapa"]
     search_fields = ["beneficiario__nome", "carteirinha", "cliente__nome"]
     list_select_related = ["beneficiario", "contrato__seguradora", "cliente"]
-    raw_id_fields = ["beneficiario", "contrato", "solicitante", "origem", "vinculo"]
+    raw_id_fields = [
+        "beneficiario",
+        "contrato",
+        "contrato_anterior",
+        "solicitante",
+        "origem",
+        "vinculo",
+    ]

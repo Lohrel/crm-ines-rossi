@@ -168,6 +168,11 @@ class Contrato(Registro):
     def vigente(self) -> bool:
         return self.situacao in self.SITUACOES_VIGENTES
 
+    @property
+    def nome_do_plano(self) -> str:
+        """Como o escritório chama o plano (ex.: PLENO); sem produto, o número do contrato."""
+        return self.produto or self.numero
+
     def clean(self) -> None:
         super().clean()
         if (

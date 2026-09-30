@@ -13,6 +13,9 @@ from clientes.widgets import CampoData
 from movimentacoes.models import Etapa, Movimentacao
 
 DATA = CampoData()
+ENTRADAS = [Movimentacao.Tipo.INCLUSAO, Movimentacao.Tipo.ALTERACAO]
+# Na alteração, a vigência é quando a pessoa entra no novo plano (e sai do atual).
+VIGENCIA_DA_ALTERACAO = "Início no novo plano"
 
 
 def rotulo_do_plano(contrato: Contrato) -> str:
@@ -21,7 +24,7 @@ def rotulo_do_plano(contrato: Contrato) -> str:
 
 
 class MovimentacaoForm(BootstrapFormMixin, forms.ModelForm):
-    """Novo pedido de inclusão ou exclusão de uma pessoa num plano."""
+    """Novo pedido de inclusão, exclusão ou alteração de plano de uma pessoa."""
 
     dependentes = forms.ModelMultipleChoiceField(
         label="Pedir também para os dependentes",
@@ -33,7 +36,15 @@ class MovimentacaoForm(BootstrapFormMixin, forms.ModelForm):
 
     class Meta:
         model = Movimentacao
-        fields = ["contrato", "solicitante", "recebida_em", "enviada_em", "vigencia", "observacao"]
+        fields = [
+            "contrato_anterior",
+            "contrato",
+            "solicitante",
+            "recebida_em",
+            "enviada_em",
+            "vigencia",
+            "observacao",
+        ]
         widgets = {
             "recebida_em": DATA,
             "enviada_em": DATA,
@@ -49,6 +60,10 @@ class MovimentacaoForm(BootstrapFormMixin, forms.ModelForm):
         self.instance.registrada_por = usuario
         self.fields["contrato"].queryset = self._planos_possiveis(tipo, beneficiario)
         self.fields["contrato"].label_from_instance = rotulo_do_plano
+        if tipo == Movimentacao.Tipo.ALTERACAO:
+            self._preparar_alteracao(beneficiario)
+        else:
+            del self.fields["contrato_anterior"]
         self.fields["solicitante"].queryset = beneficiario.cliente.contatos.all()
         self.fields["vigencia"].required = False
         # Só se registra o pedido depois de enviado à operadora.
@@ -71,19 +86,47 @@ class MovimentacaoForm(BootstrapFormMixin, forms.ModelForm):
             return contratos.filter(pk__in=no_plano)
         contratos = contratos.vigentes().exclude(pk__in=no_plano)
         if not pessoa.eh_titular:
-            # Planos em que o titular está ou está sendo incluído.
+            # Planos em que o titular está ou está entrando.
             titular = pessoa.titular
             do_titular = titular.vinculos.filter(data_exclusao__isnull=True).values("contrato")
-            pedidos = titular.movimentacoes.em_aberto().filter(tipo=tipo).values("contrato")
+            pedidos = titular.movimentacoes.em_aberto().filter(tipo__in=ENTRADAS).values("contrato")
             contratos = contratos.filter(Q(pk__in=do_titular) | Q(pk__in=pedidos))
         return contratos
+
+    def _preparar_alteracao(self, pessoa: Beneficiario) -> None:
+        """Sai de um dos planos atuais e entra noutro do mesmo ramo."""
+        anterior = self.fields["contrato_anterior"]
+        anterior.required = True
+        anterior.label = "Plano atual (sai dele)"
+        anterior.help_text = ""
+        anterior.empty_label = "Escolha o plano atual"
+        anterior.label_from_instance = rotulo_do_plano
+        anterior.queryset = Contrato.objects.filter(
+            pk__in=pessoa.vinculos.filter(data_exclusao__isnull=True).values("contrato")
+        ).select_related("ramo", "seguradora")
+        novo = self.fields["contrato"]
+        novo.label = "Novo plano"
+        novo.queryset = novo.queryset.filter(ramo__in=anterior.queryset.values("ramo"))
+        vigencia = self.fields["vigencia"]
+        vigencia.label = VIGENCIA_DA_ALTERACAO
+        vigencia.help_text = f"O plano atual termina nesta data. {vigencia.help_text}"
+        # Vindo do botão "Alterar plano" de um dos planos, ele fica fixo.
+        escolhido = anterior.queryset.filter(pk=self.initial.get("contrato_anterior")).first()
+        if escolhido:
+            anterior.disabled = True
+            anterior.empty_label = None
+            anterior.queryset = anterior.queryset.filter(pk=escolhido.pk)
+            novo.queryset = novo.queryset.filter(ramo=escolhido.ramo)
+            opcoes = list(novo.queryset[:2])
+            if len(opcoes) == 1:
+                self.initial.setdefault("contrato", opcoes[0].pk)
 
     @staticmethod
     def _dependentes_possiveis(tipo: str, pessoa: Beneficiario):
         if not pessoa.eh_titular:
             return None
-        if tipo == Movimentacao.Tipo.EXCLUSAO:
-            # Na exclusão do titular os dependentes do plano saem junto, sem pedido próprio.
+        if tipo != Movimentacao.Tipo.INCLUSAO:
+            # Na exclusão e na alteração do titular, os dependentes do plano vão junto.
             return None
         return pessoa.dependentes.all()
 
@@ -153,6 +196,8 @@ class EdicaoMovimentacaoForm(BootstrapFormMixin, forms.ModelForm):
         if self.instance.vinculo_id:
             # Depois de aprovada, a data já está no plano da pessoa.
             self.fields["vigencia"].disabled = True
+        if self.instance.eh_alteracao:
+            self.fields["vigencia"].label = VIGENCIA_DA_ALTERACAO
         if not self.instance.eh_inclusao:
             del self.fields["carteirinha"]
             del self.fields["carteirinha_enviada_em"]
@@ -196,6 +241,8 @@ class MudancaDeEtapaFormBase(BootstrapFormMixin, forms.ModelForm):
             self.fields["motivo_rejeicao"].required = True
         if "carteirinha" in self.fields and self.etapa == Etapa.CONCLUIDA:
             self.fields["carteirinha"].required = True
+        if "vigencia" in self.fields and self.instance.eh_alteracao:
+            self.fields["vigencia"].label = VIGENCIA_DA_ALTERACAO
 
     def _post_clean(self):
         # A validação e a gravação ficam com Movimentacao.mudar_etapa.
@@ -240,7 +287,7 @@ class FiltroMovimentacoesForm(BootstrapFormMixin, forms.Form):
         queryset=Cliente.objects.empresas(), required=False, empty_label="Todos os clientes"
     )
     tipo = forms.ChoiceField(
-        choices=[("", "Inclusões e exclusões"), *Movimentacao.Tipo.choices], required=False
+        choices=[("", "Todos os tipos"), *Movimentacao.Tipo.choices], required=False
     )
 
     def __init__(self, *args, **kwargs):
@@ -250,3 +297,16 @@ class FiltroMovimentacoesForm(BootstrapFormMixin, forms.Form):
         self.fields["cliente"].queryset = Cliente.objects.filter(
             movimentacoes__isnull=False
         ).distinct()
+
+
+class PlanilhaForm(BootstrapFormMixin, forms.Form):
+    """Empresa e mês da planilha de controle das inclusões."""
+
+    cliente = forms.ModelChoiceField(
+        label="Empresa ou cliente", queryset=Cliente.objects.none(), empty_label="Escolha"
+    )
+    mes = MesField(label="Mês da digitação")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["cliente"].queryset = Cliente.objects.filter(contratos__isnull=False).distinct()

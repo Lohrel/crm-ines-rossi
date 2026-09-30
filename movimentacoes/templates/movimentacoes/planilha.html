@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block titulo %}Planilha mensal{% endblock %}
+{% block conteudo %}
+<nav aria-label="breadcrumb"><ol class="breadcrumb">
+  <li class="breadcrumb-item"><a href="{% url 'movimentacoes:lista' %}">Movimentações</a></li>
+  <li class="breadcrumb-item active">Planilha mensal</li>
+</ol></nav>
+
+<h1 class="h3 mb-3">Planilha mensal</h1>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-header fw-semibold">Baixar a planilha de controle</div>
+  <div class="card-body">
+    <p class="text-body-secondary">
+      Sai no formato da planilha de controle do escritório: uma aba por ramo (SAÚDE, DENTAL...) que junta os planos
+      daquele ramo, com a coluna PLANO dizendo em qual a pessoa entrou, e a aba ALTERAÇÕES DE PLANO. Entram as
+      movimentações digitadas no mês (em qualquer etapa) e as de meses anteriores que continuam pendentes. O STATUS sai
+      como Pendente ou Processado, e o CADASTRO traz a matrícula do titular ou a palavra "Dependente".
+    </p>
+    <form method="get" novalidate>
+      <div class="row g-2 align-items-start">
+        {% for campo in form %}
+        <div class="{% if campo.name == 'cliente' %}col-md-5{% else %}col-md-3{% endif %}">
+          {{ campo.label_tag }}{{ campo }}
+          {% for erro in campo.errors %}<div class="invalid-feedback d-block">{{ erro }}</div>{% endfor %}
+        </div>
+        {% endfor %}
+        <div class="col-md-4">
+          <div class="invisible" aria-hidden="true">.</div>
+          <button type="submit" class="btn btn-primary w-100">Baixar planilha (Excel)</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
