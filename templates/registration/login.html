@@ -1,11 +1,14 @@
 {% extends "base.html" %}
+{% load static %}
 {% block titulo %}Entrar{% endblock %}
+{% block classe_do_corpo %}pagina-login{% endblock %}
 {% block conteudo %}
 <div class="row justify-content-center">
   <div class="col-sm-8 col-md-5 col-lg-4">
-    <div class="card shadow-sm mt-5">
+    <div class="card mt-3 mt-sm-5">
       <div class="card-body p-4">
-        <h1 class="h4 mb-4 text-center">CRM Corretora</h1>
+        <h1 class="mb-0"><img class="logo-login" src="{% static 'img/logo-completo-cor.svg' %}" alt="Inês Rossi Corretora de Seguros" width="250" height="108"></h1>
+        <p class="titulo-login">CRM · acesso da equipe</p>
         {% if form.errors %}
           <div class="alert alert-danger">Usuário ou senha incorretos.</div>
         {% endif %}
@@ -27,5 +30,14 @@
       </div>
     </div>
   </div>
+</div>
+{% endblock %}
+{% block fim_do_corpo %}
+{# A curva vermelha sobre a faixa marinho, como no pé do cartão de visita e dos envelopes. #}
+<div class="faixa-da-marca" aria-hidden="true">
+  <svg viewBox="0 0 1440 200" preserveAspectRatio="none" focusable="false">
+    <path fill="#e62a2b" d="M0,30 C360,110 860,150 1440,160 L1440,200 L0,200 Z"/>
+    <path fill="#10132a" d="M0,46 C360,126 860,166 1440,174 L1440,200 L0,200 Z"/>
+  </svg>
 </div>
 {% endblock %}

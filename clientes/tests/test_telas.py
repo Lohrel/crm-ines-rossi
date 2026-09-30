@@ -206,3 +206,22 @@ def test_cadastrar_filial_com_cnpj_alfanumerico(logado, empresa, matriz):
     assert Unidade.objects.get(cnpj="12ABC34501DE35").cliente == empresa
     conteudo = logado.get(empresa.get_absolute_url()).content.decode()
     assert "12.ABC.345/01DE-35" in conteudo
+
+
+def test_rotulos_dos_filtros_sem_dois_pontos(logado):
+    pagina = logado.get(reverse("movimentacoes:lista")).content.decode()
+    assert '<label for="id_q">Buscar</label>' in pagina
+    assert "Buscar:" not in pagina
+
+
+@pytest.mark.parametrize("rota", ["clientes:novo_pf", "clientes:nova_empresa"])
+def test_listas_de_escolha_sem_tracejado(logado, rota):
+    pagina = logado.get(reverse(rota)).content.decode()
+    assert "---------" not in pagina
+    assert '<option value="" selected>Escolha</option>' in pagina
+
+
+def test_lista_de_escolha_do_banco_sem_tracejado(logado, empresa):
+    pagina = logado.get(reverse("apolices:novo_contrato", args=[empresa.pk])).content.decode()
+    assert "---------" not in pagina
+    assert '<option value="" selected>Escolha</option>' in pagina

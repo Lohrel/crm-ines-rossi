@@ -3,27 +3,39 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block titulo %}CRM{% endblock %} · CRM Corretora</title>
+  <meta name="theme-color" content="#1e2242">
+  <title>{% block titulo %}CRM{% endblock %} · Inês Rossi</title>
+  <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
+  <link rel="icon" href="{% static 'img/favicon-32.png' %}" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="{% static 'img/apple-touch-icon.png' %}">
   <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.min.css' %}">
+  <link rel="stylesheet" href="{% static 'css/crm.css' %}">
 </head>
-<body class="bg-body-tertiary">
+<body class="{% block classe_do_corpo %}bg-body-tertiary{% endblock %}">
   {% if user.is_authenticated %}
-  <nav class="navbar navbar-expand bg-primary" data-bs-theme="dark">
+  {# No celular, os itens recolhem atrás do botão de três linhas. #}
+  <nav class="navbar navbar-expand-lg navbar-crm" data-bs-theme="dark">
     <div class="container">
-      <a class="navbar-brand" href="{% url 'inicio' %}">CRM Corretora</a>
-      <ul class="navbar-nav me-auto">
-        <li class="nav-item"><a class="nav-link" href="{% url 'clientes:lista' %}">Clientes</a></li>
-        <li class="nav-item"><a class="nav-link" href="{% url 'apolices:contratos' %}">Contratos</a></li>
-        <li class="nav-item"><a class="nav-link" href="{% url 'movimentacoes:lista' %}">Movimentações</a></li>
-        <li class="nav-item"><a class="nav-link" href="{% url 'boletos:lista' %}">Boletos</a></li>
-        <li class="nav-item"><a class="nav-link" href="{% url 'pendencias:lista' %}">Pendências</a></li>
-      </ul>
-      <div class="d-flex align-items-center gap-3">
-        <span class="navbar-text">{{ user.nome_exibicao }}</span>
-        <form method="post" action="{% url 'logout' %}">
-          {% csrf_token %}
-          <button type="submit" class="btn btn-outline-light btn-sm">Sair</button>
-        </form>
+      <a class="navbar-brand py-0 me-lg-4" href="{% url 'inicio' %}">
+        <img src="{% static 'img/logo-branco.svg' %}" alt="Inês Rossi Corretora de Seguros" width="92" height="42">
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menu-principal"
+              aria-controls="menu-principal" aria-expanded="false" aria-label="Abrir o menu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="menu-principal">
+        <ul class="navbar-nav me-auto">
+          {% for item in menu_principal %}
+          <li class="nav-item"><a class="nav-link{% if item.aberto %} active{% endif %}" href="{{ item.url }}"{% if item.aberto %} aria-current="page"{% endif %}>{{ item.texto }}</a></li>
+          {% endfor %}
+        </ul>
+        <div class="usuario d-flex align-items-center justify-content-between gap-3">
+          <span class="navbar-text">{{ user.nome_exibicao }}</span>
+          <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-light btn-sm">Sair</button>
+          </form>
+        </div>
       </div>
     </div>
   </nav>
@@ -35,6 +47,7 @@
     {% endfor %}
     {% block conteudo %}{% endblock %}
   </main>
+  {% block fim_do_corpo %}{% endblock %}
 
   <script src="{% static 'vendor/bootstrap/bootstrap.bundle.min.js' %}"></script>
   <script src="{% static 'js/campos-data.js' %}"></script>
