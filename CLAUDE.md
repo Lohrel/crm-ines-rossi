@@ -67,6 +67,9 @@ merge dos PRs.
 - Etapas pequenas e seguras: cada funcionalidade é confirmada pelo Lohrel antes de começar a próxima.
 - Um PR por etapa (ou subetapa, como 7a e 7b), sempre a partir do `main`. Não empilhe PRs: um PR já
   foi mergeado no branch de outro por engano. Se for inevitável, diga a ordem do merge.
+- O branch leva o nome da etapa: `etapa-<número><letra>-<assunto>` (ex.: `etapa-7b-importar-vidas`).
+  Se a sessão já começar com outro branch (o Claude Code na nuvem cria um `claude/...`), peça ao
+  Lohrel autorização para usar o nome da convenção antes do primeiro push.
 - Quem faz o merge é o Lohrel, nunca o agente.
 - Antes de abrir o PR, tudo tem que passar localmente (o CI roda o mesmo):
 
