@@ -84,7 +84,12 @@ class SecaoDoFormulario:
 class BootstrapFormMixin:
     """Aplica as classes visuais do Bootstrap a todos os campos do formulário."""
 
+    # Opção vazia das listas de escolha, no lugar do "---------" do Django.
+    OPCAO_VAZIA = "Escolha"
+
     def __init__(self, *args, **kwargs):
+        # Rótulos sem os dois pontos no fim ("Buscar", e não "Buscar:"), como nos cadastros.
+        kwargs.setdefault("label_suffix", "")
         super().__init__(*args, **kwargs)
         for campo in self.fields.values():
             widget = campo.widget
@@ -95,6 +100,18 @@ class BootstrapFormMixin:
             else:
                 classe = "form-control"
             widget.attrs["class"] = f"{widget.attrs.get('class', '')} {classe}".strip()
+            self._trocar_opcao_vazia(campo)
+
+    def _trocar_opcao_vazia(self, campo: forms.Field) -> None:
+        tracejado = "---------"
+        if isinstance(campo, forms.ModelChoiceField):
+            if campo.empty_label == tracejado:
+                campo.empty_label = self.OPCAO_VAZIA
+        elif isinstance(campo, forms.ChoiceField):
+            campo.choices = [
+                (valor, self.OPCAO_VAZIA if valor == "" and rotulo == tracejado else rotulo)
+                for valor, rotulo in campo.choices
+            ]
 
     def full_clean(self):
         super().full_clean()

@@ -1,0 +1,365 @@
+/* Cores, fonte e logo da Inês Rossi Corretora de Seguros, por cima do Bootstrap.
+   Carregado depois do bootstrap.min.css (veja templates/base.html e docs/frontend.md). */
+
+@font-face {
+  font-family: "Montserrat";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("../fonts/montserrat/montserrat-latin-500-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Montserrat";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../fonts/montserrat/montserrat-latin-600-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Montserrat";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../fonts/montserrat/montserrat-latin-700-normal.woff2") format("woff2");
+}
+
+:root {
+  /* Marinho C100 M93 Y43 K44 e vermelho C0 M93 Y84 K0 do cartão e dos envelopes. */
+  --crm-marinho: #1e2242;
+  --crm-marinho-rgb: 30, 34, 66;
+  --crm-marinho-hover: #2a2f5a;
+  --crm-marinho-ativo: #151832;
+  /* O vermelho da marca fica no logo e em detalhes finos, nunca em botões: no sistema,
+     vermelho quer dizer excluir ou vencido. Os avisos usam um tom mais escuro, que em
+     letra pequena passa no contraste mínimo (5,2:1 contra 4,4:1 do vermelho da marca). */
+  --crm-vermelho: #e62a2b;
+  --crm-alerta: #d42426;
+  --crm-alerta-rgb: 212, 36, 38;
+  --crm-link: #2f3c8f;
+  --crm-borda: #e1e3ec;
+  --crm-fonte-marca: "Montserrat", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+
+  --bs-primary: var(--crm-marinho);
+  --bs-primary-rgb: var(--crm-marinho-rgb);
+  --bs-primary-text-emphasis: #151832;
+  --bs-primary-bg-subtle: #e6e8f2;
+  --bs-primary-border-subtle: #c3c7dd;
+  --bs-danger: var(--crm-alerta);
+  --bs-danger-rgb: var(--crm-alerta-rgb);
+  --bs-danger-text-emphasis: #7a1416;
+  --bs-danger-bg-subtle: #fbe4e4;
+  --bs-danger-border-subtle: #f1b4b4;
+  --bs-form-invalid-color: var(--crm-alerta);
+  --bs-form-invalid-border-color: var(--crm-alerta);
+  --bs-link-color: var(--crm-link);
+  --bs-link-color-rgb: 47, 60, 143;
+  --bs-link-hover-color: var(--crm-marinho);
+  --bs-link-hover-color-rgb: var(--crm-marinho-rgb);
+  --bs-focus-ring-color: rgba(var(--crm-marinho-rgb), 0.2);
+  --bs-border-color: #dcdfe8;
+}
+
+/* A fonte da marca fica nos títulos, no menu e nos cabeçalhos dos quadros. Tabelas e
+   formulários continuam na fonte do sistema, mais estreita: cabe mais coluna na tela. */
+h1, .h1, h2, .h2, h3, .h3, h4, .h4, h5, .h5, h6, .h6,
+.navbar, .card-header, .breadcrumb {
+  font-family: var(--crm-fonte-marca);
+}
+h1, .h1, h2, .h2, h3, .h3, h4, .h4, h5, .h5, h6, .h6 {
+  color: var(--crm-marinho);
+}
+h1, .h1, h2, .h2, h3, .h3, h4, .h4 {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* O Bootstrap fixa as cores de cada botão; aqui elas passam para o marinho. */
+.btn-primary {
+  --bs-btn-bg: var(--crm-marinho);
+  --bs-btn-border-color: var(--crm-marinho);
+  --bs-btn-hover-bg: var(--crm-marinho-hover);
+  --bs-btn-hover-border-color: var(--crm-marinho-hover);
+  --bs-btn-active-bg: var(--crm-marinho-ativo);
+  --bs-btn-active-border-color: var(--crm-marinho-ativo);
+  --bs-btn-disabled-bg: var(--crm-marinho);
+  --bs-btn-disabled-border-color: var(--crm-marinho);
+  --bs-btn-focus-shadow-rgb: var(--crm-marinho-rgb);
+}
+.btn-outline-primary {
+  --bs-btn-color: var(--crm-marinho);
+  --bs-btn-border-color: var(--crm-marinho);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--crm-marinho);
+  --bs-btn-hover-border-color: var(--crm-marinho);
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: var(--crm-marinho-ativo);
+  --bs-btn-active-border-color: var(--crm-marinho-ativo);
+  --bs-btn-disabled-color: var(--crm-marinho);
+  --bs-btn-disabled-border-color: var(--crm-marinho);
+  --bs-btn-focus-shadow-rgb: var(--crm-marinho-rgb);
+}
+.btn-danger {
+  --bs-btn-bg: var(--crm-alerta);
+  --bs-btn-border-color: var(--crm-alerta);
+  --bs-btn-hover-bg: #b81e20;
+  --bs-btn-hover-border-color: #b81e20;
+  --bs-btn-active-bg: #a01a1c;
+  --bs-btn-active-border-color: #a01a1c;
+  --bs-btn-disabled-bg: var(--crm-alerta);
+  --bs-btn-disabled-border-color: var(--crm-alerta);
+}
+.btn-outline-danger {
+  --bs-btn-color: var(--crm-alerta);
+  --bs-btn-border-color: var(--crm-alerta);
+  --bs-btn-hover-bg: var(--crm-alerta);
+  --bs-btn-hover-border-color: var(--crm-alerta);
+  --bs-btn-active-bg: #b81e20;
+  --bs-btn-active-border-color: #b81e20;
+  --bs-btn-disabled-color: var(--crm-alerta);
+  --bs-btn-disabled-border-color: var(--crm-alerta);
+}
+.btn-link {
+  --bs-btn-color: var(--crm-link);
+  --bs-btn-hover-color: var(--crm-marinho);
+  --bs-btn-active-color: var(--crm-marinho);
+}
+
+.form-control:focus,
+.form-select:focus,
+.form-check-input:focus {
+  border-color: #8e93bd;
+  box-shadow: 0 0 0 0.25rem rgba(var(--crm-marinho-rgb), 0.18);
+}
+.form-check-input:checked {
+  background-color: var(--crm-marinho);
+  border-color: var(--crm-marinho);
+}
+
+.pagination {
+  --bs-pagination-color: var(--crm-link);
+  --bs-pagination-hover-color: var(--crm-marinho);
+  --bs-pagination-focus-color: var(--crm-marinho);
+  --bs-pagination-focus-box-shadow: 0 0 0 0.25rem rgba(var(--crm-marinho-rgb), 0.18);
+  --bs-pagination-active-bg: var(--crm-marinho);
+  --bs-pagination-active-border-color: var(--crm-marinho);
+}
+.list-group {
+  --bs-list-group-active-bg: var(--crm-marinho);
+  --bs-list-group-active-border-color: var(--crm-marinho);
+}
+.nav-pills {
+  --bs-nav-pills-link-active-bg: var(--crm-marinho);
+}
+.dropdown-menu {
+  --bs-dropdown-link-active-bg: var(--crm-marinho);
+}
+
+.card {
+  --bs-card-border-color: var(--crm-borda);
+  --bs-card-cap-bg: #fbfbfd;
+}
+.card-header {
+  color: var(--crm-marinho);
+}
+.table > thead.table-light,
+.table > tfoot.table-light {
+  --bs-table-bg: #eef0f6;
+  --bs-table-color: var(--crm-marinho);
+  --bs-table-border-color: var(--crm-borda);
+}
+
+/* Tipografia: poucos tamanhos e pesos, do mais forte ao mais discreto:
+   título da página > cabeçalho do quadro > dado > rótulo, dado secundário e ajuda. */
+:root {
+  --crm-texto-rotulo: #3c4055;
+  --crm-texto-discreto: #5a5e70;
+}
+
+/* Rótulos dos campos menores e em seminegrito, para não competir com o que se digita. */
+main label:not(.form-check-label),
+main .form-label {
+  display: inline-block;
+  margin-bottom: 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--crm-texto-rotulo);
+}
+.form-text {
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--crm-texto-discreto);
+}
+.invalid-feedback {
+  font-size: 0.8125rem;
+}
+.form-control::placeholder {
+  color: #6c7084;
+  opacity: 1;
+}
+/* Lista de escolha sem nada escolhido fica com a cor de dica, como um campo vazio. */
+.form-select:has(> option[value=""]:checked) {
+  color: #6c7084;
+}
+.form-select option {
+  color: var(--bs-body-color);
+}
+
+/* Tabelas: cabeçalho pequeno em maiúsculas, dados um pouco menores que o texto corrido e
+   um respiro entre as linhas. */
+.table {
+  font-size: 0.9375rem;
+}
+.table > thead th {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  vertical-align: bottom;
+  color: var(--crm-texto-discreto);
+}
+.table > thead th .small {
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.table-sm > :not(caption) > * > * {
+  padding: 0.45rem 0.5rem;
+}
+.table .small {
+  line-height: 1.35;
+}
+
+/* Links que levam a outra página (nomes nas tabelas, caminho no topo, títulos) sem
+   sublinhado, que aparece ao passar o mouse. No meio de um texto, continuam sublinhados. */
+.breadcrumb a,
+.table a:not(.btn),
+.table .btn-link,
+.list-group a,
+.card-header a:not(.btn),
+dd a,
+h1 a, .h1 a, h2 a, .h2 a, h3 a, .h3 a, h4 a, .h4 a {
+  text-decoration: none;
+}
+.breadcrumb a:hover,
+.table a:not(.btn):hover,
+.table .btn-link:hover,
+.list-group a:hover,
+.card-header a:not(.btn):hover,
+dd a:hover,
+h1 a:hover, .h1 a:hover, h2 a:hover, .h2 a:hover, h3 a:hover, .h3 a:hover, h4 a:hover, .h4 a:hover {
+  text-decoration: underline;
+}
+.breadcrumb {
+  font-size: 0.875rem;
+}
+
+/* Páginas de detalhe: o nome do campo discreto e o valor em destaque. */
+dl.row > dt {
+  padding-top: 0.15rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--crm-texto-discreto);
+}
+dl.row > dd {
+  margin-bottom: 0.6rem;
+}
+dl.row > dd:last-child {
+  margin-bottom: 0;
+}
+
+/* Menu: fundo marinho, logo branco e uma linha vermelha embaixo, como a faixa do cartão.
+   No celular, os itens recolhem atrás do botão de três linhas. */
+.navbar.navbar-crm {
+  --bs-navbar-padding-y: 0.6rem;
+  --bs-navbar-color: rgba(255, 255, 255, 0.8);
+  --bs-navbar-hover-color: #fff;
+  --bs-navbar-active-color: #fff;
+  --bs-navbar-toggler-border-color: rgba(255, 255, 255, 0.3);
+  background-color: var(--crm-marinho);
+  border-bottom: 3px solid var(--crm-vermelho);
+  font-weight: 500;
+}
+.navbar-crm .navbar-brand img {
+  display: block;
+  width: auto;
+  height: 36px;
+}
+.navbar-crm .navbar-nav .nav-link {
+  padding-inline: 0.8rem;
+}
+@media (min-width: 992px) {
+  .navbar-crm .navbar-brand img {
+    height: 42px;
+  }
+  .navbar-crm .navbar-nav .nav-link.active {
+    box-shadow: inset 0 -3px 0 var(--crm-vermelho);
+  }
+}
+@media (max-width: 991.98px) {
+  .navbar-crm .navbar-collapse {
+    padding-block: 0.5rem;
+  }
+  .navbar-crm .navbar-nav .nav-link {
+    padding: 0.7rem 0.75rem;
+    border-left: 3px solid transparent;
+  }
+  .navbar-crm .navbar-nav .nav-link.active {
+    border-left-color: var(--crm-vermelho);
+  }
+  .navbar-crm .usuario {
+    margin-top: 0.5rem;
+    padding: 0.75rem 0.75rem 0.25rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+  }
+}
+
+/* Tela de entrada escura, como a frente do cartão de visita, com a curva vermelha
+   sobre a faixa marinho no pé da página. */
+.pagina-login {
+  min-height: 100vh;
+  background-color: #1f2440;
+  background-image:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0 25%, transparent 25% 100%),
+    linear-gradient(225deg, rgba(255, 255, 255, 0.03) 0 30%, transparent 30% 100%),
+    linear-gradient(160deg, #262a3f 0%, #1c2140 55%, #161a36 100%);
+  background-attachment: fixed;
+}
+.pagina-login main {
+  position: relative;
+  z-index: 1;
+}
+.pagina-login .card {
+  border: 0;
+  border-radius: 1rem;
+  box-shadow: 0 1rem 3rem rgba(21, 24, 50, 0.25);
+}
+.pagina-login .logo-login {
+  display: block;
+  width: 100%;
+  max-width: 250px;
+  height: auto;
+  margin: 0 auto 1.25rem;
+}
+.pagina-login .titulo-login {
+  font-family: var(--crm-fonte-marca);
+  font-weight: 600;
+  color: #565971;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+.faixa-da-marca {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 0;
+  height: 22vh;
+  min-height: 110px;
+  pointer-events: none;
+}
+.faixa-da-marca svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}

@@ -31,22 +31,27 @@
   <div class="table-responsive">
     <table class="table table-hover table-sm align-middle mb-0">
       <thead class="table-light">
-        <tr><th>Tipo</th><th>Nome</th><th>Cliente / unidade</th><th>Plano</th><th>Solicitante</th><th>Envio</th><th>Vigência</th><th>Etapa</th><th>Carteirinha</th><th>Observação</th></tr>
+        <tr>
+          <th style="min-width: 9.5rem">Pessoa</th><th style="min-width: 11rem">Cliente</th><th style="min-width: 12rem">Pedido</th>
+          <th>Envio</th><th>Vigência</th><th>Etapa</th><th>Observação</th>
+        </tr>
       </thead>
       <tbody>
       {% for mov in object_list %}
         <tr>
-          <td>{% include "movimentacoes/_tipo.html" %}</td>
           <td>
             <a href="{{ mov.get_absolute_url }}" class="fw-semibold">{{ mov.beneficiario.nome }}</a>
             {% if mov.beneficiario.matricula_efetiva %}<div class="small text-body-secondary">Matr. {{ mov.beneficiario.matricula_efetiva }}</div>{% endif %}
           </td>
-          <td>{{ mov.cliente }}<div class="small text-body-secondary">{{ mov.beneficiario.unidade_efetiva|default:"" }}</div></td>
           <td>
-            {{ mov.contrato.ramo }}
+            {{ mov.cliente }}
+            {% if mov.beneficiario.unidade_efetiva %}<div class="small text-body-secondary">{{ mov.beneficiario.unidade_efetiva }}</div>{% endif %}
+            {% if mov.solicitante %}<div class="small text-body-secondary">Pedido por {{ mov.solicitante.nome }}</div>{% endif %}
+          </td>
+          <td>
+            <div class="d-flex flex-wrap align-items-center column-gap-2">{% include "movimentacoes/_tipo.html" %}<span>{{ mov.contrato.ramo }}</span></div>
             <div class="small text-body-secondary">{% if mov.eh_alteracao %}{{ mov.contrato_anterior.nome_do_plano }} para {{ mov.contrato.nome_do_plano }}{% else %}{{ mov.contrato.seguradora }}{% if mov.contrato.produto %} · {{ mov.contrato.produto }}{% endif %}{% endif %}</div>
           </td>
-          <td class="small">{{ mov.solicitante.nome|default:"—" }}</td>
           <td class="text-nowrap">{{ mov.enviada_em|date:"d/m/Y"|default:"—" }}</td>
           <td class="text-nowrap">
             {{ mov.vigencia|date:"d/m/Y" }}
@@ -55,12 +60,12 @@
           <td>
             {% include "movimentacoes/_etapa.html" %}
             {% if mov.dias_em_aberto is not None %}<div class="small text-body-secondary">{{ mov.dias_em_aberto }} dia{{ mov.dias_em_aberto|pluralize }}</div>{% endif %}
+            {% if mov.carteirinha %}<div class="small text-body-secondary">Carteirinha {{ mov.carteirinha }}</div>{% endif %}
           </td>
-          <td>{{ mov.carteirinha|default:"—" }}</td>
           <td class="small">{{ mov.observacao|truncatechars:60 }}</td>
         </tr>
       {% empty %}
-        <tr><td colspan="10" class="text-center text-body-secondary py-3">Nenhuma movimentação encontrada.</td></tr>
+        <tr><td colspan="7" class="text-center text-body-secondary py-3">Nenhuma movimentação encontrada.</td></tr>
       {% endfor %}
       </tbody>
     </table>

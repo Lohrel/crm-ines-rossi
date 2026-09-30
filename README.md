@@ -37,8 +37,9 @@ Cada etapa só começa quando a anterior está testada e em uso.
 - [ ] **8.** Painel e relatórios
 - [ ] **9.** Campos específicos de auto e imóvel
 - [ ] **10.** Acabamento visual: cores e logo da corretora, menu, painel inicial e ajustes para celular
+  - [x] 10a. Cores, fonte e logo da corretora, menu que recolhe no celular, tela de entrada e textos organizados nas telas de movimentações e cadastros
 
-Até a etapa 10, cada tela usa o visual padrão do Bootstrap. Problemas de uso encontrados nos testes são corrigidos na própria etapa.
+As telas usam o Bootstrap com as cores, a fonte e o logo da corretora (etapa 10a). Problemas de uso encontrados nos testes são corrigidos na própria etapa.
 
 ## Instalar no servidor do escritório
 
@@ -68,7 +69,7 @@ próxima etapa em [docs/etapa-8-painel-e-relatorios.md](docs/etapa-8-painel-e-re
 
 ```
 config/          Configurações do Django (lidas do arquivo .env)
-contas/          Usuários, login e página inicial
+contas/          Usuários, login, menu e página inicial
 clientes/        Clientes PF/PJ, unidades (filiais) e contatos, com histórico
 apolices/        Seguradoras, ramos, contratos e subfaturas das filiais
 beneficiarios/   Titulares, dependentes, planos de cada pessoa, anexos, contagem de vidas e a planilha
@@ -78,6 +79,7 @@ movimentacoes/   Pedidos de inclusão, exclusão e alteração de plano, com eta
 boletos/         Boletos que a corretora envia: a enviar, enviados e fora do vencimento
 pendencias/      Pendências com responsável e prazo, ligadas ao cliente, filial, contrato ou movimentação
 templates/       Layout base e tela de login
-static/          Bootstrap servido localmente (funciona sem internet) e campos de data
+static/          Bootstrap servido localmente (funciona sem internet), tema da corretora (cores, fonte
+                 e logo) e campos de data
 docker/          Entrypoint, Caddy (HTTPS) e scripts de backup/restauração
 ```

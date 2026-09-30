@@ -125,7 +125,8 @@ pytest -q
 ## Convenções do código
 
 - Django 5.2 com views baseadas em classe e templates do Django com Bootstrap 5 local (sem CDN: o
-  sistema tem que funcionar sem internet). O guia das telas está em [docs/frontend.md](docs/frontend.md).
+  sistema tem que funcionar sem internet). O guia das telas está em [docs/frontend.md](docs/frontend.md),
+  e as cores e a fonte da corretora ficam em `static/css/crm.css`.
 - Nomes em português, como no código existente: modelos, campos, views, templates e testes.
 - Todas as páginas exigem login (`LoginRequiredMiddleware`); só a verificação de saúde do Docker é
   aberta.
@@ -158,8 +159,9 @@ pytest -q
     [docs/etapa-8-painel-e-relatorios.md](docs/etapa-8-painel-e-relatorios.md).
   - **9. Campos de auto e imóvel**: poucos clientes. Os campos (dados do veículo, endereço do imóvel)
     ainda precisam ser levantados com o Lohrel.
-  - **10. Acabamento visual**: cores e logo da corretora, menu, painel inicial e celular. Veja
-    [docs/frontend.md](docs/frontend.md).
+  - **10. Acabamento visual**: a parte 10a (cores, fonte e logo da corretora, menu que recolhe no
+    celular, tela de entrada e textos organizados) está feita. Faltam a organização do menu, o painel
+    inicial com o visual final e ajustes finos no celular. Veja [docs/frontend.md](docs/frontend.md).
 
 ## Decisões do escritório que valem para as próximas etapas
 
@@ -176,3 +178,6 @@ pytest -q
 - Seguro de vida: o salário é opcional e só aparece no plano de vida do titular. Ele serve para
   conferir se a cobrança da seguradora está certa. A planilha vai para a seguradora do dia 1º ao
   dia 5, e Local e subfatura (SUB) são de cada filial no contrato.
+- Visual (etapa 10a): menu marinho com o logo branco e tela de entrada escura, a partir do cartão de
+  visita e dos envelopes da corretora. O logo e o nome da corretora podem ficar no repositório
+  (autorizado pelo Lohrel em 30/09/2026); se o software passar a ser proprietário, eles saem.
