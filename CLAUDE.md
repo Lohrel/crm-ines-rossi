@@ -161,6 +161,9 @@ pytest -q
   seguem a proposta do [guia da etapa 8](docs/etapa-8-painel-e-relatorios.md), com o mesmo painel
   para todos e as pendências de quem entrou em destaque (escolhas a confirmar no teste). Se ele pedir
   ajustes, corrija nesse mesmo branch.
+- **Calendário** (pedido do Lohrel em 30/09/2026): um calendário que todos veem, no lugar do quadro
+  branco em que a chefe anota datas importantes (férias de funcionário, aniversário de apólice,
+  prazos das pendências). Escopo a confirmar com ele antes de começar.
 - A instalação no servidor do escritório, com os 4 logins, ainda não foi confirmada.
 - Próximas etapas:
   - **8b. Relatórios**: proposta em
@@ -192,6 +195,8 @@ pytest -q
 - Visual (etapa 10a): menu marinho com o logo branco e tela de entrada escura, a partir do cartão de
   visita e dos envelopes da corretora. O logo e o nome da corretora podem ficar no repositório
   (autorizado pelo Lohrel em 30/09/2026); se o software passar a ser proprietário, eles saem.
+- Painel (etapa 8a): o número de vidas não fica na página inicial, porque o escritório não consulta
+  todo dia.
 - Cada seguradora tem uma cor, escolhida no cadastro, para a equipe saber qual portal abrir sem ler.
   Ela aparece como uma faixa discreta à esquerda da linha nas listas (o Lohrel preferiu a faixa a uma
   etiqueta colorida, menos poluída) e como um ponto antes do nome nas outras telas.

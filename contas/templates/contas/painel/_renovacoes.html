@@ -1,24 +1,22 @@
-<div class="col">
-  <section class="card shadow-sm h-100 quadro" aria-labelledby="quadro-renovacoes">
-    <div class="card-header d-flex justify-content-between align-items-baseline gap-2">
-      <h2 class="h6 mb-0" id="quadro-renovacoes">Renovações</h2>
-      <a href="{{ quadro.url }}" class="small">Ver lista</a>
-    </div>
-    <div class="card-body">
-      <a href="{{ quadro.url }}" class="destaque-do-quadro"><span class="numero-do-quadro">{{ quadro.total }}</span> nos próximos {{ quadro.dias }} dias</a>
-      {% if quadro.passadas %}
-      <div class="small text-danger fw-semibold mt-2">{{ quadro.passadas }} contrato{{ quadro.passadas|pluralize }} com a data de renovação já passada: atualize a data.</div>
-      {% endif %}
-    </div>
-    {% if quadro.itens %}
-    <ul class="list-group list-group-flush">
-      {% for item in quadro.itens %}{% with contrato=item.contrato %}
-      <li class="list-group-item{% if contrato.seguradora.cor %} faixa-seguradora cor-{{ contrato.seguradora.cor }}{% endif %}">
-        <a href="{{ contrato.cliente.get_absolute_url }}" class="fw-semibold">{{ contrato.cliente }}</a>
-        <div class="small text-body-secondary"><span class="badge text-bg-light border">{{ item.quando|capfirst }}</span> {{ contrato.data_renovacao|date:"d/m/Y" }} · {{ contrato.ramo }} · {% include "apolices/_seguradora.html" with seguradora=contrato.seguradora %} {{ contrato.numero }}</div>
-      </li>
-      {% endwith %}{% endfor %}
-    </ul>
+<section class="card shadow-sm h-100 quadro" aria-labelledby="quadro-renovacoes">
+  <div class="card-header d-flex justify-content-between align-items-baseline gap-2">
+    <h2 class="h6 mb-0" id="quadro-renovacoes">Renovações</h2>
+    <a href="{{ quadro.url }}" class="small">Ver lista</a>
+  </div>
+  <div class="card-body">
+    <a href="{{ quadro.url }}" class="destaque-do-quadro"><span class="numero-do-quadro">{{ quadro.total }}</span> nos próximos {{ quadro.dias }} dias</a>
+    {% if quadro.passadas %}
+    <div class="small text-danger fw-semibold mt-2">{{ quadro.passadas }} contrato{{ quadro.passadas|pluralize }} com a data de renovação já passada: atualize a data.</div>
     {% endif %}
-  </section>
-</div>
+  </div>
+  {% if quadro.itens %}
+  <ul class="list-group list-group-flush">
+    {% for item in quadro.itens %}{% with contrato=item.contrato %}
+    <li class="list-group-item{% if contrato.seguradora.cor %} faixa-seguradora cor-{{ contrato.seguradora.cor }}{% endif %}">
+      <a href="{{ contrato.cliente.get_absolute_url }}" class="fw-semibold">{{ contrato.cliente }}</a>
+      <div class="small text-body-secondary"><span class="badge text-bg-light border">{{ item.quando|capfirst }}</span> {{ contrato.data_renovacao|date:"d/m/Y" }} · {{ contrato.ramo }} · {% include "apolices/_seguradora.html" with seguradora=contrato.seguradora %} {{ contrato.numero }}</div>
+    </li>
+    {% endwith %}{% endfor %}
+  </ul>
+  {% endif %}
+</section>

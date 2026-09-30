@@ -6,12 +6,11 @@ import pytest
 from django.urls import reverse
 
 from apolices.models import Contrato
-from beneficiarios.models import Beneficiario
-from beneficiarios.tests.fixtures import HOJE, contrato, incluir
+from beneficiarios.tests.fixtures import HOJE, contrato
 from boletos.models import Boleto
 from clientes.prazos import quando
 from contas.models import Usuario
-from contas.painel import Painel, com_sinal, proxima_data
+from contas.painel import Painel, proxima_data
 from movimentacoes.models import Movimentacao
 from pendencias.models import Pendencia
 
@@ -64,7 +63,7 @@ def mudar(plano, **campos):
 
 
 def ler_todos(painel: Painel) -> None:
-    for nome in ("movimentacoes", "boletos", "pendencias", "prazos", "vidas", "renovacoes"):
+    for nome in ("movimentacoes", "boletos", "pendencias", "prazos", "renovacoes"):
         getattr(painel, nome)
 
 
@@ -95,10 +94,6 @@ def test_proxima_data_com_o_dia_do_mes(dia, hoje, esperada):
 )
 def test_quando(dias, texto):
     assert quando(dias) == texto
-
-
-def test_saldo_com_o_sinal_na_frente():
-    assert [com_sinal(n) for n in (3, 0, -2)] == ["+3", "0", "−2"]
 
 
 # ------------------------------------------------------------------
@@ -188,35 +183,6 @@ def test_prazos_mostram_so_os_proximos_tres_fechamentos(usuario, empresa, segura
     ]
 
 
-def test_vidas_de_hoje_e_entradas_e_saidas_do_mes(
-    usuario, empresa, seguradora, matriz, filial, saude, dental, titular, conjuge, filho
-):
-    def pessoa(nome):
-        return Beneficiario.objects.create(cliente=empresa, unidade=filial, nome=nome)
-
-    outro_saude = contrato(empresa, seguradora, "Saúde", "S-2", [matriz, filial])
-    cancelado = contrato(empresa, seguradora, "Dental", "D-9", [matriz, filial])
-    incluir(titular, saude, date(2026, 1, 1))
-    incluir(titular, dental, date(2026, 9, 1))
-    incluir(conjuge, saude, date(2026, 9, 1))
-    incluir(filho, saude, date(2026, 1, 1), exclusao=date(2026, 9, 10))
-    # Alteração de plano: sai de um plano de saúde e entra no outro no mesmo dia.
-    davi = pessoa("Davi Titular")
-    incluir(davi, saude, date(2026, 1, 1), exclusao=date(2026, 9, 1))
-    incluir(davi, outro_saude, date(2026, 9, 1))
-    incluir(pessoa("Eva Titular"), saude, date(2026, 9, 20))
-    incluir(pessoa("Fábio Titular"), dental, date(2026, 10, 1))
-    incluir(pessoa("Gil Titular"), cancelado, date(2026, 1, 1))
-    mudar(cancelado, situacao=Contrato.Situacao.CANCELADO)
-
-    quadro = Painel(usuario, hoje=DIA_15).vidas
-    # Hoje: titular na saúde e no dental, cônjuge e Davi no plano novo (Gil está num cancelado).
-    assert (quadro["vidas"], quadro["pessoas"]) == (4, 3)
-    # Entram titular no dental, cônjuge e Eva; sai o filho. A troca do Davi não conta.
-    assert (quadro["entradas"], quadro["saidas"], quadro["saldo"]) == (3, 1, "+2")
-    assert quadro["mes"] == date(2026, 9, 1)
-
-
 def test_renovacoes_dos_proximos_60_dias(usuario, empresa, seguradora, matriz, saude, dental, vida):
     mudar(saude, data_renovacao=DIA_15 - timedelta(days=1))
     mudar(dental, data_renovacao=DIA_15)
@@ -283,17 +249,14 @@ def test_consultas_nao_crescem_com_a_carteira(
         pendencia(pessoa, colega, daqui_a(dias - 2))
 
     mudar(saude, dia_fechamento=25, data_renovacao=daqui_a(10))
-    incluir(titular, saude)
     registros(1, "ANA", titular, saude)
-    with django_assert_num_queries(11):
+    with django_assert_num_queries(10):
         ler_todos(Painel(usuario))
 
     mudar(dental, dia_fechamento=10, data_renovacao=daqui_a(20))
-    incluir(titular, dental)
-    incluir(conjuge, saude)
     registros(2, "APR", conjuge, saude)
     registros(3, "ANA", filho, dental)
-    with django_assert_num_queries(11):
+    with django_assert_num_queries(10):
         ler_todos(Painel(usuario))
 
 
@@ -301,15 +264,16 @@ def test_pagina_inicial_mostra_o_painel(logado, usuario, pessoa, saude, django_a
     pendencia(pessoa, usuario, daqui_a(-1), descricao="Ligar para o RH sobre a filial nova")
     boleto(saude, HOJE)
 
-    with django_assert_num_queries(13):
+    with django_assert_num_queries(12):
         resposta = logado.get(reverse("inicio"))
     pagina = resposta.content.decode()
     assert "Suas pendências" in pagina and "Ligar para o RH sobre a filial nova" in pagina
     assert "Venceu ontem" in pagina and "Vence hoje" in pagina
     minhas = f"{reverse('pendencias:lista')}?responsavel={usuario.pk}&amp;situacao=atencao"
     assert f'href="{minhas}"' in pagina
-    # Os atalhos de novo cliente continuam.
+    # Os atalhos de novo cliente continuam, e o número de vidas não fica no painel.
     assert reverse("clientes:novo_pf") in pagina and reverse("clientes:nova_empresa") in pagina
+    assert "vidas hoje" not in pagina
 
 
 def test_pagina_inicial_sem_nada_pendente(logado):

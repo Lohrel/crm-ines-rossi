@@ -12,12 +12,11 @@
   </div>
 </div>
 
-<div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
-  {% include "contas/painel/_movimentacoes.html" with quadro=painel.movimentacoes %}
-  {% include "contas/painel/_boletos.html" with quadro=painel.boletos %}
-  {% include "contas/painel/_pendencias.html" with quadro=painel.pendencias %}
-  {% include "contas/painel/_prazos.html" with prazos=painel.prazos %}
-  {% include "contas/painel/_vidas.html" with quadro=painel.vidas %}
-  {% include "contas/painel/_renovacoes.html" with quadro=painel.renovacoes %}
+<div class="row g-3">
+  <div class="col-md-6 col-xl-4">{% include "contas/painel/_movimentacoes.html" with quadro=painel.movimentacoes %}</div>
+  <div class="col-md-6 col-xl-4">{% include "contas/painel/_boletos.html" with quadro=painel.boletos %}</div>
+  <div class="col-md-6 col-xl-4">{% include "contas/painel/_pendencias.html" with quadro=painel.pendencias %}</div>
+  <div class="col-md-6">{% include "contas/painel/_prazos.html" with prazos=painel.prazos %}</div>
+  <div class="col-md-12 col-xl-6">{% include "contas/painel/_renovacoes.html" with quadro=painel.renovacoes %}</div>
 </div>
 {% endblock %}

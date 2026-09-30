@@ -35,7 +35,7 @@ Cada etapa só começa quando a anterior está testada e em uso.
   - [x] 7a. Salário (opcional) no plano de vida, capital e taxa no contrato, subfatura de cada filial e a planilha do mês, com o resumo da fatura para conferir a cobrança
   - [x] 7b. Importar a planilha atual da seguradora, com prévia de cada vida: pessoas, salários e subfaturas entram de uma vez, e o capital e a fatura de cada vida são conferidos com o contrato
 - [ ] **8.** Painel e relatórios
-  - [x] 8a. Painel na página inicial: movimentações em aberto, boletos a enviar, as pendências de quem entrou, prazos do mês, vidas e renovações, cada quadro levando à lista já filtrada
+  - [x] 8a. Painel na página inicial: movimentações em aberto, boletos a enviar, as pendências de quem entrou, prazos do mês e renovações, cada quadro levando à lista já filtrada
   - [ ] 8b. Relatórios
 - [ ] **9.** Campos específicos de auto e imóvel
 - [ ] **10.** Acabamento visual: cores e logo da corretora, menu, painel inicial e ajustes para celular

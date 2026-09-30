@@ -1,7 +1,7 @@
 """Painel da página inicial: o que precisa de atenção hoje, sem abrir tela por tela.
 
 Cada quadro mostra um número e leva à lista já filtrada, que mostra os mesmos
-registros. As contas são feitas no banco: cada quadro faz uma ou duas consultas,
+registros. As contas são feitas no banco: cada quadro faz duas consultas,
 qualquer que seja o tamanho da carteira.
 """
 
@@ -9,12 +9,11 @@ from calendar import monthrange
 from datetime import date, timedelta
 from functools import cached_property
 
-from django.db.models import Count, Exists, OuterRef, Q
+from django.db.models import Count, Q
 from django.urls import reverse
 from django.utils.http import urlencode
 
 from apolices.models import DIAS_PARA_RENOVACAO, Contrato
-from beneficiarios.models import Vinculo
 from beneficiarios.seguro_de_vida import DIA_LIMITE_DE_ENVIO
 from boletos.forms import FiltroBoletosForm
 from boletos.models import DIAS_DE_ANTECEDENCIA as DIAS_DOS_BOLETOS
@@ -35,13 +34,6 @@ def url(nome: str, **filtros) -> str:
     """Endereço de uma lista, já com os filtros."""
     endereco = reverse(nome)
     return f"{endereco}?{urlencode(filtros)}" if filtros else endereco
-
-
-def com_sinal(numero: int) -> str:
-    """Saldo com o sinal na frente, ex.: "+3", "−2" ou "0"."""
-    if numero > 0:
-        return f"+{numero}"
-    return f"−{-numero}" if numero < 0 else "0"
 
 
 def proxima_data(dia: int, hoje: date) -> date:
@@ -180,43 +172,6 @@ class Painel:
             linha["quando"] = quando(dias)
             linha["perto"] = dias <= DIAS_DE_AVISO_DOS_PRAZOS
         return sorted(linhas, key=lambda linha: linha["data"])
-
-    @cached_property
-    def vidas(self) -> dict:
-        """Vidas da carteira hoje e as entradas e saídas do mês, nos contratos vigentes.
-
-        A alteração de plano (sai de um plano e entra noutro do mesmo ramo no mesmo dia)
-        não é entrada nem saída de vida.
-        """
-        inicio = self.hoje.replace(day=1)
-        fim = somar_meses(inicio, 1) - timedelta(days=1)
-        # Mesmo critério de `VinculoQuerySet.ativos`.
-        ativos = Q(data_inclusao__lte=self.hoje) & (
-            Q(data_exclusao__isnull=True) | Q(data_exclusao__gt=self.hoje)
-        )
-        do_mesmo_ramo = Vinculo.objects.filter(
-            beneficiario=OuterRef("beneficiario"), contrato__ramo=OuterRef("contrato__ramo")
-        )
-        veio_de_outro_plano = do_mesmo_ramo.filter(data_exclusao=OuterRef("data_inclusao"))
-        foi_para_outro_plano = do_mesmo_ramo.filter(data_inclusao=OuterRef("data_exclusao"))
-        numeros = Vinculo.objects.filter(
-            contrato__situacao__in=Contrato.SITUACOES_VIGENTES
-        ).aggregate(
-            vidas=Count("pk", filter=ativos),
-            pessoas=Count("beneficiario", filter=ativos, distinct=True),
-            entradas=Count(
-                "pk", filter=Q(data_inclusao__range=(inicio, fim)) & ~Exists(veio_de_outro_plano)
-            ),
-            saidas=Count(
-                "pk", filter=Q(data_exclusao__range=(inicio, fim)) & ~Exists(foi_para_outro_plano)
-            ),
-        )
-        return {
-            **numeros,
-            "saldo": com_sinal(numeros["entradas"] - numeros["saidas"]),
-            "mes": inicio,
-            "url": url("apolices:contratos"),
-        }
 
     @cached_property
     def renovacoes(self) -> dict:

@@ -1,21 +1,19 @@
-<div class="col">
-  <section class="card shadow-sm h-100 quadro" aria-labelledby="quadro-prazos">
-    <div class="card-header">
-      <h2 class="h6 mb-0" id="quadro-prazos">Prazos do mês</h2>
-    </div>
-    {% if prazos %}
-    <ul class="list-group list-group-flush">
-      {% for prazo in prazos %}
-      <li class="list-group-item">
-        <a href="{{ prazo.url }}" class="fw-semibold">{{ prazo.titulo }}</a>
-        <div class="small text-body-secondary"><span class="badge {% if prazo.perto %}text-bg-warning{% else %}text-bg-light border{% endif %}">{{ prazo.quando|capfirst }}</span> {{ prazo.data|date:"d/m" }} · {{ prazo.contratos }} contrato{{ prazo.contratos|pluralize }}</div>
-      </li>
-      {% endfor %}
-    </ul>
-    {% else %}
-    <div class="card-body">
-      <p class="small text-body-secondary mb-0">Nenhum contrato vigente com dia de fechamento das movimentações ou planilha do seguro de vida.</p>
-    </div>
-    {% endif %}
-  </section>
-</div>
+<section class="card shadow-sm h-100 quadro" aria-labelledby="quadro-prazos">
+  <div class="card-header">
+    <h2 class="h6 mb-0" id="quadro-prazos">Prazos do mês</h2>
+  </div>
+  {% if prazos %}
+  <ul class="list-group list-group-flush">
+    {% for prazo in prazos %}
+    <li class="list-group-item">
+      <a href="{{ prazo.url }}" class="fw-semibold">{{ prazo.titulo }}</a>
+      <div class="small text-body-secondary"><span class="badge {% if prazo.perto %}text-bg-warning{% else %}text-bg-light border{% endif %}">{{ prazo.quando|capfirst }}</span> {{ prazo.data|date:"d/m" }} · {{ prazo.contratos }} contrato{{ prazo.contratos|pluralize }}</div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="card-body">
+    <p class="small text-body-secondary mb-0">Nenhum contrato vigente com dia de fechamento das movimentações ou planilha do seguro de vida.</p>
+  </div>
+  {% endif %}
+</section>

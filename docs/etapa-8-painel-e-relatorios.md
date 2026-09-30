@@ -40,15 +40,16 @@ já filtrada com os mesmos registros, e embaixo os até 3 mais urgentes:
 | Boletos a enviar | vencidos e dos próximos 7 dias | Boletos, filtro novo "A enviar (7 dias)" |
 | Suas pendências | as de quem entrou, vencidas e dos próximos 3 dias; no rodapé, quantas da equipe | Pendências, filtro novo "Pedem atenção (3 dias)", com o responsável |
 | Prazos do mês | os próximos fechamentos das movimentações (o dia de fechamento de cada contrato vigente) e o envio da planilha do seguro de vida (até o dia 5), em amarelo a 5 dias ou menos | Movimentações e Planilha mensal |
-| Vidas | vidas e pessoas nos contratos vigentes hoje, e as entradas e saídas do mês (a alteração de plano não conta como entrada nem saída) | Contratos, até o relatório de vidas (8b) |
 | Renovações | contratos vigentes que renovam nos próximos 60 dias, e quantos estão com a data de renovação já passada | Contratos, filtro novo "Renovam nos próximos 60 dias", que traz também as datas já passadas |
 
 A tabela de contratos passou a mostrar a data de renovação dos vigentes, em vermelho quando já
-passou (falta pôr a data da próxima). As contas ficam em `contas/painel.py`: 11 consultas ao todo,
+passou (falta pôr a data da próxima). As contas ficam em `contas/painel.py`: 10 consultas ao todo,
 qualquer que seja o tamanho da carteira. Os testes (`contas/tests/test_painel.py`) conferem cada
 número, o número de consultas e se cada número bate com a lista para onde leva.
 
-Os quadros seguem a proposta; no teste, o Lohrel confirma se cobrem o que o escritório olha todo dia.
+A proposta tinha também um quadro de vidas (total da carteira e saldo do mês). O Lohrel pediu para
+tirá-lo (30/09/2026): não é informação que o escritório consulta todo dia. As vidas ficam na lista
+de contratos, na página de cada cliente e no relatório de vidas proposto abaixo.
 
 ### 8b. Relatórios
 
