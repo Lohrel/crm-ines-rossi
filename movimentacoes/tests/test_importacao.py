@@ -312,10 +312,49 @@ def test_linhas_com_problema_ficam_de_fora(empresa, usuario, ana, pleno):
         (PROBLEMA, "DATA DIGITAÇÃO inválida: 31/02/2026."),
         (PROBLEMA, "Falta a DATA DIGITAÇÃO."),
         (PULAR, "STATUS Rejeitado: só Pendente e Processado são importados."),
-        (PROBLEMA, 'Informe o PLANO: a aba "UNIMED" tem mais de um plano.'),
+        (
+            PROBLEMA,
+            "Informe o PLANO ou cadastre o contrato: nenhum plano deste cliente é do ramo "
+            'ou da seguradora da aba "UNIMED".',
+        ),
     ]
     assert not Movimentacao.objects.exists()
     assert not Beneficiario.objects.filter(nome="Dora Nova").exists()
+
+
+def test_aba_dental_sem_a_coluna_plano(empresa, usuario, seguradora, matriz, filial, ana, pleno):
+    """Sem PLANO, vale o único plano do ramo da aba; com mais de um, a coluna é necessária."""
+    linha = ["", 4521, "Ana Titular", 555, DIGITADA, OUTUBRO]
+    aba = ("DENTAL", DENTAL, [linha])
+    [resultado] = importar(empresa, usuario, aba, gravar=False)
+    assert resultado.mensagem == (
+        "Informe o PLANO ou cadastre o contrato: nenhum plano deste cliente é do ramo "
+        'ou da seguradora da aba "DENTAL".'
+    )
+    plano(empresa, seguradora, "D-1", "", [matriz, filial], ramo="Dental")
+    [resultado] = importar(empresa, usuario, aba, gravar=False)
+    assert resultado.mensagem == "Inclusão em D-1, concluída: no plano desde 01/10/2026."
+    plano(empresa, seguradora, "D-2", "ODONTO MAX", [matriz, filial], ramo="Dental")
+    [resultado] = importar(empresa, usuario, aba, gravar=False)
+    assert resultado.mensagem == (
+        'Informe o PLANO: a aba "DENTAL" tem mais de um plano deste cliente '
+        "(D-1, ODONTO MAX ou D-2)."
+    )
+    # Com a coluna PLANO, como nas outras abas, a linha diz o plano.
+    aba = ("DENTAL", [*DENTAL, "PLANO"], [[*linha, "Odonto Max"]])
+    [resultado] = importar(empresa, usuario, aba)
+    assert resultado.mensagem == "Inclusão em ODONTO MAX, concluída: no plano desde 01/10/2026."
+
+
+def test_mesmo_nome_de_plano_em_dois_contratos(empresa, usuario, seguradora, matriz, ana, pleno):
+    plano(empresa, seguradora, "U-900", "PLENO", [matriz])
+    [resultado] = importar(empresa, usuario, aba_unimed(na_unimed("Ana Titular", 4521)))
+    assert resultado.mensagem == (
+        "Há mais de um plano PLENO neste cliente: informe o número do contrato (U-100, U-900)."
+    )
+    linha = na_unimed("Ana Titular", 4521, plano="U-100", solicitante="")
+    [resultado] = importar(empresa, usuario, aba_unimed(linha))
+    assert resultado.situacao == IMPORTAR
 
 
 def test_plano_de_contrato_cancelado(empresa, usuario, ana, pleno):

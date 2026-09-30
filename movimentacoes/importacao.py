@@ -78,6 +78,11 @@ def chave(texto) -> str:
     return " ".join(re.sub(r"[^0-9A-Za-z]+", " ", texto).upper().split())
 
 
+def _rotulo(contrato: Contrato) -> str:
+    """Como o plano pode ser escrito na coluna PLANO: o produto ou o número do contrato."""
+    return f"{contrato.produto} ou {contrato.numero}" if contrato.produto else contrato.numero
+
+
 def mesma_matricula(uma: str, outra: str) -> bool:
     """04521 e 4521 são a mesma matrícula: o Excel tira o zero da frente dos números."""
     uma, outra = chave(uma), chave(outra)
@@ -414,7 +419,10 @@ class Importacao:
             if len(achados) == 1:
                 return achados[0]
             if achados:
-                raise ValidationError(f"Há mais de um plano {linha['plano']} neste cliente.")
+                raise ValidationError(
+                    f"Há mais de um plano {linha['plano']} neste cliente: informe o número do "
+                    f"contrato ({', '.join(c.numero for c in achados)})."
+                )
             raise ValidationError(
                 f"Plano {linha['plano']} não encontrado: confira o Produto/plano dos contratos."
             )
@@ -423,7 +431,16 @@ class Importacao:
             da_aba = [c for c in da_aba if c.vigente] or da_aba
         if len(da_aba) == 1:
             return da_aba[0]
-        raise ValidationError(f'Informe o PLANO: a aba "{linha.aba}" tem mais de um plano.')
+        if da_aba:
+            planos = ", ".join(_rotulo(c) for c in da_aba)
+            raise ValidationError(
+                f'Informe o PLANO: a aba "{linha.aba}" tem mais de um plano deste cliente '
+                f"({planos})."
+            )
+        raise ValidationError(
+            f"Informe o PLANO ou cadastre o contrato: nenhum plano deste cliente é do ramo "
+            f'ou da seguradora da aba "{linha.aba}".'
+        )
 
     @staticmethod
     def _da_aba(linha: Linha, contratos: list[Contrato]) -> list[Contrato]:
