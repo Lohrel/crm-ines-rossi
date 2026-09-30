@@ -5,6 +5,8 @@ Todos os valores sensíveis vêm do arquivo .env (veja .env.example).
 
 from pathlib import Path
 
+from django.contrib.messages import constants as mensagens
+
 from config.env import Env
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -143,6 +145,9 @@ MEDIA_ROOT = env.str("ANEXOS_DIR", padrao=str(BASE_DIR / "media"))
 TAMANHO_MAXIMO_ANEXO_MB = 15
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# As mensagens viram alertas do Bootstrap, que chama o vermelho de "danger".
+MESSAGE_TAGS = {mensagens.ERROR: "danger"}
 
 LOGGING = {
     "version": 1,

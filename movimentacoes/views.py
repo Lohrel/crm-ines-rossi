@@ -1,7 +1,9 @@
+from collections import Counter, defaultdict
 from datetime import date
 from io import BytesIO
 
 from django.contrib import messages
+from django.core import signing
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import F
@@ -12,15 +14,25 @@ from django.views.generic import CreateView, DetailView, ListView, TemplateView,
 from django.views.generic.detail import SingleObjectMixin
 
 from beneficiarios.models import Beneficiario, Vinculo
+from clientes.models import Cliente
 from clientes.views import FormularioMixin
 from movimentacoes.forms import (
     EdicaoMovimentacaoForm,
     FiltroMovimentacoesForm,
+    ImportacaoForm,
     MovimentacaoForm,
     PlanilhaForm,
     formulario_da_etapa,
 )
 from movimentacoes.historico import LinhaDoTempoDaMovimentacao
+from movimentacoes.importacao import (
+    ATUALIZAR,
+    IMPORTAR,
+    UNIDADE,
+    Importacao,
+    desempacotar,
+    empacotar,
+)
 from movimentacoes.models import Etapa, Movimentacao
 from movimentacoes.planilha import TIPO_XLSX, PlanilhaDoMes
 
@@ -270,3 +282,73 @@ class PlanilhaView(TemplateView):
 
     def get_context_data(self, **kwargs):
         return {**super().get_context_data(**kwargs), "form": self.form}
+
+
+class ImportarPlanilhaView(TemplateView):
+    """Lê a planilha de controle de uma empresa, mostra a prévia de cada linha e importa."""
+
+    template_name = "movimentacoes/importar.html"
+
+    def get(self, request, *args, **kwargs):
+        return self.render_to_response({"form": ImportacaoForm()})
+
+    def post(self, request, *args, **kwargs):
+        if "dados" not in request.POST:
+            return self._ler_arquivo()
+        try:
+            dados = desempacotar(request.POST["dados"])
+        except signing.BadSignature:
+            messages.error(request, "A prévia expirou. Envie a planilha de novo.")
+            return redirect("movimentacoes:importar_planilha")
+        cliente = get_object_or_404(Cliente, pk=dados["cliente"])
+        importacao = Importacao(cliente, dados["linhas"], request.user, self._unidades_escolhidas())
+        resultados = importacao.previa()
+        if request.POST.get("acao") == "confirmar":
+            if not any(resultado.situacao == UNIDADE for resultado in resultados):
+                return self._mostrar(cliente, dados, importacao.gravar(), concluida=True)
+            messages.warning(request, "Escolha a unidade de cada titular novo antes de confirmar.")
+        return self._mostrar(cliente, dados, resultados)
+
+    def _ler_arquivo(self):
+        form = ImportacaoForm(self.request.POST, self.request.FILES)
+        if not form.is_valid():
+            return self.render_to_response({"form": form})
+        cliente = form.cleaned_data["cliente"]
+        dados = {
+            "arquivo": form.cleaned_data["arquivo"].name,
+            "linhas": form.linhas,
+            "avisos": form.avisos,
+        }
+        resultados = Importacao(cliente, form.linhas, self.request.user).previa()
+        return self._mostrar(cliente, dados, resultados)
+
+    def _unidades_escolhidas(self) -> dict[str, int]:
+        """A unidade escolhida na prévia para cada titular novo (campo unidade-<linha>)."""
+        return {
+            nome.removeprefix("unidade-"): int(valor)
+            for nome, valor in self.request.POST.items()
+            if nome.startswith("unidade-") and valor.isdigit()
+        }
+
+    def _mostrar(self, cliente, dados: dict, resultados: list, concluida: bool = False):
+        abas = defaultdict(list)
+        for resultado in resultados:
+            abas[resultado.linha.aba].append(resultado)
+        contagem = Counter(resultado.situacao for resultado in resultados)
+        contexto = {
+            "cliente": cliente,
+            "arquivo": dados["arquivo"],
+            "avisos": dados["avisos"],
+            "abas": list(abas.items()),
+            "contagem": contagem,
+            "concluida": concluida,
+            "pode_confirmar": any(
+                contagem[situacao] for situacao in (IMPORTAR, ATUALIZAR, UNIDADE)
+            ),
+            "tem_escolha": any(resultado.unidades for resultado in resultados),
+        }
+        if not concluida:
+            contexto["dados"] = empacotar(
+                cliente, dados["arquivo"], dados["linhas"], dados["avisos"]
+            )
+        return self.render_to_response(contexto)

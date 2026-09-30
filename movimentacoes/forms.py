@@ -2,6 +2,7 @@ from datetime import date
 
 from django import forms
 from django.core.exceptions import ValidationError
+from django.core.validators import FileExtensionValidator
 from django.db.models import Q
 from django.forms import modelform_factory
 
@@ -10,6 +11,7 @@ from beneficiarios.models import Beneficiario
 from clientes.forms import BootstrapFormMixin, MesField
 from clientes.models import Cliente
 from clientes.widgets import CampoData
+from movimentacoes.importacao import PlanilhaInvalidaError, ler_planilha
 from movimentacoes.models import Etapa, Movimentacao
 
 DATA = CampoData()
@@ -310,3 +312,33 @@ class PlanilhaForm(BootstrapFormMixin, forms.Form):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["cliente"].queryset = Cliente.objects.filter(contratos__isnull=False).distinct()
+
+
+class ImportacaoForm(BootstrapFormMixin, forms.Form):
+    """Empresa e arquivo da planilha de controle a importar."""
+
+    TAMANHO_MAXIMO_MB = 5
+
+    cliente = forms.ModelChoiceField(
+        label="Empresa ou cliente", queryset=Cliente.objects.none(), empty_label="Escolha"
+    )
+    arquivo = forms.FileField(
+        label="Planilha (Excel)",
+        validators=[FileExtensionValidator(["xlsx"])],
+        help_text=f"Arquivo .xlsx de até {TAMANHO_MAXIMO_MB} MB.",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["cliente"].queryset = Cliente.objects.filter(contratos__isnull=False).distinct()
+        self.fields["arquivo"].widget.attrs["accept"] = ".xlsx"
+
+    def clean_arquivo(self):
+        arquivo = self.cleaned_data["arquivo"]
+        if arquivo.size > self.TAMANHO_MAXIMO_MB * 1024 * 1024:
+            raise ValidationError(f"O arquivo passa de {self.TAMANHO_MAXIMO_MB} MB.")
+        try:
+            self.linhas, self.avisos = ler_planilha(arquivo)
+        except PlanilhaInvalidaError as erro:
+            raise ValidationError(str(erro)) from erro
+        return arquivo
