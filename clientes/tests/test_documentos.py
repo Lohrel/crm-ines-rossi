@@ -1,6 +1,8 @@
 import pytest
+from django.core.exceptions import ValidationError
 
-from clientes.documentos import CNPJ, CPF
+from clientes.documentos import CNPJ, CPF, cpf_ou_cnpj
+from clientes.forms import CpfOuCnpjField
 
 # Números gerados apenas para teste (dígitos verificadores válidos, sem titular real).
 CPF_VALIDO = "529.982.247-25"
@@ -67,3 +69,29 @@ def test_cnpj_alfanumerico_invalido(valor):
 def test_cpf_nao_aceita_letras():
     assert CPF("529.982.247-2A").valor == "5299822472"
     assert not CPF("529.982.247-2A").valido()
+
+
+@pytest.mark.parametrize(
+    ("valor", "tipo"),
+    [(CPF_VALIDO, CPF), (CNPJ_VALIDO, CNPJ), ("12.abc.345/01de-35", CNPJ)],
+)
+def test_cpf_ou_cnpj_pelo_tamanho(valor, tipo):
+    documento = cpf_ou_cnpj(valor)
+    assert isinstance(documento, tipo) and documento.valido()
+
+
+@pytest.mark.parametrize("valor", ["", None, "123", "529.982.247-2A"])
+def test_nem_cpf_nem_cnpj(valor):
+    assert cpf_ou_cnpj(valor) is None
+
+
+def test_campo_de_cpf_ou_cnpj():
+    campo = CpfOuCnpjField(required=False)
+    assert campo.clean(" 529.982.247-25 ") == "52998224725"
+    assert campo.clean(CNPJ_ALFANUMERICO.lower()) == "12ABC34501DE35"
+    assert campo.clean("") == ""
+    for invalido in ["529.982.247-24", "12.ABC.345/01DE-36", "123"]:
+        with pytest.raises(ValidationError, match="CPF ou CNPJ inválido"):
+            campo.clean(invalido)
+    assert campo.prepare_value("12ABC34501DE35") == CNPJ_ALFANUMERICO
+    assert campo.prepare_value("52998224725") == CPF_VALIDO

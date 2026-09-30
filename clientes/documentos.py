@@ -88,3 +88,13 @@ class CNPJ(Documento):
     def _formatar(self) -> str:
         d = self.valor
         return f"{d[:2]}.{d[2:5]}.{d[5:8]}/{d[8:12]}-{d[12:]}"
+
+
+def cpf_ou_cnpj(valor: str) -> Documento | None:
+    """O documento pelo tamanho: 11 números é CPF; 14 caracteres, CNPJ (que pode ter letras)."""
+    texto = re.sub(r"[^0-9A-Z]", "", (valor or "").upper())
+    if len(texto) == 11 and texto.isdigit():
+        return CPF(texto)
+    if len(texto) == 14:
+        return CNPJ(texto)
+    return None

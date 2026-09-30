@@ -1,0 +1,45 @@
+{# Veículos e imóveis de cada apólice de auto ou imóvel do cliente, para consulta. #}
+<div class="card shadow-sm mb-4" id="bens">
+  <div class="card-header fw-semibold">Veículos e imóveis segurados</div>
+  <ul class="list-group list-group-flush lista-de-bens">
+    {% for contrato in contratos_com_bens %}
+      {% with cor_da_seguradora=contrato.seguradora.cor %}
+      <li class="list-group-item apolice-dos-bens d-flex flex-wrap justify-content-between align-items-center gap-2{% if cor_da_seguradora %} faixa-seguradora cor-{{ cor_da_seguradora }}{% endif %}">
+        <div>
+          {% include "apolices/_seguradora.html" with seguradora=contrato.seguradora %}
+          <span class="text-body-secondary">· {{ contrato.ramo }} · apólice {{ contrato.numero }}</span>
+          {% if not contrato.vigente %}<span class="badge text-bg-secondary">{{ contrato.get_situacao_display }}</span>{% endif %}
+          {% if contrato.vigente and contrato.data_renovacao %}
+            <div class="small {% if contrato.renovacao_passou %}text-danger{% else %}text-body-secondary{% endif %}">Renovação em {{ contrato.data_renovacao|date:"d/m/Y" }}</div>
+          {% endif %}
+        </div>
+        {% if contrato.ramo.bem_segurado %}
+          <a href="{% url 'apolices:novo_bem' contrato.pk %}" class="btn btn-sm btn-outline-primary">Adicionar {{ contrato.ramo.get_bem_segurado_display|lower }}</a>
+        {% endif %}
+      </li>
+      {% for bem in contrato.bens.all %}
+        <li class="list-group-item{% if cor_da_seguradora %} faixa-seguradora cor-{{ cor_da_seguradora }}{% endif %}">
+          <div class="d-flex flex-wrap align-items-center column-gap-2">
+            <a href="{{ bem.get_absolute_url }}" class="fw-semibold">{{ bem.descricao }}</a>
+            {% if bem.placa %}<span class="placa">{{ bem.placa_formatada }}</span>{% endif %}
+          </div>
+          <div class="small text-body-secondary partes">
+            {% if bem.eh_veiculo %}
+              {% if bem.ano_modelo %}<span>{{ bem.ano_modelo }}</span>{% endif %}
+              {% if bem.cor %}<span>{{ bem.cor }}</span>{% endif %}
+              {% if bem.condutor_principal %}<span>Condutor: {{ bem.condutor_principal }}</span>{% endif %}
+            {% else %}
+              {% if bem.endereco_resumido %}<span>{{ bem.endereco_resumido }}</span>{% endif %}
+            {% endif %}
+            {% if bem.premio is not None %}<span class="text-nowrap">Prêmio R$ {{ bem.premio|floatformat:"2g" }}</span>{% endif %}
+          </div>
+        </li>
+      {% empty %}
+        <li class="list-group-item small text-body-secondary{% if cor_da_seguradora %} faixa-seguradora cor-{{ cor_da_seguradora }}{% endif %}">
+          Nenhum {{ contrato.ramo.get_bem_segurado_display|lower|default:"veículo ou imóvel" }} cadastrado nesta apólice.
+        </li>
+      {% endfor %}
+      {% endwith %}
+    {% endfor %}
+  </ul>
+</div>

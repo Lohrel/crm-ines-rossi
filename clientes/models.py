@@ -152,7 +152,7 @@ class ClienteQuerySet(models.QuerySet):
         return self.filter(tipo=Cliente.Tipo.PESSOA_JURIDICA)
 
     def buscar(self, termo: str):
-        """Busca por nome, CPF, CNPJ, razão social ou nome fantasia de qualquer unidade."""
+        """Busca por nome, CPF, CNPJ, placa, razão social ou nome fantasia de qualquer unidade."""
         termo = (termo or "").strip()
         if not termo:
             return self
@@ -161,11 +161,16 @@ class ClienteQuerySet(models.QuerySet):
             | Q(unidades__razao_social__icontains=termo)
             | Q(unidades__nome_fantasia__icontains=termo)
         )
-        # CPF/CNPJ são guardados sem pontuação; o CNPJ pode ter letras (alfanumérico).
+        # CPF/CNPJ são guardados sem pontuação; o CNPJ pode ter letras (alfanumérico). A placa
+        # dos veículos segurados também fica sem o traço, em maiúsculas.
         if re.search(r"\d", termo):
             documento = re.sub(r"[^0-9A-Za-z]", "", termo).upper()
             if len(documento) >= 3:
-                filtro |= Q(cpf__contains=documento) | Q(unidades__cnpj__contains=documento)
+                filtro |= (
+                    Q(cpf__contains=documento)
+                    | Q(unidades__cnpj__contains=documento)
+                    | Q(contratos__bens__placa__contains=documento)
+                )
         return self.filter(filtro).distinct()
 
 

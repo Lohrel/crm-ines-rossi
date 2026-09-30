@@ -2,17 +2,32 @@ from datetime import date, timedelta
 
 from django.contrib import messages
 from django.db.models import Q
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
-from django.views.generic import CreateView, ListView, UpdateView
+from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
-from apolices.forms import ContratoForm, FiltroContratosForm, SeguradoraForm
-from apolices.models import DIAS_PARA_RENOVACAO, Contrato, Seguradora
+from apolices.forms import (
+    ContratoForm,
+    FiltroContratosForm,
+    ImovelForm,
+    SeguradoraForm,
+    VeiculoForm,
+)
+from apolices.historico import LinhaDoTempoDoBem
+from apolices.models import (
+    DIAS_PARA_RENOVACAO,
+    BemSegurado,
+    Contrato,
+    Seguradora,
+    TipoDeBem,
+    limpar_placa,
+)
 from beneficiarios.vidas import anotar_vidas
 from boletos.models import Boleto
 from clientes.forms import SecaoDoFormulario
 from clientes.models import Cliente
-from clientes.views import FormularioMixin
+from clientes.views import ExclusaoConfirmadaView, FormularioMixin
 
 
 class ContratoListView(ListView):
@@ -24,7 +39,11 @@ class ContratoListView(ListView):
 
     def get_queryset(self):
         self.filtro = FiltroContratosForm(self.request.GET or None)
-        contratos = anotar_vidas(Contrato.objects.select_related("cliente", "seguradora", "ramo"))
+        contratos = anotar_vidas(
+            Contrato.objects.select_related("cliente", "seguradora", "ramo").prefetch_related(
+                "bens"
+            )
+        )
         if not self.filtro.is_valid():
             return contratos.vigentes()
         dados = self.filtro.cleaned_data
@@ -34,11 +53,17 @@ class ContratoListView(ListView):
         elif situacao != "todas":
             contratos = contratos.filter(situacao=situacao)
         if termo := dados["q"].strip():
-            contratos = contratos.filter(
+            filtro = (
                 Q(numero__icontains=termo)
                 | Q(produto__icontains=termo)
                 | Q(cliente__nome__icontains=termo)
             )
+            # A placa é guardada sem o traço e em maiúsculas; ela sempre tem números.
+            placa = limpar_placa(termo)
+            if len(placa) >= 3 and any(caractere.isdigit() for caractere in placa):
+                com_a_placa = BemSegurado.objects.filter(placa__contains=placa)
+                filtro |= Q(pk__in=com_a_placa.values("contrato"))
+            contratos = contratos.filter(filtro)
         if dados["seguradora"]:
             contratos = contratos.filter(seguradora=dados["seguradora"])
         if dados["ramo"]:
@@ -156,3 +181,113 @@ class SeguradoraUpdateView(FormularioMixin, UpdateView):
 
     def get_url_cancelar(self) -> str:
         return reverse("apolices:seguradoras")
+
+
+FORMULARIOS_DOS_BENS = {TipoDeBem.VEICULO: VeiculoForm, TipoDeBem.IMOVEL: ImovelForm}
+
+
+def url_dos_bens(cliente: Cliente) -> str:
+    """O cartão "Veículos e imóveis segurados" na página do cliente."""
+    return f"{cliente.get_absolute_url()}#bens"
+
+
+class BemSeguradoDetailView(DetailView):
+    """Todos os dados do veículo ou do imóvel, para consulta, com a apólice e o histórico."""
+
+    model = BemSegurado
+    template_name = "apolices/bem.html"
+
+    def get_queryset(self):
+        return BemSegurado.objects.select_related(
+            "contrato__cliente", "contrato__seguradora", "contrato__ramo"
+        )
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        contexto["historico"] = LinhaDoTempoDoBem(self.object).eventos()
+        return contexto
+
+
+class BlocosDoBemMixin:
+    """O formulário em blocos, como a página do veículo ou do imóvel."""
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        form = contexto["form"]
+        contexto["formularios"] = [
+            (titulo, SecaoDoFormulario(form, campos, principal=indice == 0))
+            for indice, (titulo, campos) in enumerate(form.blocos.items())
+        ]
+        return contexto
+
+
+class BemSeguradoCreateView(BlocosDoBemMixin, FormularioMixin, CreateView):
+    """Veículo ou imóvel de um contrato: o ramo do contrato diz qual dos dois."""
+
+    model = BemSegurado
+
+    def dispatch(self, request, *args, **kwargs):
+        self.contrato = get_object_or_404(
+            Contrato.objects.select_related("cliente", "seguradora", "ramo"),
+            pk=kwargs["contrato_pk"],
+        )
+        self.tipo = self.contrato.ramo.bem_segurado
+        if not self.tipo:
+            raise Http404("O ramo deste contrato não guarda veículos nem imóveis.")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_class(self):
+        return FORMULARIOS_DOS_BENS[self.tipo]
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["instance"] = BemSegurado(contrato=self.contrato, tipo=self.tipo)
+        return kwargs
+
+    def get_titulo(self) -> str:
+        nome = TipoDeBem(self.tipo).label.lower()
+        return f"Novo {nome} de {self.contrato.cliente} · {self.contrato}"
+
+    def get_url_cancelar(self) -> str:
+        return url_dos_bens(self.contrato.cliente)
+
+    def form_valid(self, form):
+        self.mensagem_sucesso = f"{TipoDeBem(self.tipo).label} cadastrado."
+        return super().form_valid(form)
+
+    def get_success_url(self) -> str:
+        return url_dos_bens(self.contrato.cliente)
+
+
+class BemSeguradoUpdateView(BlocosDoBemMixin, FormularioMixin, UpdateView):
+    model = BemSegurado
+
+    def get_queryset(self):
+        return BemSegurado.objects.select_related("contrato__cliente", "contrato__seguradora")
+
+    def get_form_class(self):
+        return FORMULARIOS_DOS_BENS[self.object.tipo]
+
+    def get_titulo(self) -> str:
+        return f"Editar {self.object.get_tipo_display().lower()} {self.object}"
+
+    def get_url_cancelar(self) -> str:
+        return self.object.get_absolute_url()
+
+    def form_valid(self, form):
+        self.mensagem_sucesso = f"{self.object.get_tipo_display()} atualizado."
+        return super().form_valid(form)
+
+
+class BemSeguradoDeleteView(ExclusaoConfirmadaView):
+    model = BemSegurado
+    permission_required = "apolices.delete_bemsegurado"
+
+    def get_queryset(self):
+        return BemSegurado.objects.select_related("contrato__cliente")
+
+    def get_texto_esperado(self) -> str:
+        return self.object.nome_para_confirmar
+
+    def get_success_url(self) -> str:
+        return url_dos_bens(self.object.contrato.cliente)

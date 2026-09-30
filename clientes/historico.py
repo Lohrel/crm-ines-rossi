@@ -52,11 +52,14 @@ class LinhaDoTempo:
 
     def _evento(self, registro) -> Evento:
         modelo = registro.instance_type
+        instancia = registro.instance
+        # O registro pode ter um nome mais preciso que o do modelo (ex.: veículo ou imóvel).
+        nome = getattr(instancia, "nome_no_historico", "") or modelo._meta.verbose_name
         return Evento(
             quando=registro.history_date,
             quem=str(registro.history_user) if registro.history_user else "Sistema",
             acao=self.ACOES.get(registro.history_type, registro.history_type),
-            registro=f"{modelo._meta.verbose_name.capitalize()}: {registro.instance}",
+            registro=f"{nome.capitalize()}: {instancia}",
             campos=self._campos_alterados(registro, modelo),
         )
 

@@ -13,8 +13,16 @@
       <tr{% if contrato.seguradora.cor %} class="faixa-seguradora cor-{{ contrato.seguradora.cor }}"{% endif %}>
         {% if mostrar_cliente %}<td><a href="{{ contrato.cliente.get_absolute_url }}">{{ contrato.cliente }}</a></td>{% endif %}
         <td>{% include "apolices/_seguradora.html" with seguradora=contrato.seguradora %}<div class="small text-body-secondary">{{ contrato.numero }}</div></td>
-        <td>{{ contrato.ramo }}<div class="small text-body-secondary">{{ contrato.produto }}</div></td>
-        <td>{{ contrato.vidas }}</td>
+        <td>
+          {{ contrato.ramo }}<div class="small text-body-secondary">{{ contrato.produto }}</div>
+          {% with veiculos=contrato.veiculos_com_placa %}{% if veiculos %}
+          <div class="d-flex flex-wrap align-items-center gap-1 mt-1">
+            {% for veiculo in veiculos|slice:":3" %}<a href="{{ veiculo.get_absolute_url }}" class="placa" title="{{ veiculo.descricao }}">{{ veiculo.placa_formatada }}</a>{% endfor %}
+            {% if veiculos|length > 3 %}<a href="{{ contrato.cliente.get_absolute_url }}#bens" class="small">e mais {{ veiculos|length|add:"-3" }}</a>{% endif %}
+          </div>
+          {% endif %}{% endwith %}
+        </td>
+        <td>{% if contrato.ramo.bem_segurado %}—{% else %}{{ contrato.vidas }}{% endif %}</td>
         <td>
           {{ contrato.dia_vencimento }}
           {% if contrato.corretora_envia_boleto %}<span class="badge text-bg-info" title="A corretora envia o boleto">boleto</span>{% endif %}

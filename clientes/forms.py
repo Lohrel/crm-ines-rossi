@@ -1,10 +1,11 @@
+import re
 from datetime import date, datetime
 
 from django import forms
 from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator
 
-from clientes.documentos import CNPJ, CPF, Documento
+from clientes.documentos import CNPJ, CPF, Documento, cpf_ou_cnpj
 from clientes.models import Cliente, Contato, Unidade
 from clientes.planilhas import PlanilhaInvalidaError
 from clientes.widgets import CampoData
@@ -27,6 +28,27 @@ class DocumentoField(forms.CharField):
 
     def prepare_value(self, value):
         return self.documento(value).formatado() if value else value
+
+
+class CpfOuCnpjField(forms.CharField):
+    """CPF ou CNPJ (que pode ter letras), com ou sem pontuação; guarda só os caracteres."""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.widget.attrs.setdefault("maxlength", "20")
+
+    def to_python(self, value) -> str:
+        return re.sub(r"[^0-9A-Z]", "", super().to_python(value).upper())
+
+    def validate(self, value) -> None:
+        super().validate(value)
+        documento = cpf_ou_cnpj(value)
+        if value and not (documento and documento.valido()):
+            raise ValidationError("CPF ou CNPJ inválido.")
+
+    def prepare_value(self, value):
+        documento = cpf_ou_cnpj(value) if value else None
+        return documento.formatado() if documento else value
 
 
 class MesField(forms.Field):
