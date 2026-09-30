@@ -163,9 +163,10 @@ pytest -q
     [docs/etapa-8-painel-e-relatorios.md](docs/etapa-8-painel-e-relatorios.md).
   - **9. Campos de auto e imóvel**: poucos clientes. Os campos (dados do veículo, endereço do imóvel)
     ainda precisam ser levantados com o Lohrel.
-  - **10. Acabamento visual**: a parte 10a (cores, fonte e logo da corretora, menu que recolhe no
-    celular, tela de entrada e textos organizados) está feita. Faltam a organização do menu, o painel
-    inicial com o visual final e ajustes finos no celular. Veja [docs/frontend.md](docs/frontend.md).
+  - **10. Acabamento visual**: as partes 10a (cores, fonte e logo da corretora, menu que recolhe no
+    celular, tela de entrada e textos organizados) e 10b (cor de cada seguradora) estão feitas.
+    Faltam a organização do menu, o painel inicial com o visual final e ajustes finos no celular.
+    Veja [docs/frontend.md](docs/frontend.md).
 
 ## Decisões do escritório que valem para as próximas etapas
 
@@ -185,3 +186,6 @@ pytest -q
 - Visual (etapa 10a): menu marinho com o logo branco e tela de entrada escura, a partir do cartão de
   visita e dos envelopes da corretora. O logo e o nome da corretora podem ficar no repositório
   (autorizado pelo Lohrel em 30/09/2026); se o software passar a ser proprietário, eles saem.
+- Cada seguradora tem uma cor, escolhida no cadastro, para a equipe saber qual portal abrir sem ler.
+  Ela aparece como uma faixa discreta à esquerda da linha nas listas (o Lohrel preferiu a faixa a uma
+  etiqueta colorida, menos poluída) e como um ponto antes do nome nas outras telas.

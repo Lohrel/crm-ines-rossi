@@ -21,3 +21,10 @@ class CampoData(forms.DateInput):
             "data-campo-data": "",
         }
         super().__init__(attrs={**padrao, **(attrs or {})}, format="%d/%m/%Y")
+
+
+class EscolhaDeCor(forms.RadioSelect):
+    """Escolha de cor com uma amostra ao lado de cada nome (veja clientes/_campos.html).
+
+    O valor de cada opção vira a classe cor-<valor>, que tem o tom em static/css/crm.css.
+    """

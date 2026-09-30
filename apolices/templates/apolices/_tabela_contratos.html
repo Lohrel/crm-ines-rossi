@@ -10,9 +10,9 @@
     </thead>
     <tbody>
     {% for contrato in contratos %}
-      <tr>
+      <tr{% if contrato.seguradora.cor %} class="faixa-seguradora cor-{{ contrato.seguradora.cor }}"{% endif %}>
         {% if mostrar_cliente %}<td><a href="{{ contrato.cliente.get_absolute_url }}">{{ contrato.cliente }}</a></td>{% endif %}
-        <td>{{ contrato.seguradora }}<div class="small text-body-secondary">{{ contrato.numero }}</div></td>
+        <td>{% include "apolices/_seguradora.html" with seguradora=contrato.seguradora %}<div class="small text-body-secondary">{{ contrato.numero }}</div></td>
         <td>{{ contrato.ramo }}<div class="small text-body-secondary">{{ contrato.produto }}</div></td>
         <td>{{ contrato.vidas }}</td>
         <td>

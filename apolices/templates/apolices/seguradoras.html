@@ -5,13 +5,16 @@
   <h1 class="h3 mb-0">Seguradoras</h1>
   <a href="{% url 'apolices:nova_seguradora' %}" class="btn btn-primary">Nova seguradora</a>
 </div>
+<p class="small text-body-secondary">
+  A cor de cada seguradora aparece numa faixa nas listas de movimentações, contratos e boletos, para achar o portal certo sem precisar ler. Escolha a cor em "Editar".
+</p>
 <div class="card shadow-sm"><div class="table-responsive">
   <table class="table table-hover align-middle mb-0">
     <thead class="table-light"><tr><th>Nome</th><th>CNPJ</th><th>Atendimento</th><th>Situação</th><th></th></tr></thead>
     <tbody>
     {% for seguradora in object_list %}
-      <tr>
-        <td>{{ seguradora.nome }}</td>
+      <tr{% if seguradora.cor %} class="faixa-seguradora cor-{{ seguradora.cor }}"{% endif %}>
+        <td>{% include "apolices/_seguradora.html" %}</td>
         <td class="text-nowrap">{{ seguradora.cnpj_formatado|default:"—" }}</td>
         <td>{{ seguradora.telefone|default:"" }}{% if seguradora.site %} <a href="{{ seguradora.site }}" target="_blank" rel="noopener noreferrer">site</a>{% endif %}</td>
         <td>{% if seguradora.ativo %}<span class="badge text-bg-success">Ativa</span>{% else %}<span class="badge text-bg-secondary">Inativa</span>{% endif %}</td>

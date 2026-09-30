@@ -36,7 +36,7 @@
     <dt class="col-sm-3">Prazo</dt><dd class="col-sm-9">{{ pendencia.prazo|date:"d/m/Y" }}</dd>
     <dt class="col-sm-3">Responsável</dt><dd class="col-sm-9">{{ pendencia.responsavel }}</dd>
     {% if pendencia.contrato %}
-    <dt class="col-sm-3">Contrato</dt><dd class="col-sm-9">{{ pendencia.contrato.ramo }} · {{ pendencia.contrato }}</dd>
+    <dt class="col-sm-3">Contrato</dt><dd class="col-sm-9">{{ pendencia.contrato.ramo }} · {% include "apolices/_seguradora.html" with seguradora=pendencia.contrato.seguradora %} {{ pendencia.contrato.numero }}</dd>
     {% endif %}
     {% if pendencia.movimentacao %}
     <dt class="col-sm-3">Movimentação</dt>

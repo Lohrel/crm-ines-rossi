@@ -10,7 +10,7 @@
     </thead>
     <tbody>
     {% for pendencia in pendencias %}
-      <tr>
+      <tr{% if pendencia.contrato.seguradora.cor %} class="faixa-seguradora cor-{{ pendencia.contrato.seguradora.cor }}"{% endif %}>
         <td class="text-nowrap">
           {{ pendencia.prazo|date:"d/m/Y" }}
           <div>{% include "pendencias/_situacao.html" %}</div>
@@ -19,7 +19,7 @@
           <a href="{{ pendencia.get_absolute_url }}" class="fw-semibold">{{ pendencia.descricao }}</a>
           {% if na_movimentacao %}
           {% elif pendencia.movimentacao %}<div class="small text-body-secondary">Movimentação: {{ pendencia.movimentacao }}</div>
-          {% elif pendencia.contrato %}<div class="small text-body-secondary">Contrato: {{ pendencia.contrato.ramo }} · {{ pendencia.contrato }}</div>{% endif %}
+          {% elif pendencia.contrato %}<div class="small text-body-secondary">Contrato: {{ pendencia.contrato.ramo }} · {% include "apolices/_seguradora.html" with seguradora=pendencia.contrato.seguradora %} {{ pendencia.contrato.numero }}</div>{% endif %}
         </td>
         {% if mostrar_cliente %}
         <td>

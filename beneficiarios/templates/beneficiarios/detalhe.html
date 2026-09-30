@@ -51,8 +51,8 @@
       <thead><tr><th>Plano</th><th>Carteirinha</th><th>Inclusão</th><th>Exclusão</th><th>Situação</th><th></th></tr></thead>
       <tbody>
       {% for plano in planos %}
-        <tr>
-          <td>{{ plano.contrato.ramo }}<div class="small text-body-secondary">{{ plano.contrato.seguradora }} {{ plano.contrato.numero }}{% if plano.contrato.produto %} · {{ plano.contrato.produto }}{% endif %}</div>
+        <tr{% if plano.contrato.seguradora.cor %} class="faixa-seguradora cor-{{ plano.contrato.seguradora.cor }}"{% endif %}>
+          <td>{{ plano.contrato.ramo }}<div class="small text-body-secondary">{% include "apolices/_seguradora.html" with seguradora=plano.contrato.seguradora %} {{ plano.contrato.numero }}{% if plano.contrato.produto %} · {{ plano.contrato.produto }}{% endif %}</div>
             {% if plano.contrato.calcula_capital %}
             <div class="small">
               {% if plano.contrato.usa_salario and object.eh_titular %}Salário {% if plano.salario is not None %}R$ {{ plano.salario|floatformat:"2g" }}{% else %}<span class="text-body-secondary">não informado</span> (<a href="{% url 'beneficiarios:editar_plano' plano.pk %}">preencher</a>){% endif %} · {% endif %}

@@ -38,7 +38,7 @@
       </thead>
       <tbody>
       {% for mov in object_list %}
-        <tr>
+        <tr{% if mov.contrato.seguradora.cor %} class="faixa-seguradora cor-{{ mov.contrato.seguradora.cor }}"{% endif %}>
           <td>
             <a href="{{ mov.get_absolute_url }}" class="fw-semibold">{{ mov.beneficiario.nome }}</a>
             {% if mov.beneficiario.matricula_efetiva %}<div class="small text-body-secondary">Matr. {{ mov.beneficiario.matricula_efetiva }}</div>{% endif %}
@@ -50,7 +50,7 @@
           </td>
           <td>
             <div class="d-flex flex-wrap align-items-center column-gap-2">{% include "movimentacoes/_tipo.html" %}<span>{{ mov.contrato.ramo }}</span></div>
-            <div class="small text-body-secondary">{% if mov.eh_alteracao %}{{ mov.contrato_anterior.nome_do_plano }} para {{ mov.contrato.nome_do_plano }}{% else %}{{ mov.contrato.seguradora }}{% if mov.contrato.produto %} · {{ mov.contrato.produto }}{% endif %}{% endif %}</div>
+            <div class="small text-body-secondary">{% include "apolices/_seguradora.html" with seguradora=mov.contrato.seguradora %}{% if mov.eh_alteracao %} · {{ mov.contrato_anterior.nome_do_plano }} para {{ mov.contrato.nome_do_plano }}{% elif mov.contrato.produto %} · {{ mov.contrato.produto }}{% endif %}</div>
           </td>
           <td class="text-nowrap">{{ mov.enviada_em|date:"d/m/Y"|default:"—" }}</td>
           <td class="text-nowrap">

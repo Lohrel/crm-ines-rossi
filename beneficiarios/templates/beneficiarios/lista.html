@@ -24,7 +24,7 @@
         <tr>
           <th class="text-start">Unidade</th>
           {% for contrato in contratos %}
-            <th>{{ contrato.ramo }}<div class="small fw-normal text-body-secondary">{{ contrato.seguradora }} {{ contrato.numero }}</div></th>
+            <th>{{ contrato.ramo }}<div class="small fw-normal text-body-secondary">{% include "apolices/_seguradora.html" with seguradora=contrato.seguradora %} {{ contrato.numero }}</div></th>
           {% endfor %}
           <th>Pessoas</th>
         </tr>
