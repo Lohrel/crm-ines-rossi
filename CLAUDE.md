@@ -157,7 +157,7 @@ pytest -q
   pelo PR #11 antes do teste com a planilha real, que o Lohrel faz no computador dele (a importação
   ignora linhas sem nome). Se ele achar um problema, corrija num branch novo a partir do `main`, com
   um PR novo. A descrição do PR #11 explica como a importação funciona.
-- **8a**, painel na página inicial: branch `etapa-8a-painel`, esperando o Lohrel testar. Os quadros
+- **8a**, painel na página inicial: PR #17, branch `etapa-8a-painel`, esperando o Lohrel testar. Os quadros
   seguem a proposta do [guia da etapa 8](docs/etapa-8-painel-e-relatorios.md), com o mesmo painel
   para todos e as pendências de quem entrou em destaque (escolhas a confirmar no teste). Se ele pedir
   ajustes, corrija nesse mesmo branch.
