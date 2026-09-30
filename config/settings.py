@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     "boletos",
     "pendencias",
     "calendario",
+    "relatorios",
 ]
 
 MIDDLEWARE = [

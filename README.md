@@ -34,10 +34,10 @@ Cada etapa só começa quando a anterior está testada e em uso.
 - [x] **7.** Planilha do seguro de vida, no layout que vai para a Tokio Marine
   - [x] 7a. Salário (opcional) no plano de vida, capital e taxa no contrato, subfatura de cada filial e a planilha do mês, com o resumo da fatura para conferir a cobrança
   - [x] 7b. Importar a planilha atual da seguradora, com prévia de cada vida: pessoas, salários e subfaturas entram de uma vez, e o capital e a fatura de cada vida são conferidos com o contrato
-- [ ] **8.** Painel, calendário e relatórios
+- [x] **8.** Painel, calendário e relatórios
   - [x] 8a. Painel na página inicial: movimentações em aberto, boletos a enviar, as pendências de quem entrou, prazos do mês e renovações, cada quadro levando à lista já filtrada
   - [x] 8b. Calendário do escritório: férias, reuniões e aniversários anotados pela equipe, junto com os prazos das pendências, as renovações e os prazos do mês, e o quadro "Próximos 7 dias" no painel
-  - [ ] 8c. Relatórios
+  - [x] 8c. Relatórios de vidas ativas (por empresa, filial ou contrato), inclusões por período e apólices com os dados do cliente e a renovação, na tela e em Excel
 - [ ] **9.** Campos específicos de auto e imóvel
 - [ ] **10.** Acabamento visual: cores e logo da corretora, menu, painel inicial e ajustes para celular
   - [x] 10a. Cores, fonte e logo da corretora, menu que recolhe no celular, tela de entrada e textos organizados nas telas de movimentações e cadastros
@@ -84,6 +84,7 @@ boletos/         Boletos que a corretora envia: a enviar, enviados e fora do ven
 pendencias/      Pendências com responsável e prazo, ligadas ao cliente, filial, contrato ou movimentação
 calendario/      Calendário do escritório: férias, reuniões e aniversários, com as datas que o sistema
                  já conhece
+relatorios/      Relatórios de vidas ativas, inclusões por período e apólices, na tela e em Excel
 templates/       Layout base e tela de login
 static/          Bootstrap servido localmente (funciona sem internet), tema da corretora (cores, fonte
                  e logo) e campos de data

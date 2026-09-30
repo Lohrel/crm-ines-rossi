@@ -1,9 +1,9 @@
 # Etapa 8: painel, calendário e relatórios
 
-**Situação: 8a (painel na página inicial) e 8b (calendário) feitas; 8c (relatórios) é proposta, a
-confirmar com o Lohrel antes de começar.** O plano inicial do projeto dizia só "resumo por mês, pendências vencidas e movimentações
-por usuário", com entrega "conforme a necessidade". Os detalhes abaixo vêm do que o escritório contou
-nas etapas anteriores. As regras gerais estão no [CLAUDE.md](../CLAUDE.md).
+**Situação: 8a (painel na página inicial), 8b (calendário) e 8c (relatórios) feitas.** O plano
+inicial do projeto dizia só "resumo por mês, pendências vencidas e movimentações por usuário", com
+entrega "conforme a necessidade". Os detalhes abaixo vêm do que o escritório contou nas etapas
+anteriores. As regras gerais estão no [CLAUDE.md](../CLAUDE.md).
 
 ## Objetivo
 
@@ -73,19 +73,30 @@ chefe anotava as datas importantes. O escopo combinado com ele:
 As datas de um período são montadas em `calendario/agenda.py`, com cinco consultas qualquer que
 seja o mês. Os testes ficam em `calendario/tests/test_calendario.py`.
 
-### 8c. Relatórios
+### 8c. Relatórios (feita)
 
-Um item "Relatórios" no menu, com filtro de período e, quando fizer sentido, download em Excel
-(openpyxl, no estilo das planilhas que o sistema já gera):
+O Lohrel escolheu três relatórios (30/09/2026), todos liberados para toda a equipe. Um item
+"Relatórios" no menu leva a uma página com os três, e cada um tem filtros, um resumo, a tabela e o
+botão "Baixar em Excel", que usa os mesmos filtros (openpyxl, no estilo das planilhas que o sistema
+já gera):
 
-1. **Resumo do mês:** inclusões, exclusões e alterações de plano por cliente e plano, separadas em
-   concluídas, em aberto e rejeitadas (com o motivo), e as vidas de cada contrato no início e no fim
-   do mês.
-2. **Vidas da carteira:** vidas por cliente, filial e contrato numa data, com os totais. Reaproveite
-   `beneficiarios/vidas.py`.
-3. **Movimentações por usuário:** quem registrou cada pedido e quem fez cada passo no período (campo
-   `registrada_por` e o histórico do `django-simple-history`).
-4. **Pendências por responsável:** em aberto, vencidas e concluídas no período.
+1. **Vidas ativas:** cada pessoa em cada plano em vigor numa data (hoje, se não escolher), por
+   empresa, filial ou contrato, com os totais de vidas, pessoas, titulares e dependentes e as vidas de
+   cada contrato. Conta como `beneficiarios/vidas.py`: o dependente fica na filial do titular.
+2. **Inclusões por período:** as inclusões de um período (o mês atual, se não escolher), contado pela
+   vigência ou pelo envio à operadora, com a etapa de cada uma e os totais por etapa. O filtro de
+   tipo também mostra exclusões, alterações de plano ou todas; a alteração entra no plano de onde a
+   pessoa sai e no plano para onde vai.
+3. **Apólices:** os contratos (vigentes, se não escolher outra situação) com os dados do cliente
+   (CPF ou CNPJ da matriz, contato principal, telefone, e-mail e cidade), filtrados pelo período de
+   renovação, pela seguradora e pelo ramo, com o valor mensal e as vidas de hoje.
+
+As consultas ficam em `relatorios/consultas.py`, com um número fixo de consultas ao banco qualquer
+que seja o tamanho da carteira, e o Excel em `relatorios/excel.py`. A tela mostra 200 linhas por
+página; o Excel traz todas. Os testes ficam em `relatorios/tests/test_relatorios.py`.
+
+Ficaram de fora da proposta inicial, até o escritório pedir: o resumo do mês com as vidas no início e
+no fim, as movimentações por usuário e as pendências por responsável.
 
 ## Cuidados
 
@@ -97,10 +108,3 @@ Um item "Relatórios" no menu, com filtro de período e, quando fizer sentido, d
 - Telas no visual da corretora (etapa 10a), já usáveis no celular (veja [frontend.md](frontend.md)).
 - Testes com dados fictícios para cada número do painel e cada relatório. Os arquivos Excel são
   conferidos lendo-os de volta com openpyxl.
-
-## Perguntas para o Lohrel antes da 8c
-
-1. Quais relatórios são mais urgentes, e quais precisam sair em Excel?
-2. O resumo do mês conta pelo mês de início da vigência ou pelo mês em que o pedido foi enviado à
-   operadora?
-3. Todos veem todos os relatórios, ou algum é só para a gestão?

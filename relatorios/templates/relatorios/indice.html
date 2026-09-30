@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block titulo %}Relatórios{% endblock %}
+{% block conteudo %}
+<h1 class="h3 mb-1">Relatórios</h1>
+<p class="text-body-secondary mb-4">Escolha o relatório, ajuste os filtros e, se quiser, baixe o resultado em Excel.</p>
+<div class="row g-3">
+  <div class="col-md-6 col-xl-4">
+    <a href="{% url 'relatorios:vidas' %}" class="card shadow-sm h-100 cartao-de-relatorio">
+      <div class="card-body">
+        <h2 class="h5">Vidas ativas</h2>
+        <p class="text-body-secondary mb-0">Cada pessoa em cada plano, numa data, por empresa, filial ou contrato, com o total de vidas de cada contrato.</p>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-6 col-xl-4">
+    <a href="{% url 'relatorios:movimentacoes' %}" class="card shadow-sm h-100 cartao-de-relatorio">
+      <div class="card-body">
+        <h2 class="h5">Inclusões por período</h2>
+        <p class="text-body-secondary mb-0">As inclusões de um período, pela vigência ou pelo envio à operadora, com a etapa de cada uma. Também mostra exclusões e alterações de plano.</p>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-6 col-xl-4">
+    <a href="{% url 'relatorios:apolices' %}" class="card shadow-sm h-100 cartao-de-relatorio">
+      <div class="card-body">
+        <h2 class="h5">Apólices</h2>
+        <p class="text-body-secondary mb-0">Os contratos com os dados do cliente (documento, contato e cidade), filtrados pelo período de renovação.</p>
+      </div>
+    </a>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block conteudo %}
+{% include "relatorios/_cabecalho.html" %}
+
+<form method="get" class="card card-body shadow-sm mb-3" novalidate>
+  <div class="row g-2 align-items-end">
+    <div class="col-6 col-md-2">{{ filtro.renovacao_de.label_tag }}{{ filtro.renovacao_de }}</div>
+    <div class="col-6 col-md-2">{{ filtro.renovacao_ate.label_tag }}{{ filtro.renovacao_ate }}</div>
+    <div class="col-md-3">{{ filtro.seguradora.label_tag }}{{ filtro.seguradora }}</div>
+    <div class="col-md-2">{{ filtro.ramo.label_tag }}{{ filtro.ramo }}</div>
+    <div class="col-md-3">{{ filtro.situacao.label_tag }}{{ filtro.situacao }}</div>
+    <div class="col-md-5 ms-auto">{% include "relatorios/_botoes.html" %}</div>
+  </div>
+  {% include "relatorios/_erros.html" %}
+</form>
+
+{% if resumo %}
+<p class="mb-3">
+  <span class="me-3"><strong>{{ resumo.total }}</strong> contrato{{ resumo.total|pluralize }}</span>
+  <span class="me-3"><strong>{{ resumo.vidas }}</strong> vida{{ resumo.vidas|pluralize }} hoje</span>
+  {% if resumo.valor %}<span class="me-3 text-body-secondary">R$ {{ resumo.valor|floatformat:"2g" }} por mês</span>{% endif %}
+  <span class="text-body-secondary">· {{ descricao_do_filtro }}</span>
+</p>
+
+<div class="card shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover table-sm align-middle mb-0">
+      <thead class="table-light">
+        <tr><th style="min-width: 12rem">Cliente</th><th style="min-width: 12rem">Contato</th><th style="min-width: 10rem">Seguradora / nº</th><th>Ramo / produto</th><th>Renovação</th><th class="text-end">Vidas</th></tr>
+      </thead>
+      <tbody>
+      {% for contrato, cliente in registros %}
+        <tr{% if contrato.seguradora.cor %} class="faixa-seguradora cor-{{ contrato.seguradora.cor }}"{% endif %}>
+          <td>
+            <a href="{{ contrato.cliente.get_absolute_url }}" class="fw-semibold">{{ contrato.cliente }}</a>
+            <div class="small text-body-secondary"><span class="text-nowrap">{{ cliente.documento|default:"sem documento" }}</span>{% if cliente.cidade %} · {{ cliente.cidade }}{% endif %}</div>
+          </td>
+          <td class="small">
+            {% if cliente.contato %}<div>{{ cliente.contato }}</div>{% endif %}
+            {% if cliente.telefone %}<div class="text-nowrap">{{ cliente.telefone }}</div>{% endif %}
+            {% if cliente.email %}<div class="text-break">{{ cliente.email }}</div>{% endif %}
+            {% if not cliente.contato and not cliente.telefone and not cliente.email %}—{% endif %}
+          </td>
+          <td>{% include "apolices/_seguradora.html" with seguradora=contrato.seguradora %}<div class="small text-body-secondary">{{ contrato.numero }}</div></td>
+          <td>{{ contrato.ramo }}<div class="small text-body-secondary">{{ contrato.produto }}</div></td>
+          <td class="text-nowrap">
+            <span{% if contrato.renovacao_passou %} class="text-danger" title="A data de renovação já passou"{% endif %}>{{ contrato.data_renovacao|date:"d/m/Y"|default:"—" }}</span>
+            {% if contrato.situacao != "ATV" %}<div><span class="badge text-bg-{% if contrato.situacao == 'CAN' %}secondary{% else %}warning{% endif %}">{{ contrato.get_situacao_display }}</span></div>{% endif %}
+          </td>
+          <td class="text-end">{{ contrato.vidas }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="text-center text-body-secondary py-3">Nenhum contrato com estes filtros.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% include "relatorios/_paginacao.html" %}
+{% endif %}
+{% endblock %}
