@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block conteudo %}
+{% include "relatorios/_cabecalho.html" %}
+
+<form method="get" class="card card-body shadow-sm mb-3" novalidate>
+  <div class="row g-2 align-items-end">
+    <div class="col-6 col-md-2">{{ filtro.de.label_tag }}{{ filtro.de }}</div>
+    <div class="col-6 col-md-2">{{ filtro.ate.label_tag }}{{ filtro.ate }}</div>
+    <div class="col-md-2">{{ filtro.contar_por.label_tag }}{{ filtro.contar_por }}</div>
+    <div class="col-md-3">{{ filtro.tipo.label_tag }}{{ filtro.tipo }}</div>
+    <div class="col-md-3">{{ filtro.situacao.label_tag }}{{ filtro.situacao }}</div>
+    <div class="col-md-3">{{ filtro.cliente.label_tag }}{{ filtro.cliente }}</div>
+    <div class="col-md-4">{{ filtro.contrato.label_tag }}{{ filtro.contrato }}</div>
+    <div class="col-md-5">{% include "relatorios/_botoes.html" %}</div>
+  </div>
+  {% include "relatorios/_erros.html" %}
+</form>
+
+{% if resumo %}
+<p class="mb-3">
+  <span class="me-3"><strong>{{ resumo.total }}</strong> no período</span>
+  {% for texto in resumo.etapas %}<span class="me-3 text-body-secondary">{{ texto }}</span>{% endfor %}
+  <span class="text-body-secondary">· {{ descricao_do_filtro }}</span>
+</p>
+
+<div class="card shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover table-sm align-middle mb-0">
+      <thead class="table-light">
+        <tr><th>Pessoa</th><th>Cliente</th><th>Pedido</th><th>Envio</th><th>Vigência</th><th>Etapa</th></tr>
+      </thead>
+      <tbody>
+      {% for mov in registros %}
+        <tr{% if mov.contrato.seguradora.cor %} class="faixa-seguradora cor-{{ mov.contrato.seguradora.cor }}"{% endif %}>
+          <td>
+            <a href="{{ mov.get_absolute_url }}" class="fw-semibold">{{ mov.beneficiario.nome }}</a>
+            <div class="small text-body-secondary">{% if mov.beneficiario.eh_titular %}Titular{% else %}{{ mov.beneficiario.get_parentesco_display }}{% endif %}</div>
+          </td>
+          <td>{{ mov.cliente }}{% if mov.beneficiario.unidade_efetiva %}<div class="small text-body-secondary">{{ mov.beneficiario.unidade_efetiva }}</div>{% endif %}</td>
+          <td>
+            <div class="d-flex flex-wrap align-items-center column-gap-2">{% include "movimentacoes/_tipo.html" %}<span>{{ mov.contrato.ramo }}</span></div>
+            <div class="small text-body-secondary">{% include "apolices/_seguradora.html" with seguradora=mov.contrato.seguradora %}{% if mov.eh_alteracao %} · {{ mov.contrato_anterior.nome_do_plano }} para {{ mov.contrato.nome_do_plano }}{% elif mov.contrato.produto %} · {{ mov.contrato.produto }}{% endif %}</div>
+          </td>
+          <td class="text-nowrap">{{ mov.enviada_em|date:"d/m/Y"|default:"—" }}</td>
+          <td class="text-nowrap">{{ mov.vigencia|date:"d/m/Y" }}</td>
+          <td>
+            {% include "movimentacoes/_etapa.html" %}
+            {% if mov.motivo_rejeicao %}<div class="small text-body-secondary">{{ mov.get_motivo_rejeicao_display }}</div>{% endif %}
+            {% if mov.carteirinha %}<div class="small text-body-secondary">Carteirinha {{ mov.carteirinha }}</div>{% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="text-center text-body-secondary py-3">Nenhuma movimentação com estes filtros.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% include "relatorios/_paginacao.html" %}
+{% endif %}
+{% endblock %}

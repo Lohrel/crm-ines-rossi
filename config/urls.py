@@ -10,5 +10,6 @@ urlpatterns = [
     path("boletos/", include("boletos.urls")),
     path("pendencias/", include("pendencias.urls")),
     path("calendario/", include("calendario.urls")),
+    path("relatorios/", include("relatorios.urls")),
     path("", include("contas.urls")),
 ]

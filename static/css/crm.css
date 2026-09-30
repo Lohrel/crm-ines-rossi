@@ -352,6 +352,18 @@ main .escolha-de-cor input:focus-visible + label {
   outline-offset: 2px;
 }
 
+/* Relatórios: cada um é um cartão que leva à sua página. */
+.cartao-de-relatorio {
+  color: var(--bs-body-color);
+  text-decoration: none;
+}
+.cartao-de-relatorio:hover {
+  border-color: var(--crm-marinho);
+}
+.cartao-de-relatorio:hover h2 {
+  text-decoration: underline;
+}
+
 /* Calendário: cada data tem a cor da sua categoria (a das renovações é a da seguradora).
    Na grade do mês vira uma etiqueta de uma linha; na lista do celular, uma faixa à esquerda. */
 .item-ferias { --cor-item: #0f766e; --fundo-item: #e3f2ef; }
@@ -495,7 +507,9 @@ a.item-calendario:hover {
 .navbar-crm .navbar-nav .nav-link {
   padding-inline: 0.8rem;
 }
-@media (min-width: 992px) {
+/* Com sete itens, o menu só cabe numa linha a partir de 1200 px; abaixo disso ele recolhe
+   (navbar-expand-xl em base.html). */
+@media (min-width: 1200px) {
   .navbar-crm .navbar-brand img {
     height: 42px;
   }
@@ -503,7 +517,7 @@ a.item-calendario:hover {
     box-shadow: inset 0 -3px 0 var(--crm-vermelho);
   }
 }
-@media (max-width: 991.98px) {
+@media (max-width: 1199.98px) {
   .navbar-crm .navbar-collapse {
     padding-block: 0.5rem;
   }

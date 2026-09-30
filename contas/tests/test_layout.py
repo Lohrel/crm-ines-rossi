@@ -36,7 +36,7 @@ def test_inicio_nao_marca_nenhum_item(logado):
 
 def test_menu_recolhe_no_celular(logado):
     pagina = logado.get(reverse("inicio")).content.decode()
-    assert "navbar-expand-lg" in pagina
+    assert "navbar-expand-xl" in pagina
     assert 'data-bs-target="#menu-principal"' in pagina
     assert 'id="menu-principal"' in pagina
 

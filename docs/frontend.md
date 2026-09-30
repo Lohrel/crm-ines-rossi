@@ -43,6 +43,7 @@ As telas novas seguem o que já existe:
 | Cor da seguradora | escolhida no cadastro da seguradora, numa paleta de 10 tons (`Seguradora.Cor`, com os tons em `crm.css` nas classes `cor-<valor>`). Nas listas, a linha ganha uma faixa à esquerda (`<tr class="faixa-seguradora cor-...">`, ou `<li class="list-group-item faixa-seguradora cor-...">` nos quadros do painel); onde o nome aparece, use `apolices/_seguradora.html`, que põe um ponto e o nome na cor. Sem cor escolhida, nada muda. A paleta não tem o vermelho, o amarelo e o verde claro dos avisos |
 | Painel | cada quadro é um `card` com o título no cabeçalho, o número em destaque (`numero-do-quadro`), que leva à lista já filtrada com os mesmos registros, e até 3 registros embaixo (`list-group-flush`), o mais urgente primeiro. Nos registros, o nome vem na primeira linha e o prazo, em selo, no começo da segunda |
 | Calendário | cada data tem a cor da categoria (`item-ferias`, `item-evento`, `item-prazo`, `item-renovacao` com a cor da seguradora e `item-pendencia`, em `crm.css`): etiqueta de até duas linhas na grade do mês (`calendario/_item.html`) e faixa à esquerda nas listas (`item-da-lista`). A grade (tabela `calendario-mes`, de domingo a sábado) aparece a partir de 992 px; abaixo, a lista dos dias, com cada evento de vários dias só no primeiro dia |
+| Relatórios | um por página em `relatorios/`: filtros num cartão, com os botões "Filtrar" e "Baixar em Excel" (os mesmos filtros com `formato=excel`), o resumo numa linha, a tabela em páginas de 200 e o Excel inteiro, gerado por `relatorios/excel.py` (título com os filtros na linha 1, colunas na linha 2) |
 | Datas e meses | `CampoData` e `MesField`: a barra entra sozinha, o primeiro clique seleciona a data inteira (para digitar por cima) e há um botão de calendário |
 | Exclusão | caixa `<details>` "Excluir registros" no fim da página, à direita, e página de confirmação digitada (`ExclusaoConfirmadaView` com `clientes/excluir.html`) |
 | Importação | prévia de cada linha antes de gravar; se a prévia tem um campo de texto, o primeiro botão do formulário (escondido) só atualiza a prévia, para o Enter nunca confirmar |
@@ -52,7 +53,8 @@ bem-vindos, como "Nova pendência" dentro do cliente ou "preencher" o salário n
 
 ## Onde fica cada tela
 
-O menu (`contas/menu.py`) tem Clientes, Contratos, Movimentações, Boletos, Pendências e Calendário.
+O menu (`contas/menu.py`) tem Clientes, Contratos, Movimentações, Boletos, Pendências, Calendário e
+Relatórios.
 Algumas telas ficam dentro de outras:
 
 - Seguradoras: botão na página de Contratos.
@@ -98,7 +100,8 @@ outras telas. No celular, a faixa aparece mesmo quando a tabela esconde a coluna
 
 Falta:
 
-- Menu: reorganizar com o Lohrel, incluindo "Relatórios" se a etapa 8 criar esse item.
+- Menu: com sete itens, ele só cabe numa linha a partir de 1200 px e recolhe abaixo disso
+  (`navbar-expand-xl`). Reorganizar com o Lohrel (ex.: agrupar itens).
 - Painel inicial: feito na etapa 8a, já no visual da corretora. Falta a equipe aprovar.
 - Celular: nenhuma tela rola mais para o lado a 390 px, mas os filtros ocupam a primeira tela e, nas
   tabelas largas (que rolam dentro de `.table-responsive`), os botões da última coluna (ex.: "Enviado

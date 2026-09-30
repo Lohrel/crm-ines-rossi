@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block conteudo %}
+{% include "relatorios/_cabecalho.html" %}
+
+<form method="get" class="card card-body shadow-sm mb-3" novalidate>
+  <div class="row g-2 align-items-end">
+    <div class="col-md-2">{{ filtro.data.label_tag }}{{ filtro.data }}</div>
+    <div class="col-md-3">{{ filtro.cliente.label_tag }}{{ filtro.cliente }}</div>
+    <div class="col-md-3">{{ filtro.unidade.label_tag }}{{ filtro.unidade }}</div>
+    <div class="col-md-4">{{ filtro.contrato.label_tag }}{{ filtro.contrato }}</div>
+    <div class="col-md-5 ms-auto">{% include "relatorios/_botoes.html" %}</div>
+  </div>
+  {% include "relatorios/_erros.html" %}
+</form>
+
+{% if resumo %}
+<p class="mb-3">
+  <span class="me-3"><strong>{{ resumo.vidas }}</strong> vida{{ resumo.vidas|pluralize }}</span>
+  <span class="me-3"><strong>{{ resumo.pessoas }}</strong> pessoa{{ resumo.pessoas|pluralize }}</span>
+  <span class="me-3 text-body-secondary">{{ resumo.titulares }} titular{{ resumo.titulares|pluralize:"es" }} e {{ resumo.dependentes }} dependente{{ resumo.dependentes|pluralize }}</span>
+  <span class="text-body-secondary">· {{ descricao_do_filtro }}</span>
+</p>
+
+{% if resumo.por_contrato %}
+<div class="card shadow-sm mb-3">
+  <div class="card-header fw-semibold">Vidas por contrato</div>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead class="table-light"><tr><th>Cliente</th><th>Plano</th><th class="text-end">Vidas</th></tr></thead>
+      <tbody>
+      {% for linha in resumo.por_contrato %}
+        <tr>
+          <td>{{ linha.contrato__cliente__nome }}</td>
+          <td>{{ linha.contrato__ramo__nome }} · {{ linha.contrato__seguradora__nome }} {{ linha.contrato__numero }}{% if linha.contrato__produto %} ({{ linha.contrato__produto }}){% endif %}</td>
+          <td class="text-end">{{ linha.vidas }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<div class="card shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover table-sm align-middle mb-0">
+      <thead class="table-light">
+        <tr><th style="min-width: 12rem">Nome</th><th style="min-width: 10rem">Cliente / filial</th><th style="min-width: 12rem">Plano</th><th>Inclusão</th><th>Carteirinha</th></tr>
+      </thead>
+      <tbody>
+      {% for vinculo in registros %}{% with pessoa=vinculo.beneficiario %}
+        <tr{% if vinculo.contrato.seguradora.cor %} class="faixa-seguradora cor-{{ vinculo.contrato.seguradora.cor }}"{% endif %}>
+          <td>
+            <a href="{{ pessoa.get_absolute_url }}" class="fw-semibold">{{ pessoa.nome }}</a>
+            <div class="small text-body-secondary">{% if pessoa.eh_titular %}Titular{% if pessoa.matricula %} · matr. {{ pessoa.matricula }}{% endif %}{% else %}{{ pessoa.get_parentesco_display }}{% endif %}{% if pessoa.cpf %} · <span class="text-nowrap">CPF {{ pessoa.cpf_formatado }}</span>{% endif %}</div>
+          </td>
+          <td>{{ pessoa.cliente }}{% if pessoa.unidade_efetiva %}<div class="small text-body-secondary">{{ pessoa.unidade_efetiva }}</div>{% endif %}</td>
+          <td>{{ vinculo.contrato.ramo }}<div class="small text-body-secondary">{% include "apolices/_seguradora.html" with seguradora=vinculo.contrato.seguradora %} {{ vinculo.contrato.numero }}{% if vinculo.contrato.produto %} · {{ vinculo.contrato.produto }}{% endif %}</div></td>
+          <td class="text-nowrap">{{ vinculo.data_inclusao|date:"d/m/Y" }}</td>
+          <td class="small">{{ vinculo.carteirinha|default:"—" }}</td>
+        </tr>
+      {% endwith %}{% empty %}
+        <tr><td colspan="5" class="text-center text-body-secondary py-3">Nenhuma vida ativa com estes filtros.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% include "relatorios/_paginacao.html" %}
+{% endif %}
+{% endblock %}
