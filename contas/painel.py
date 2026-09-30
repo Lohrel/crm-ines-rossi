@@ -18,6 +18,7 @@ from beneficiarios.seguro_de_vida import DIA_LIMITE_DE_ENVIO
 from boletos.forms import FiltroBoletosForm
 from boletos.models import DIAS_DE_ANTECEDENCIA as DIAS_DOS_BOLETOS
 from boletos.models import Boleto, somar_meses
+from calendario.agenda import Agenda, lista_por_dia
 from clientes.prazos import quando, texto_do_prazo
 from movimentacoes.models import Etapa, Movimentacao
 from pendencias.forms import FiltroPendenciasForm
@@ -28,6 +29,8 @@ from pendencias.models import Pendencia
 ITENS_POR_QUADRO = 3
 # Quantos dias antes os prazos do mês (fechamento e planilha do seguro de vida) ficam em amarelo.
 DIAS_DE_AVISO_DOS_PRAZOS = 5
+# Quantos dias o quadro do calendário mostra, contando hoje.
+DIAS_DA_SEMANA = 7
 
 
 def url(nome: str, **filtros) -> str:
@@ -172,6 +175,25 @@ class Painel:
             linha["quando"] = quando(dias)
             linha["perto"] = dias <= DIAS_DE_AVISO_DOS_PRAZOS
         return sorted(linhas, key=lambda linha: linha["data"])
+
+    @cached_property
+    def semana(self) -> dict:
+        """O que a equipe anotou no calendário (férias, reuniões...) para os próximos dias.
+
+        Pendências, renovações e prazos do mês já têm quadro próprio, então não se repetem
+        aqui. Um evento de vários dias aparece uma vez só, no primeiro dia da semana.
+        """
+        ate = self.hoje + timedelta(days=DIAS_DA_SEMANA - 1)
+        datas = Agenda(self.hoje, ate, self.hoje).anotacoes_por_dia()
+        return {
+            "dias": [
+                {"data": dia, "dias": self._dias_ate(dia), "itens": itens}
+                for dia, itens in lista_por_dia(datas, self.hoje, ate)
+            ],
+            "total_de_dias": DIAS_DA_SEMANA,
+            "url": url("calendario:mes"),
+            "url_novo": url("calendario:novo"),
+        }
 
     @cached_property
     def renovacoes(self) -> dict:

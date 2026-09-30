@@ -42,6 +42,7 @@ As telas novas seguem o que já existe:
 | Selos de movimentação | Inclusão em marinho, Alteração de plano em marinho claro e Exclusão com contorno escuro (`movimentacoes/_tipo.html`) |
 | Cor da seguradora | escolhida no cadastro da seguradora, numa paleta de 10 tons (`Seguradora.Cor`, com os tons em `crm.css` nas classes `cor-<valor>`). Nas listas, a linha ganha uma faixa à esquerda (`<tr class="faixa-seguradora cor-...">`, ou `<li class="list-group-item faixa-seguradora cor-...">` nos quadros do painel); onde o nome aparece, use `apolices/_seguradora.html`, que põe um ponto e o nome na cor. Sem cor escolhida, nada muda. A paleta não tem o vermelho, o amarelo e o verde claro dos avisos |
 | Painel | cada quadro é um `card` com o título no cabeçalho, o número em destaque (`numero-do-quadro`), que leva à lista já filtrada com os mesmos registros, e até 3 registros embaixo (`list-group-flush`), o mais urgente primeiro. Nos registros, o nome vem na primeira linha e o prazo, em selo, no começo da segunda |
+| Calendário | cada data tem a cor da categoria (`item-ferias`, `item-evento`, `item-prazo`, `item-renovacao` com a cor da seguradora e `item-pendencia`, em `crm.css`): etiqueta de até duas linhas na grade do mês (`calendario/_item.html`) e faixa à esquerda nas listas (`item-da-lista`). A grade (tabela `calendario-mes`, de domingo a sábado) aparece a partir de 992 px; abaixo, a lista dos dias, com cada evento de vários dias só no primeiro dia |
 | Datas e meses | `CampoData` e `MesField`: a barra entra sozinha, o primeiro clique seleciona a data inteira (para digitar por cima) e há um botão de calendário |
 | Exclusão | caixa `<details>` "Excluir registros" no fim da página, à direita, e página de confirmação digitada (`ExclusaoConfirmadaView` com `clientes/excluir.html`) |
 | Importação | prévia de cada linha antes de gravar; se a prévia tem um campo de texto, o primeiro botão do formulário (escondido) só atualiza a prévia, para o Enter nunca confirmar |
@@ -51,15 +52,18 @@ bem-vindos, como "Nova pendência" dentro do cliente ou "preencher" o salário n
 
 ## Onde fica cada tela
 
-O menu (`contas/menu.py`) tem Clientes, Contratos, Movimentações, Boletos e Pendências. Algumas
-telas ficam dentro de outras:
+O menu (`contas/menu.py`) tem Clientes, Contratos, Movimentações, Boletos, Pendências e Calendário.
+Algumas telas ficam dentro de outras:
 
 - Seguradoras: botão na página de Contratos.
 - Beneficiários: botão na página do cliente.
 - Planilha mensal (baixar e importar): botão em Movimentações.
 - Planilha do seguro de vida: "Planilha de vidas" na tabela de contratos e na Planilha mensal.
-- Início (`contas/templates/contas/inicio.html`): o painel da etapa 8a, com um arquivo por quadro em
-  `contas/templates/contas/painel/` e as contas em `contas/painel.py`, e os atalhos de novo cliente.
+- Início (`contas/templates/contas/inicio.html`): o painel das etapas 8a e 8b, com um arquivo por
+  quadro em `contas/templates/contas/painel/` e as contas em `contas/painel.py`, e os atalhos de novo
+  cliente.
+- Evento do calendário: cada um tem página própria (`calendario/evento.html`), aberta pela data no
+  calendário; o "+" de cada dia da grade abre o cadastro já com a data.
 
 ## Problemas conhecidos
 

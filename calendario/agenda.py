@@ -53,6 +53,26 @@ def _contratos(quantos: int) -> str:
     return f"{quantos} contrato{'s' if quantos != 1 else ''}"
 
 
+def lista_por_dia(datas: dict[date, list[Item]], de: date, ate: date) -> list[tuple]:
+    """Os dias entre `de` e `ate` que têm alguma data, em ordem, para as listas.
+
+    Um evento de vários dias (ex.: férias) aparece só no primeiro dia da lista, com o
+    período no detalhe, para a lista não repetir o mesmo evento dia após dia.
+    """
+    lista = []
+    for dia, itens in sorted(datas.items()):
+        if not de <= dia <= ate:
+            continue
+        do_dia = [
+            item
+            for item in itens
+            if item.inicio_do_periodo is None or dia == max(item.inicio_do_periodo, de)
+        ]
+        if do_dia:
+            lista.append((dia, do_dia))
+    return lista
+
+
 class Agenda:
     """Todas as datas entre `de` e `ate`, com poucas consultas qualquer que seja o período."""
 
@@ -62,8 +82,15 @@ class Agenda:
         self.hoje = hoje or date.today()
 
     def por_dia(self) -> dict[date, list[Item]]:
-        dias = defaultdict(list)
         fontes = chain(self._anotacoes(), self._pendencias(), self._renovacoes(), self._prazos())
+        return self._agrupar(fontes)
+
+    def anotacoes_por_dia(self) -> dict[date, list[Item]]:
+        """Só o que a equipe anotou (férias, reuniões...), como no quadro da semana do painel."""
+        return self._agrupar(self._anotacoes())
+
+    def _agrupar(self, fontes) -> dict[date, list[Item]]:
+        dias = defaultdict(list)
         for dia, item in fontes:
             if self.de <= dia <= self.ate:
                 dias[dia].append(item)

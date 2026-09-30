@@ -8,9 +8,8 @@ from django.urls import reverse
 
 from apolices.models import Contrato
 from beneficiarios.tests.fixtures import HOJE, contrato
-from calendario.agenda import Agenda, dia_no_mes
+from calendario.agenda import Agenda, dia_no_mes, lista_por_dia
 from calendario.models import Evento, mesmo_dia_no_ano
-from calendario.views import lista_do_mes
 from contas.models import Usuario
 from movimentacoes.models import Movimentacao
 from pendencias.models import Pendencia
@@ -219,7 +218,7 @@ def test_lista_do_celular_mostra_o_periodo_so_no_primeiro_dia(usuario):
     evento("Férias da Ana", date(2026, 9, 28), fim=date(2026, 10, 2), tipo="FER")
     evento("Reunião de equipe", date(2026, 10, 7))
     datas = Agenda(date(2026, 9, 27), date(2026, 11, 7)).por_dia()
-    lista = lista_do_mes(datas, OUTUBRO)
+    lista = lista_por_dia(datas, OUTUBRO, FIM_DE_OUTUBRO)
     assert [(dia, titulos(itens)) for dia, itens in lista] == [
         (date(2026, 10, 1), ["Férias da Ana"]),
         (date(2026, 10, 5), ["Férias do Bruno"]),

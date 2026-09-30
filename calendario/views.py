@@ -1,12 +1,12 @@
 from calendar import Calendar
-from datetime import date
+from datetime import date, timedelta
 
 from django.urls import reverse
 from django.utils.http import urlencode
 from django.views.generic import CreateView, DetailView, TemplateView, UpdateView
 
 from boletos.models import somar_meses
-from calendario.agenda import Agenda
+from calendario.agenda import Agenda, lista_por_dia
 from calendario.forms import EventoForm, MesDoCalendarioForm
 from calendario.historico import LinhaDoTempoDoEvento
 from calendario.models import Evento
@@ -19,26 +19,6 @@ DIAS_DA_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]
 
 def url_do_mes(mes: date) -> str:
     return f"{reverse('calendario:mes')}?{urlencode({'mes': f'{mes:%m/%Y}'})}"
-
-
-def lista_do_mes(datas: dict, mes: date) -> list[tuple[date, list]]:
-    """Lista do celular: os dias do mês com alguma data, em ordem.
-
-    Um evento de vários dias (ex.: férias) aparece só no primeiro dia do mês em que
-    está, com o período no detalhe, para a lista não repetir o mesmo evento dia após dia.
-    """
-    lista = []
-    for dia, itens in sorted(datas.items()):
-        if dia.month != mes.month:
-            continue
-        do_dia = [
-            item
-            for item in itens
-            if item.inicio_do_periodo is None or dia == max(item.inicio_do_periodo, mes)
-        ]
-        if do_dia:
-            lista.append((dia, do_dia))
-    return lista
 
 
 class CalendarioView(TemplateView):
@@ -70,7 +50,10 @@ class CalendarioView(TemplateView):
                     ]
                     for semana in semanas
                 ],
-                "dias_com_datas": lista_do_mes(datas, mes),
+                # No celular, a lista dos dias do mês que têm alguma data.
+                "dias_com_datas": lista_por_dia(
+                    datas, mes, somar_meses(mes, 1) - timedelta(days=1)
+                ),
                 "url_anterior": url_do_mes(somar_meses(mes, -1)),
                 "url_seguinte": url_do_mes(somar_meses(mes, 1)),
                 "eh_este_mes": mes == hoje.replace(day=1),

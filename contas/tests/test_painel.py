@@ -1,6 +1,6 @@
 """Painel da página inicial: cada número, a lista para onde ele leva e as consultas ao banco."""
 
-from datetime import date, timedelta
+from datetime import date, time, timedelta
 
 import pytest
 from django.urls import reverse
@@ -8,6 +8,7 @@ from django.urls import reverse
 from apolices.models import Contrato
 from beneficiarios.tests.fixtures import HOJE, contrato
 from boletos.models import Boleto
+from calendario.models import Evento
 from clientes.prazos import quando
 from contas.models import Usuario
 from contas.painel import Painel, proxima_data
@@ -63,7 +64,7 @@ def mudar(plano, **campos):
 
 
 def ler_todos(painel: Painel) -> None:
-    for nome in ("movimentacoes", "boletos", "pendencias", "prazos", "renovacoes"):
+    for nome in ("movimentacoes", "boletos", "pendencias", "prazos", "semana", "renovacoes"):
         getattr(painel, nome)
 
 
@@ -183,6 +184,30 @@ def test_prazos_mostram_so_os_proximos_tres_fechamentos(usuario, empresa, segura
     ]
 
 
+def test_proximos_7_dias_mostram_o_que_a_equipe_anotou(usuario, pessoa):
+    Evento.objects.create(titulo="Reunião de equipe", inicio=DIA_15, hora=time(9, 0))
+    Evento.objects.create(
+        titulo="Férias do Bruno", tipo="FER", inicio=date(2026, 9, 10), fim=date(2026, 9, 18)
+    )
+    Evento.objects.create(
+        titulo="Aniversário da Ana", tipo="ANI", inicio=date(2025, 9, 17), repete_todo_ano=True
+    )
+    Evento.objects.create(titulo="Reunião no último dia", inicio=date(2026, 9, 21))
+    Evento.objects.create(titulo="Reunião fora da semana", inicio=date(2026, 9, 22))
+    # As pendências já têm quadro próprio e não se repetem aqui.
+    pendencia(pessoa, usuario, date(2026, 9, 16))
+
+    quadro = Painel(usuario, hoje=DIA_15).semana
+    assert [(d["data"], d["dias"], [i.titulo for i in d["itens"]]) for d in quadro["dias"]] == [
+        (DIA_15, 0, ["Férias do Bruno", "Reunião de equipe"]),
+        (date(2026, 9, 17), 2, ["Aniversário da Ana"]),
+        (date(2026, 9, 21), 6, ["Reunião no último dia"]),
+    ]
+    # As férias que já começaram aparecem uma vez, hoje, com o período.
+    assert quadro["dias"][0]["itens"][0].detalhe == "de 10/09 a 18/09"
+    assert quadro["url"] == reverse("calendario:mes")
+
+
 def test_renovacoes_dos_proximos_60_dias(usuario, empresa, seguradora, matriz, saude, dental, vida):
     mudar(saude, data_renovacao=DIA_15 - timedelta(days=1))
     mudar(dental, data_renovacao=DIA_15)
@@ -247,16 +272,20 @@ def test_consultas_nao_crescem_com_a_carteira(
         boleto(plano, daqui_a(dias - 5))
         pendencia(pessoa, usuario, daqui_a(dias - 2))
         pendencia(pessoa, colega, daqui_a(dias - 2))
+        Evento.objects.create(titulo=f"Reunião {dias}", inicio=daqui_a(dias))
+        Evento.objects.create(
+            titulo=f"Férias {dias}", tipo="FER", inicio=daqui_a(-dias), fim=daqui_a(dias)
+        )
 
     mudar(saude, dia_fechamento=25, data_renovacao=daqui_a(10))
     registros(1, "ANA", titular, saude)
-    with django_assert_num_queries(10):
+    with django_assert_num_queries(11):
         ler_todos(Painel(usuario))
 
     mudar(dental, dia_fechamento=10, data_renovacao=daqui_a(20))
     registros(2, "APR", conjuge, saude)
     registros(3, "ANA", filho, dental)
-    with django_assert_num_queries(10):
+    with django_assert_num_queries(11):
         ler_todos(Painel(usuario))
 
 
@@ -264,7 +293,7 @@ def test_pagina_inicial_mostra_o_painel(logado, usuario, pessoa, saude, django_a
     pendencia(pessoa, usuario, daqui_a(-1), descricao="Ligar para o RH sobre a filial nova")
     boleto(saude, HOJE)
 
-    with django_assert_num_queries(12):
+    with django_assert_num_queries(13):
         resposta = logado.get(reverse("inicio"))
     pagina = resposta.content.decode()
     assert "Suas pendências" in pagina and "Ligar para o RH sobre a filial nova" in pagina
@@ -281,3 +310,4 @@ def test_pagina_inicial_sem_nada_pendente(logado):
     assert "Nenhum pedido esperando a operadora." in pagina
     assert "Nenhum boleto vencido nem vencendo nos próximos 7 dias." in pagina
     assert "Nenhuma pendência sua vencida nem vencendo nos próximos 3 dias." in pagina
+    assert "Nada anotado no calendário para os próximos 7 dias" in pagina

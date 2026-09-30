@@ -619,3 +619,6 @@ a.item-calendario:hover {
 .quadro > .card-body + .list-group-flush {
   border-top: 1px solid var(--bs-card-border-color);
 }
+.quadro > .card-header + .titulo-da-lista {
+  border-top: 0;
+}
