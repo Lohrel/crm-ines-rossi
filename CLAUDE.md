@@ -152,29 +152,26 @@ pytest -q
 
 ## Estado atual (30/09/2026)
 
-- As etapas 0 a 7 estão no `main`.
+- As etapas 0 a 7 e a 8a (painel na página inicial) estão no `main`.
 - A etapa 7b (importar a planilha atual do seguro de vida, com prévia de cada vida) entrou no `main`
   pelo PR #11 antes do teste com a planilha real, que o Lohrel faz no computador dele (a importação
   ignora linhas sem nome). Se ele achar um problema, corrija num branch novo a partir do `main`, com
   um PR novo. A descrição do PR #11 explica como a importação funciona.
-- **8a**, painel na página inicial: PR #17, branch `etapa-8a-painel`, esperando o Lohrel testar. Os quadros
-  seguem a proposta do [guia da etapa 8](docs/etapa-8-painel-e-relatorios.md), com o mesmo painel
-  para todos e as pendências de quem entrou em destaque (escolhas a confirmar no teste). Se ele pedir
-  ajustes, corrija nesse mesmo branch.
-- **Calendário** (pedido do Lohrel em 30/09/2026): um calendário que todos veem, no lugar do quadro
-  branco em que a chefe anota datas importantes (férias de funcionário, aniversário de apólice,
-  prazos das pendências). Escopo a confirmar com ele antes de começar.
+- **8b**, calendário do escritório: PR #18, branch `etapa-8b-calendario`, esperando o Lohrel testar.
+  O escopo foi combinado com ele (veja o [guia da etapa 8](docs/etapa-8-painel-e-relatorios.md)).
+  Se ele pedir ajustes, corrija nesse mesmo branch.
 - A instalação no servidor do escritório, com os 4 logins, ainda não foi confirmada.
 - Próximas etapas:
-  - **8b. Relatórios**: proposta em
+  - **8c. Relatórios**: proposta em
     [docs/etapa-8-painel-e-relatorios.md](docs/etapa-8-painel-e-relatorios.md), com as perguntas a
     fazer ao Lohrel antes de começar.
   - **9. Campos de auto e imóvel**: poucos clientes. Os campos (dados do veículo, endereço do imóvel)
     ainda precisam ser levantados com o Lohrel.
   - **10. Acabamento visual**: as partes 10a (cores, fonte e logo da corretora, menu que recolhe no
     celular, tela de entrada e textos organizados) e 10b (cor de cada seguradora) estão feitas, e o
-    painel da 8a já saiu no visual da corretora. Faltam a organização do menu (com "Relatórios", se
-    a 8b criar esse item), a aprovação do painel pela equipe e ajustes finos no celular. Veja
+    painel da 8a e o calendário da 8b já saíram no visual da corretora. Faltam a organização do menu
+    (com "Relatórios", se a 8c criar esse item), a aprovação do painel pela equipe e ajustes finos no
+    celular. Veja
     [docs/frontend.md](docs/frontend.md).
 
 ## Decisões do escritório que valem para as próximas etapas
@@ -197,6 +194,11 @@ pytest -q
   (autorizado pelo Lohrel em 30/09/2026); se o software passar a ser proprietário, eles saem.
 - Painel (etapa 8a): o número de vidas não fica na página inicial, porque o escritório não consulta
   todo dia.
+- Calendário (etapa 8b): a equipe anota férias ou ausências, reuniões, aniversários e outros eventos
+  (de um dia ou de um período, e os que se repetem todo ano). Entram sozinhos os prazos das
+  pendências em aberto, as renovações dos contratos vigentes e os prazos do mês (uma linha por dia de
+  fechamento e o envio da planilha do seguro de vida). As movimentações não entram, para não encher o
+  calendário. No painel, o quadro "Próximos 7 dias" mostra só o que a equipe anotou.
 - Cada seguradora tem uma cor, escolhida no cadastro, para a equipe saber qual portal abrir sem ler.
   Ela aparece como uma faixa discreta à esquerda da linha nas listas (o Lohrel preferiu a faixa a uma
   etiqueta colorida, menos poluída) e como um ponto antes do nome nas outras telas.

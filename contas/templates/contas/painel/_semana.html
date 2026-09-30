@@ -1,0 +1,22 @@
+<section class="card shadow-sm h-100 quadro" aria-labelledby="quadro-semana">
+  <div class="card-header d-flex justify-content-between align-items-baseline gap-2">
+    <h2 class="h6 mb-0" id="quadro-semana">Próximos {{ quadro.total_de_dias }} dias</h2>
+    <a href="{{ quadro.url }}" class="small">Ver calendário</a>
+  </div>
+  {% for dia in quadro.dias %}
+  <div class="titulo-da-lista">{% if dia.dias == 0 %}Hoje{% elif dia.dias == 1 %}Amanhã{% else %}{{ dia.data|date:"l, d/m" }}{% endif %}</div>
+  <ul class="list-group list-group-flush">
+    {% for item in dia.itens %}
+    <li class="list-group-item item-da-lista item-{{ item.categoria }}">
+      <a href="{{ item.url }}" class="fw-semibold">{% if item.hora %}{{ item.hora|time:"H:i" }} {% endif %}{{ item.titulo }}</a>
+      {% if item.detalhe %}<div class="small text-body-secondary">{{ item.detalhe }}</div>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% empty %}
+  <div class="card-body">
+    <p class="small text-body-secondary mb-2">Nada anotado no calendário para os próximos {{ quadro.total_de_dias }} dias: férias, reuniões e aniversários aparecem aqui.</p>
+    <a href="{{ quadro.url_novo }}" class="btn btn-sm btn-outline-primary">Novo evento</a>
+  </div>
+  {% endfor %}
+</section>

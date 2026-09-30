@@ -16,7 +16,8 @@
   <div class="col-md-6 col-xl-4">{% include "contas/painel/_movimentacoes.html" with quadro=painel.movimentacoes %}</div>
   <div class="col-md-6 col-xl-4">{% include "contas/painel/_boletos.html" with quadro=painel.boletos %}</div>
   <div class="col-md-6 col-xl-4">{% include "contas/painel/_pendencias.html" with quadro=painel.pendencias %}</div>
-  <div class="col-md-6">{% include "contas/painel/_prazos.html" with prazos=painel.prazos %}</div>
-  <div class="col-md-12 col-xl-6">{% include "contas/painel/_renovacoes.html" with quadro=painel.renovacoes %}</div>
+  <div class="col-md-6 col-xl-4">{% include "contas/painel/_prazos.html" with prazos=painel.prazos %}</div>
+  <div class="col-md-6 col-xl-4">{% include "contas/painel/_semana.html" with quadro=painel.semana %}</div>
+  <div class="col-md-6 col-xl-4">{% include "contas/painel/_renovacoes.html" with quadro=painel.renovacoes %}</div>
 </div>
 {% endblock %}

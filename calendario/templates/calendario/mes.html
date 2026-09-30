@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block titulo %}Calendário{% endblock %}
+{% block conteudo %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+  <div class="d-flex flex-wrap align-items-center gap-2">
+    <h1 class="h3 mb-0 me-1">{{ mes|date:"F \d\e Y"|capfirst }}</h1>
+    <div class="btn-group" role="group" aria-label="Mudar de mês">
+      <a href="{{ url_anterior }}" class="btn btn-outline-secondary" title="Mês anterior" aria-label="Mês anterior">‹</a>
+      <a href="{{ url_seguinte }}" class="btn btn-outline-secondary" title="Mês seguinte" aria-label="Mês seguinte">›</a>
+    </div>
+    {% if not eh_este_mes %}<a href="{% url 'calendario:mes' %}" class="btn btn-outline-secondary">Hoje</a>{% endif %}
+  </div>
+  <a href="{% url 'calendario:novo' %}" class="btn btn-primary">Novo evento</a>
+</div>
+
+<ul class="legenda-calendario list-inline small mb-3 d-none d-lg-block" aria-label="Legenda">
+  <li class="list-inline-item"><span class="item-calendario item-ferias">Férias ou ausência</span></li>
+  <li class="list-inline-item"><span class="item-calendario item-evento">Reunião e outros eventos</span></li>
+  <li class="list-inline-item"><span class="item-calendario item-prazo">Prazo do mês</span></li>
+  <li class="list-inline-item"><span class="item-calendario item-renovacao">Renovação</span></li>
+  <li class="list-inline-item"><span class="item-calendario item-pendencia">Pendência</span></li>
+  <li class="list-inline-item"><span class="item-calendario item-pendencia atrasada">Pendência vencida</span></li>
+</ul>
+
+{# No computador, a grade do mês, como o quadro branco. #}
+<div class="card shadow-sm d-none d-lg-block">
+  <table class="calendario-mes">
+    <thead>
+      <tr>{% for nome in dias_da_semana %}<th scope="col">{{ nome }}</th>{% endfor %}</tr>
+    </thead>
+    <tbody>
+    {% for semana in semanas %}
+      <tr>
+      {% for dia in semana %}
+        <td class="{% if forloop.first or forloop.last %}fim-de-semana{% endif %}{% if not dia.do_mes %} fora-do-mes{% endif %}{% if dia.hoje %} hoje{% endif %}">
+          <div class="cabecalho-do-dia">
+            <span class="numero-do-dia"{% if dia.hoje %} title="Hoje"{% endif %}>{{ dia.data.day }}</span>
+            <a href="{% url 'calendario:novo' %}?data={{ dia.data|date:'Y-m-d' }}" class="anotar" title="Anotar em {{ dia.data|date:'d/m' }}" aria-label="Anotar em {{ dia.data|date:'d/m' }}">+</a>
+          </div>
+          {% for item in dia.itens %}{% include "calendario/_item.html" %}{% endfor %}
+        </td>
+      {% endfor %}
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{# No celular, a lista dos dias do mês que têm alguma data. #}
+<div class="d-lg-none">
+  {% for dia, itens in dias_com_datas %}
+  <section class="card shadow-sm mb-2" id="dia-{{ dia|date:'Y-m-d' }}" aria-label="{{ dia|date:'d/m' }}">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span>{{ dia|date:"l, d/m"|capfirst }}</span>
+      {% if dia == hoje %}<span class="badge text-bg-primary">Hoje</span>{% endif %}
+    </div>
+    <ul class="list-group list-group-flush">
+      {% for item in itens %}
+      <li class="list-group-item item-da-lista item-{{ item.categoria }}{% if item.atrasada %} atrasada{% endif %}{% if item.cor %} cor-{{ item.cor }}{% endif %}">
+        <a href="{{ item.url }}" class="fw-semibold">{% if item.hora %}{{ item.hora|time:"H:i" }} {% endif %}{{ item.titulo }}</a>
+        <div class="small text-body-secondary">{{ item.rotulo }}{% if item.atrasada %} vencida{% endif %}{% if item.detalhe %} · {{ item.detalhe }}{% endif %}</div>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% empty %}
+  <p class="text-body-secondary">Nada anotado neste mês.</p>
+  {% endfor %}
+</div>
+
+<p class="small text-body-secondary mt-3">
+  O calendário junta o que a equipe anota (férias, reuniões, aniversários) com as datas que o sistema já conhece: prazos das pendências em aberto, renovações dos contratos, o fechamento das movimentações e o envio da planilha do seguro de vida.
+  No computador, passe o mouse sobre um dia e clique no <strong>+</strong> para anotar nele.
+</p>
+{% endblock %}
