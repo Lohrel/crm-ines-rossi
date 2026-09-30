@@ -23,4 +23,9 @@ urlpatterns = [
     path("<int:beneficiario_pk>/anexos/novo/", views.AnexoCreateView.as_view(), name="novo_anexo"),
     path("anexos/<int:pk>/baixar/", views.baixar_anexo, name="baixar_anexo"),
     path("anexos/<int:pk>/excluir/", views.AnexoDeleteView.as_view(), name="excluir_anexo"),
+    path(
+        "seguro-de-vida/<int:contrato_pk>/",
+        views.SeguroDeVidaView.as_view(),
+        name="seguro_de_vida",
+    ),
 ]

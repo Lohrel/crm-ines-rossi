@@ -8,6 +8,7 @@ from apolices.forms import ContratoForm, FiltroContratosForm, SeguradoraForm
 from apolices.models import Contrato, Seguradora
 from beneficiarios.vidas import anotar_vidas
 from boletos.models import Boleto
+from clientes.forms import SecaoDoFormulario
 from clientes.models import Cliente
 from clientes.views import FormularioMixin
 
@@ -55,7 +56,25 @@ class ContratoListView(ListView):
         return contexto
 
 
-class ContratoCreateView(FormularioMixin, CreateView):
+SECAO_DO_SEGURO_DE_VIDA = "Só para seguro de vida: capital e fatura de cada vida"
+
+
+class SecoesDoContratoMixin:
+    """Os campos do seguro de vida (capital e fatura) ficam num cartão à parte."""
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        form = contexto["form"]
+        vida = Contrato.CAMPOS_DO_SEGURO_DE_VIDA
+        outros = [nome for nome in form.fields if nome not in vida]
+        contexto["formularios"] = [
+            ("", SecaoDoFormulario(form, outros, principal=True)),
+            (SECAO_DO_SEGURO_DE_VIDA, SecaoDoFormulario(form, vida)),
+        ]
+        return contexto
+
+
+class ContratoCreateView(SecoesDoContratoMixin, FormularioMixin, CreateView):
     model = Contrato
     form_class = ContratoForm
     mensagem_sucesso = "Contrato cadastrado."
@@ -73,7 +92,7 @@ class ContratoCreateView(FormularioMixin, CreateView):
         return self.get_cliente().get_absolute_url()
 
 
-class ContratoUpdateView(FormularioMixin, UpdateView):
+class ContratoUpdateView(SecoesDoContratoMixin, FormularioMixin, UpdateView):
     model = Contrato
     form_class = ContratoForm
     mensagem_sucesso = "Contrato atualizado."

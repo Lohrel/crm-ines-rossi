@@ -58,6 +58,27 @@ class MesField(forms.Field):
         return value.strftime("%m/%Y") if isinstance(value, date) else value
 
 
+class SecaoDoFormulario:
+    """Alguns campos de um formulário, num cartão próprio (ver clientes/_campos.html).
+
+    Só a seção principal mostra os campos ocultos e os erros gerais do formulário.
+    """
+
+    def __init__(self, form: forms.BaseForm, campos: list[str], principal: bool = False) -> None:
+        self.form = form
+        self.campos = campos
+        self.principal = principal
+
+    def hidden_fields(self):
+        return self.form.hidden_fields() if self.principal else []
+
+    def non_field_errors(self):
+        return self.form.non_field_errors() if self.principal else []
+
+    def visible_fields(self):
+        return [campo for campo in self.form.visible_fields() if campo.name in self.campos]
+
+
 class BootstrapFormMixin:
     """Aplica as classes visuais do Bootstrap a todos os campos do formulário."""
 

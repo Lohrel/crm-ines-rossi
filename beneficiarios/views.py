@@ -1,22 +1,37 @@
+from datetime import date
+from io import BytesIO
+from urllib.parse import urlencode
+
 from django.contrib import messages
 from django.db import transaction
 from django.db.models import Prefetch
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404, redirect
-from django.views.generic import CreateView, DetailView, FormView, ListView, UpdateView
+from django.urls import reverse
+from django.views.generic import (
+    CreateView,
+    DetailView,
+    FormView,
+    ListView,
+    TemplateView,
+    UpdateView,
+)
 from django.views.generic.detail import SingleObjectMixin
 
-from apolices.models import Contrato
+from apolices.models import Contrato, Subfatura
 from beneficiarios.forms import (
     AnexoForm,
     BuscaBeneficiarioForm,
     DependenteForm,
     EncerrarVinculoForm,
+    MesDaPlanilhaForm,
+    SubfaturaForm,
     TitularForm,
     VinculoForm,
 )
 from beneficiarios.historico import LinhaDoTempoDoBeneficiario
 from beneficiarios.models import Anexo, Beneficiario, Vinculo
+from beneficiarios.seguro_de_vida import TIPO_XLSX, PlanilhaDoSeguroDeVida, mes_sugerido
 from beneficiarios.vidas import VidasDoCliente, filtro_de_ativos
 from clientes.models import Cliente
 from clientes.views import ExclusaoConfirmadaView, FormularioMixin
@@ -297,3 +312,85 @@ class AnexoDeleteView(ExclusaoConfirmadaView):
 
     def get_success_url(self) -> str:
         return self.object.get_absolute_url()
+
+
+class SeguroDeVidaView(TemplateView):
+    """Planilha do seguro de vida de um contrato: resumo do mês, download e subfaturas."""
+
+    template_name = "beneficiarios/seguro_de_vida.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.contrato = get_object_or_404(
+            Contrato.objects.select_related("cliente", "seguradora", "ramo"),
+            pk=kwargs["contrato_pk"],
+        )
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        planilha = self._planilha(request.GET)
+        if planilha and "baixar" in request.GET:
+            resposta = FileResponse(
+                BytesIO(planilha.gerar()),
+                as_attachment=True,
+                filename=planilha.nome_do_arquivo,
+                content_type=TIPO_XLSX,
+            )
+            resposta["Cache-Control"] = "private, no-store"
+            return resposta
+        return self._mostrar(planilha, self._subfaturas())
+
+    def post(self, request, *args, **kwargs):
+        """Salva Local, subfatura e boleto separado das filiais."""
+        subfaturas = self._subfaturas(request.POST)
+        planilha = self._planilha(request.POST)
+        if all(form.is_valid() for _, form in subfaturas):
+            with transaction.atomic():
+                for _, form in subfaturas:
+                    if form.instance.pk or form.has_changed():
+                        form.save()
+            messages.success(request, "Subfaturas salvas.")
+            url = reverse("beneficiarios:seguro_de_vida", args=[self.contrato.pk])
+            if planilha:
+                url += "?" + urlencode({"mes": f"{planilha.data:%m/%Y}"})
+            return redirect(url)
+        return self._mostrar(planilha, subfaturas)
+
+    def _planilha(self, dados) -> PlanilhaDoSeguroDeVida | None:
+        """A planilha do mês pedido (ou do sugerido); nenhuma sem capital no contrato."""
+        sugerido = mes_sugerido(date.today())
+        pedido = dados if dados.get("mes") else None
+        self.form = MesDaPlanilhaForm(pedido, initial={"mes": sugerido})
+        if self.form.is_bound and not self.form.is_valid():
+            return None
+        if not self.contrato.calcula_capital:
+            return None
+        mes = self.form.cleaned_data["mes"] if self.form.is_bound else sugerido
+        return PlanilhaDoSeguroDeVida(self.contrato, mes)
+
+    def _mostrar(self, planilha, subfaturas):
+        return self.render_to_response(
+            self.get_context_data(planilha=planilha, subfaturas=subfaturas)
+        )
+
+    def _subfaturas(self, dados=None) -> list[tuple]:
+        """Um formulário por filial coberta pelo contrato (ou por todas, se não indicar)."""
+        cliente = self.contrato.cliente
+        if not cliente.eh_empresa:
+            return []
+        unidades = list(self.contrato.unidades.all()) or list(cliente.unidades.all())
+        existentes = self.contrato.subfaturas_por_unidade()
+        return [
+            (
+                unidade,
+                SubfaturaForm(
+                    dados,
+                    prefix=f"unidade-{unidade.pk}",
+                    instance=existentes.get(unidade.pk)
+                    or Subfatura(contrato=self.contrato, unidade=unidade),
+                ),
+            )
+            for unidade in unidades
+        ]
+
+    def get_context_data(self, **kwargs):
+        return {**super().get_context_data(**kwargs), "contrato": self.contrato, "form": self.form}

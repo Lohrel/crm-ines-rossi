@@ -13,6 +13,7 @@ from django.views import View
 from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView
 from django.views.generic.detail import SingleObjectMixin
 
+from apolices.models import Contrato
 from beneficiarios.models import Beneficiario, Vinculo
 from clientes.models import Cliente
 from clientes.views import FormularioMixin
@@ -281,7 +282,17 @@ class PlanilhaView(TemplateView):
         return resposta
 
     def get_context_data(self, **kwargs):
-        return {**super().get_context_data(**kwargs), "form": self.form}
+        contratos_de_vida = (
+            Contrato.objects.com_capital()
+            .vigentes()
+            .select_related("cliente", "seguradora")
+            .order_by("cliente__nome", "numero")
+        )
+        return {
+            **super().get_context_data(**kwargs),
+            "form": self.form,
+            "contratos_de_vida": contratos_de_vida,
+        }
 
 
 class ImportarPlanilhaView(TemplateView):

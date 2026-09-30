@@ -290,12 +290,15 @@ class Movimentacao(Registro):
         else:
             self.vinculo = self._sair_do_plano()
 
-    def _entrar_no_plano(self, pessoa: Beneficiario, inicio: date, carteirinha: str) -> Vinculo:
+    def _entrar_no_plano(
+        self, pessoa: Beneficiario, inicio: date, carteirinha: str, salario=None
+    ) -> Vinculo:
         vinculo = Vinculo(
             beneficiario=pessoa,
             contrato=self.contrato,
             data_inclusao=inicio,
             carteirinha=carteirinha,
+            salario=salario if self.contrato.usa_salario else None,
         )
         try:
             vinculo.full_clean()
@@ -325,6 +328,7 @@ class Movimentacao(Registro):
         """Sai do plano anterior e entra no novo na mesma data; os dependentes vão junto.
 
         A carteirinha continua a mesma; se a operadora emitir outra, corrige-se no plano.
+        No seguro de vida, o salário também passa para o novo plano.
         """
         pessoa = self.beneficiario
         anterior = pessoa.vinculos.filter(
@@ -346,7 +350,7 @@ class Movimentacao(Registro):
             if quem != pessoa and ja_no_novo.exists():
                 continue
             inicio = max(self.vigencia, saiu.data_inclusao)
-            novos.append(self._entrar_no_plano(quem, inicio, saiu.carteirinha))
+            novos.append(self._entrar_no_plano(quem, inicio, saiu.carteirinha, saiu.salario))
         return novos[0]
 
     def _concluir(self) -> None:
