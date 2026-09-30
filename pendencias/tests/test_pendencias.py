@@ -267,6 +267,22 @@ def test_filtro_por_responsavel_e_busca(logado, empresa, matriz, filial, pessoa,
         assert "Mandar carteirinhas" in encontradas and "Renovar seguro" not in encontradas
 
 
+def test_filtro_das_que_pedem_atencao(logado, pessoa, usuario, bruno):
+    vencida = pendencia(pessoa, bruno, "Ligar para o RH", prazo=HOJE - timedelta(days=1))
+    no_limite = pendencia(pessoa, usuario, "Pedir a DPS", prazo=HOJE + timedelta(days=3))
+    longe = pendencia(pessoa, usuario, "Renovar o dental", prazo=HOJE + timedelta(days=4))
+    url = reverse("pendencias:lista")
+
+    def mostra(**filtros) -> set:
+        pagina = logado.get(url, {"situacao": "atencao", **filtros}).content.decode()
+        return {p for p in (vencida, no_limite, longe) if p.get_absolute_url() in pagina}
+
+    assert mostra() == {vencida, no_limite}
+    assert mostra(responsavel=usuario.pk) == {no_limite}
+    pagina = logado.get(url, {"situacao": "atencao"}).content.decode()
+    assert '<option value="atencao" selected>Pedem atenção (3 dias)</option>' in pagina
+
+
 def test_lista_do_contrato_cria_a_nova_ja_ligada(logado, empresa, matriz, saude, usuario):
     pendencia(empresa, usuario, "Resposta do reajuste", unidade=matriz, contrato=saude)
     pendencia(empresa, usuario, "Outra coisa", unidade=matriz)

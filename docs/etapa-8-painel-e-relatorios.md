@@ -1,9 +1,9 @@
 # Etapa 8: painel e relatórios
 
-**Situação: proposta, a confirmar com o Lohrel antes de começar.** O plano inicial do projeto dizia só
-"resumo por mês, pendências vencidas e movimentações por usuário", com entrega "conforme a
-necessidade". Os detalhes abaixo vêm do que o escritório contou nas etapas anteriores. As regras
-gerais estão no [CLAUDE.md](../CLAUDE.md).
+**Situação: 8a feita (painel na página inicial); 8b é proposta, a confirmar com o Lohrel antes de
+começar.** O plano inicial do projeto dizia só "resumo por mês, pendências vencidas e movimentações
+por usuário", com entrega "conforme a necessidade". Os detalhes abaixo vêm do que o escritório contou
+nas etapas anteriores. As regras gerais estão no [CLAUDE.md](../CLAUDE.md).
 
 ## Objetivo
 
@@ -27,22 +27,28 @@ corretora ganha relatórios simples para acompanhar a carteira mês a mês.
 
 Dois PRs, cada um a partir do `main`.
 
-### 8a. Painel na página inicial
+### 8a. Painel na página inicial (feita)
 
-O painel substitui a página de Início (`contas/templates/contas/inicio.html`) e mantém os atalhos de
-novo cliente. Cada quadro mostra um número e leva à lista já filtrada:
+O painel substitui a página de Início (`contas/templates/contas/inicio.html`, com um arquivo por
+quadro em `contas/templates/contas/painel/`) e mantém os atalhos de novo cliente. É o mesmo para
+todos, com as pendências de quem entrou em destaque. Cada quadro mostra um número, que leva à lista
+já filtrada com os mesmos registros, e embaixo os até 3 mais urgentes:
 
 | Quadro | O que mostra | Leva para |
 |---|---|---|
-| Movimentações em aberto | em análise e aprovadas sem carteirinha, com as mais paradas (dias parado) | Movimentações |
-| Boletos a enviar | vencidos e dos próximos 7 dias | Boletos |
-| Pendências | vencidas e dos próximos 3 dias, com destaque para as da pessoa logada | Pendências, filtradas pelo responsável |
-| Prazos do mês | dias até o fechamento das movimentações e até o envio da planilha do seguro de vida (dia 5) | Movimentações e Planilha mensal |
-| Vidas | total da carteira hoje e o saldo do mês (entradas e saídas) | Relatório de vidas (8b) |
-| Renovações | contratos com data de renovação nos próximos 60 dias | Contratos |
+| Movimentações em aberto | em análise e aprovadas (falta concluir, ex.: enviar a carteirinha), com as há mais tempo em aberto (dias desde que o pedido chegou, como na lista) | Movimentações, com os filtros novos "Em análise" e "Aprovadas" |
+| Boletos a enviar | vencidos e dos próximos 7 dias | Boletos, filtro novo "A enviar (7 dias)" |
+| Suas pendências | as de quem entrou, vencidas e dos próximos 3 dias; no rodapé, quantas da equipe | Pendências, filtro novo "Pedem atenção (3 dias)", com o responsável |
+| Prazos do mês | os próximos fechamentos das movimentações (o dia de fechamento de cada contrato vigente) e o envio da planilha do seguro de vida (até o dia 5), em amarelo a 5 dias ou menos | Movimentações e Planilha mensal |
+| Vidas | vidas e pessoas nos contratos vigentes hoje, e as entradas e saídas do mês (a alteração de plano não conta como entrada nem saída) | Contratos, até o relatório de vidas (8b) |
+| Renovações | contratos vigentes que renovam nos próximos 60 dias, e quantos estão com a data de renovação já passada | Contratos, filtro novo "Renovam nos próximos 60 dias", que traz também as datas já passadas |
 
-As listas já têm filtros (ex.: situação e responsável nas pendências; situação, tipo e "só fora do
-vencimento" nos boletos). Onde faltar um filtro, acrescente-o na lista em vez de criar uma tela nova.
+A tabela de contratos passou a mostrar a data de renovação dos vigentes, em vermelho quando já
+passou (falta pôr a data da próxima). As contas ficam em `contas/painel.py`: 11 consultas ao todo,
+qualquer que seja o tamanho da carteira. Os testes (`contas/tests/test_painel.py`) conferem cada
+número, o número de consultas e se cada número bate com a lista para onde leva.
+
+Os quadros seguem a proposta; no teste, o Lohrel confirma se cobrem o que o escritório olha todo dia.
 
 ### 8b. Relatórios
 
@@ -65,15 +71,13 @@ Um item "Relatórios" no menu, com filtro de período e, quando fizer sentido, d
 - Nos testes, calcule as datas a partir de hoje (ou fixe o dia) para o resultado não depender da data
   em que rodam.
 - Nada de comissão ou de outro dado sensível: os relatórios mostram só o que as telas já mostram.
-- Telas no visual padrão do Bootstrap, já usáveis no celular. O acabamento visual é a etapa 10 (veja
-  [frontend.md](frontend.md)).
+- Telas no visual da corretora (etapa 10a), já usáveis no celular (veja [frontend.md](frontend.md)).
 - Testes com dados fictícios para cada número do painel e cada relatório. Os arquivos Excel são
   conferidos lendo-os de volta com openpyxl.
 
-## Perguntas para o Lohrel antes de começar
+## Perguntas para o Lohrel antes da 8b
 
-1. Quais números vocês olham todo dia? Os quadros acima cobrem isso?
-2. Quais relatórios são mais urgentes, e quais precisam sair em Excel?
-3. O resumo do mês conta pelo mês de início da vigência ou pelo mês em que o pedido foi enviado à
+1. Quais relatórios são mais urgentes, e quais precisam sair em Excel?
+2. O resumo do mês conta pelo mês de início da vigência ou pelo mês em que o pedido foi enviado à
    operadora?
-4. Todos veem todos os relatórios, ou algum é só para a gestão?
+3. Todos veem todos os relatórios, ou algum é só para a gestão?

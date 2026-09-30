@@ -1,0 +1,32 @@
+<div class="col">
+  <section class="card shadow-sm h-100 quadro" aria-labelledby="quadro-pendencias">
+    <div class="card-header d-flex justify-content-between align-items-baseline gap-2">
+      <h2 class="h6 mb-0" id="quadro-pendencias">Suas pendências</h2>
+      <a href="{{ quadro.url_minhas_em_aberto }}" class="small">Ver todas ({{ quadro.minhas_em_aberto }})</a>
+    </div>
+    <div class="card-body">
+      <a href="{{ quadro.url }}" class="destaque-do-quadro"><span class="numero-do-quadro">{{ quadro.minhas }}</span> {{ quadro.minhas|pluralize:"pede,pedem" }} atenção</a>
+      {% if quadro.minhas %}
+      <div class="small mt-2">
+        <span class="{% if quadro.minhas_vencidas %}text-danger fw-semibold{% endif %}">{{ quadro.minhas_vencidas }} vencida{{ quadro.minhas_vencidas|pluralize }}</span> ·
+        {{ quadro.minhas_vencendo }} {{ quadro.minhas_vencendo|pluralize:"vence,vencem" }} nos próximos {{ quadro.dias }} dias
+      </div>
+      {% else %}
+      <p class="small text-body-secondary mt-2 mb-0">Nenhuma pendência sua vencida nem vencendo nos próximos {{ quadro.dias }} dias.</p>
+      {% endif %}
+    </div>
+    {% if quadro.itens %}
+    <ul class="list-group list-group-flush">
+      {% for item in quadro.itens %}{% with pendencia=item.registro %}
+      <li class="list-group-item{% if pendencia.contrato.seguradora.cor %} faixa-seguradora cor-{{ pendencia.contrato.seguradora.cor }}{% endif %}">
+        <a href="{{ pendencia.get_absolute_url }}" class="fw-semibold">{{ pendencia.descricao }}</a>
+        <div class="small text-body-secondary"><span class="badge {% if item.venceu %}text-bg-danger{% else %}text-bg-warning{% endif %}">{{ item.prazo|capfirst }}</span> {{ pendencia.cliente }}{% if pendencia.unidade %} · {{ pendencia.unidade }}{% endif %}</div>
+      </li>
+      {% endwith %}{% endfor %}
+    </ul>
+    {% endif %}
+    <div class="card-footer small">
+      <a href="{{ quadro.url_equipe }}">Da equipe: {{ quadro.equipe }} {{ quadro.equipe|pluralize:"pede,pedem" }} atenção</a>{% if quadro.equipe_vencidas %}, <span class="text-danger fw-semibold">{{ quadro.equipe_vencidas }} vencida{{ quadro.equipe_vencidas|pluralize }}</span>{% endif %}
+    </div>
+  </section>
+</div>

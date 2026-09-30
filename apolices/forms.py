@@ -1,6 +1,6 @@
 from django import forms
 
-from apolices.models import Contrato, Ramo, Seguradora
+from apolices.models import DIAS_PARA_RENOVACAO, Contrato, Ramo, Seguradora
 from clientes.documentos import CNPJ
 from clientes.forms import BootstrapFormMixin, DocumentoField
 from clientes.models import Cliente
@@ -99,6 +99,10 @@ class FiltroContratosForm(BootstrapFormMixin, forms.Form):
         choices=[("", "Vigentes"), ("todas", "Todas"), *Contrato.Situacao.choices],
     )
     boleto = forms.BooleanField(label="Só boletos enviados pela corretora", required=False)
+    # Traz também os vigentes com a data de renovação já passada, que ficam no topo.
+    renovacao = forms.BooleanField(
+        label=f"Renovam nos próximos {DIAS_PARA_RENOVACAO} dias", required=False
+    )
     vencimento = forms.IntegerField(
         label="Dia de vencimento", required=False, min_value=1, max_value=31
     )

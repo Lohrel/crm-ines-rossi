@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 from django.contrib import messages
 from django.core.exceptions import ValidationError
@@ -39,6 +39,9 @@ class PendenciaListView(ListView):
         situacao = self.dados.get("situacao", "")
         if situacao == "":
             return pendencias.em_aberto()
+        if situacao == FiltroPendenciasForm.ATENCAO:
+            limite = date.today() + timedelta(days=DIAS_DE_ANTECEDENCIA)
+            return pendencias.em_aberto().filter(prazo__lte=limite)
         if situacao == "concluidas":
             return pendencias.concluidas().order_by("-concluida_em", "-pk")
         return pendencias.order_by("-prazo", "-pk")
