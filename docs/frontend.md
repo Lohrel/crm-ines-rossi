@@ -81,7 +81,7 @@ Use um navegador headless (Playwright com Chromium) e dados fictícios:
 - tire capturas a 1280 px e a 390 px de largura;
 - no celular, `document.documentElement.scrollWidth` maior que a largura da janela indica rolagem
   lateral;
-- na importação da planilha do seguro de vida (PR #11), o botão escondido tem o mesmo texto de um
-  botão visível: procure pelo texto e pela classe (ex.:
+- na importação da planilha do seguro de vida (`beneficiarios/importar_vidas.html`), o botão
+  escondido tem o mesmo texto de um botão visível: procure pelo texto e pela classe (ex.:
   `button.btn-outline-primary:has-text("Atualizar prévia")`);
 - capturas com dados reais nunca vão para o repositório nem para o chat.
