@@ -256,6 +256,21 @@ def test_lista_mostra_em_aberto_de_qualquer_mes(logado, titular, conjuge, saude)
     assert "Mês inválido" in logado.get(url, {"mes": "2026-13"}).content.decode()
 
 
+def test_filtro_em_analise_e_aprovadas(logado, titular, conjuge, saude):
+    em_analise = pedido(titular, saude)
+    aprovada = pedido(conjuge, saude)
+    Movimentacao.objects.filter(pk=aprovada.pk).update(etapa=Etapa.APROVADA)
+    url = reverse("movimentacoes:lista")
+
+    def mostra(situacao: str) -> set:
+        pagina = logado.get(url, {"situacao": situacao}).content.decode()
+        return {mov for mov in (em_analise, aprovada) if mov.get_absolute_url() in pagina}
+
+    assert mostra("ANA") == {em_analise}
+    assert mostra("APR") == {aprovada}
+    assert mostra("") == {em_analise, aprovada}
+
+
 def test_pagina_da_pessoa_mostra_movimentacoes_e_historico(logado, titular, saude):
     pedido(titular, saude)
     pagina = logado.get(titular.get_absolute_url()).content.decode()

@@ -17,9 +17,9 @@
 <form method="get" class="card card-body shadow-sm mb-3">
   {{ filtro.cliente }}{{ filtro.contrato }}{{ filtro.movimentacao }}
   <div class="row g-2 align-items-end">
-    <div class="col-md-5">{{ filtro.q.label_tag }}{{ filtro.q }}</div>
+    <div class="col-md-4">{{ filtro.q.label_tag }}{{ filtro.q }}</div>
     <div class="col-md-3">{{ filtro.responsavel.label_tag }}{{ filtro.responsavel }}</div>
-    <div class="col-md-2">{{ filtro.situacao.label_tag }}{{ filtro.situacao }}</div>
+    <div class="col-md-3">{{ filtro.situacao.label_tag }}{{ filtro.situacao }}</div>
     <div class="col-md-2"><button type="submit" class="btn btn-outline-primary w-100">Filtrar</button></div>
   </div>
 </form>

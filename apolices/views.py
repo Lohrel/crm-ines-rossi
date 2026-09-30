@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 from django.contrib import messages
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
@@ -5,7 +7,7 @@ from django.urls import reverse
 from django.views.generic import CreateView, ListView, UpdateView
 
 from apolices.forms import ContratoForm, FiltroContratosForm, SeguradoraForm
-from apolices.models import Contrato, Seguradora
+from apolices.models import DIAS_PARA_RENOVACAO, Contrato, Seguradora
 from beneficiarios.vidas import anotar_vidas
 from boletos.models import Boleto
 from clientes.forms import SecaoDoFormulario
@@ -14,7 +16,7 @@ from clientes.views import FormularioMixin
 
 
 class ContratoListView(ListView):
-    """Todos os contratos, com filtros por seguradora, ramo, situação e vencimento."""
+    """Todos os contratos, com filtros por seguradora, ramo, situação, vencimento e renovação."""
 
     model = Contrato
     paginate_by = 50
@@ -45,6 +47,9 @@ class ContratoListView(ListView):
             contratos = contratos.com_boleto_da_corretora()
         if dados["vencimento"]:
             contratos = contratos.filter(dia_vencimento=dados["vencimento"])
+        if dados["renovacao"]:
+            limite = date.today() + timedelta(days=DIAS_PARA_RENOVACAO)
+            contratos = contratos.renovam_ate(limite).order_by("data_renovacao", "cliente__nome")
         return contratos
 
     def get_context_data(self, **kwargs):

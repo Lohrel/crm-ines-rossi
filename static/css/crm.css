@@ -283,7 +283,9 @@ dl.row > dd:last-child {
 .cor-roxo { --cor-seguradora: #6d28d9; }
 .cor-cinza { --cor-seguradora: #475569; }
 
+/* Em bloco, para o ponto não ficar no fim de uma linha e o nome no começo da outra. */
 .seguradora-cor {
+  display: inline-block;
   font-weight: 600;
   color: var(--cor-seguradora);
 }
@@ -302,6 +304,9 @@ dl.row > dd:last-child {
   box-shadow:
     inset 5px 0 0 var(--cor-seguradora),
     inset 0 0 0 9999px var(--bs-table-bg-state, var(--bs-table-bg-type, var(--bs-table-accent-bg)));
+}
+.list-group-item.faixa-seguradora {
+  box-shadow: inset 5px 0 0 var(--cor-seguradora);
 }
 .amostra-cor {
   display: inline-block;
@@ -564,4 +569,53 @@ a.item-calendario:hover {
   display: block;
   width: 100%;
   height: 100%;
+}
+
+/* Painel da página inicial: um quadro por assunto, com o número em destaque, que leva à
+   lista já filtrada, e os registros mais urgentes embaixo. */
+.destaque-do-quadro {
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  column-gap: 0.5rem;
+  color: var(--bs-body-color);
+  font-weight: 600;
+  text-decoration: none;
+}
+.destaque-do-quadro:hover {
+  color: var(--bs-body-color);
+  text-decoration: underline;
+}
+.numero-do-quadro {
+  font-family: var(--crm-fonte-marca);
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--crm-marinho);
+}
+.quadro .titulo-da-lista {
+  padding: 0.35rem 1rem;
+  border-top: 1px solid var(--bs-card-border-color);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--crm-texto-discreto);
+  background-color: var(--bs-card-cap-bg);
+}
+.quadro .list-group-item {
+  font-size: 0.9375rem;
+}
+.quadro .list-group-item .badge {
+  margin-right: 0.15rem;
+}
+/* O espaço que sobra num quadro mais baixo que o vizinho fica embaixo, e o rodapé no fim. */
+.quadro > .card-body {
+  flex: 0 0 auto;
+}
+.quadro > .card-footer {
+  margin-top: auto;
+}
+.quadro > .card-body + .list-group-flush {
+  border-top: 1px solid var(--bs-card-border-color);
 }

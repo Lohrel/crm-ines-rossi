@@ -275,6 +275,8 @@ def formulario_da_etapa(etapa: str) -> type[MudancaDeEtapaFormBase]:
 class FiltroMovimentacoesForm(BootstrapFormMixin, forms.Form):
     SITUACOES = [
         ("", "Em aberto"),
+        ("ANA", "Em análise"),
+        ("APR", "Aprovadas"),
         ("CON", "Concluídas"),
         ("REJ", "Rejeitadas"),
         ("CAN", "Canceladas"),

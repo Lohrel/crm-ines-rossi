@@ -1,11 +1,22 @@
 {% extends "base.html" %}
 {% block titulo %}Início{% endblock %}
 {% block conteudo %}
-<h1 class="h3">Olá, {{ user.nome_exibicao }}</h1>
-<p class="text-body-secondary">O que você quer fazer?</p>
-<div class="d-flex flex-wrap gap-2">
-  <a href="{% url 'clientes:lista' %}" class="btn btn-primary">Ver clientes</a>
-  <a href="{% url 'clientes:novo_pf' %}" class="btn btn-outline-primary">Nova pessoa física</a>
-  <a href="{% url 'clientes:nova_empresa' %}" class="btn btn-outline-primary">Nova empresa</a>
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+  <div>
+    <h1 class="h3 mb-1">Olá, {{ user.nome_exibicao }}</h1>
+    <p class="text-body-secondary mb-0">{{ painel.hoje|date:"l, j \d\e F"|lower|capfirst }}. Veja o que precisa de atenção hoje.</p>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{% url 'clientes:novo_pf' %}" class="btn btn-outline-primary">Nova pessoa física</a>
+    <a href="{% url 'clientes:nova_empresa' %}" class="btn btn-outline-primary">Nova empresa</a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-6 col-xl-4">{% include "contas/painel/_movimentacoes.html" with quadro=painel.movimentacoes %}</div>
+  <div class="col-md-6 col-xl-4">{% include "contas/painel/_boletos.html" with quadro=painel.boletos %}</div>
+  <div class="col-md-6 col-xl-4">{% include "contas/painel/_pendencias.html" with quadro=painel.pendencias %}</div>
+  <div class="col-md-6">{% include "contas/painel/_prazos.html" with prazos=painel.prazos %}</div>
+  <div class="col-md-12 col-xl-6">{% include "contas/painel/_renovacoes.html" with quadro=painel.renovacoes %}</div>
 </div>
 {% endblock %}

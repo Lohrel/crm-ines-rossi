@@ -49,10 +49,13 @@ class BoletoListView(ListView):
         )
         situacao = self.dados.get("situacao", "")
         mes = self.dados.get("mes")
-        if situacao in ("", Situacao.A_ENVIAR):
+        if situacao in ("", Situacao.A_ENVIAR, FiltroBoletosForm.ATENCAO):
             boletos = boletos.a_enviar()
+            if situacao == FiltroBoletosForm.ATENCAO:
+                limite = date.today() + timedelta(days=DIAS_DE_ANTECEDENCIA)
+                boletos = boletos.filter(vencimento__lte=limite)
             # Com o mês escolhido no filtro, vale o mês inteiro, mesmo mais adiante.
-            if situacao == "" and not mes:
+            elif situacao == "" and not mes:
                 boletos = boletos.filter(vencimento__lte=self.limite_da_lista)
         else:
             if situacao != "todos":
