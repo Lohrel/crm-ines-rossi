@@ -60,6 +60,10 @@ ruff check . && ruff format .       # estilo
 
 Para rodar o sistema completo como no servidor, use o Docker (veja `docs/instalacao.md`).
 
+Quem for continuar o projeto, pessoa ou agente de IA, começa pelo [CLAUDE.md](CLAUDE.md): regras,
+convenções e estado atual. As telas estão descritas em [docs/frontend.md](docs/frontend.md), e a
+próxima etapa em [docs/etapa-8-painel-e-relatorios.md](docs/etapa-8-painel-e-relatorios.md).
+
 ## Estrutura
 
 ```
