@@ -13,7 +13,7 @@ Sistema web para uma corretora de seguros (vida, saúde, dental, auto e imóvel)
 | Interface | Templates do Django + Bootstrap 5 (HTMX nas próximas etapas) |
 | Servidor | Docker Compose: Gunicorn, Caddy (HTTPS) e PostgreSQL |
 | Backup | `pg_dump` e anexos, diários, criptografados com GPG (AES-256), retenção 7/4/12 |
-| Planilhas | openpyxl (arquivos do Excel) |
+| Planilhas | openpyxl (arquivos do Excel), com defusedxml protegendo a leitura |
 | Qualidade | pytest, ruff e GitHub Actions |
 
 ## Etapas
@@ -28,9 +28,9 @@ Cada etapa só começa quando a anterior está testada e em uso.
 - [x] **3.** Movimentações de inclusão e exclusão: etapas até a carteirinha enviada, rejeição com motivo e nova inclusão, dia de fechamento por contrato
 - [x] **4.** Boletos a enviar: lembrete dos boletos que a corretora envia, geração das mensalidades de um mês ou do ano todo, boleto fora do vencimento, reajuste e coparticipação
 - [x] **5.** Pendências do dia a dia: responsável, prazo e "marcar como concluída", sempre ligadas ao cliente e, nas empresas, à filial
-- [ ] **6.** Planilha mensal de inclusões, no formato da planilha de controle do escritório
+- [x] **6.** Planilha mensal de inclusões, no formato da planilha de controle do escritório
   - [x] 6a. Baixar a planilha do mês (uma aba por ramo, com o plano de cada pessoa, e a aba de alterações de plano) e a movimentação "Alteração de plano"
-  - [ ] 6b. Importar a planilha do mês
+  - [x] 6b. Importar a planilha do mês, com prévia de cada linha antes de gravar: titular novo entra com nome e matrícula, e o pedido em aberto que a planilha dá como Processado avança
 - [ ] **7.** Planilha de vidas da Tokio Marine (seguro de vida)
 - [ ] **8.** Painel e relatórios
 - [ ] **9.** Campos específicos de auto e imóvel
@@ -67,7 +67,7 @@ clientes/        Clientes PF/PJ, unidades (filiais) e contatos, com histórico
 apolices/        Seguradoras, ramos e contratos
 beneficiarios/   Titulares, dependentes, planos de cada pessoa, anexos e contagem de vidas
 movimentacoes/   Pedidos de inclusão, exclusão e alteração de plano, com etapas, fechamento do mês,
-                 histórico e a planilha mensal
+                 histórico e a planilha mensal (baixar e importar)
 boletos/         Boletos que a corretora envia: a enviar, enviados e fora do vencimento
 pendencias/      Pendências com responsável e prazo, ligadas ao cliente, filial, contrato ou movimentação
 templates/       Layout base e tela de login

@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block titulo %}Importar planilha{% endblock %}
+{% block conteudo %}
+<nav aria-label="breadcrumb"><ol class="breadcrumb">
+  <li class="breadcrumb-item"><a href="{% url 'movimentacoes:lista' %}">Movimentações</a></li>
+  <li class="breadcrumb-item"><a href="{% url 'movimentacoes:planilha' %}">Planilha mensal</a></li>
+  <li class="breadcrumb-item active">Importar</li>
+</ol></nav>
+
+{% if form %}
+<h1 class="h3 mb-3">Importar planilha</h1>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-header fw-semibold">Enviar a planilha de controle de uma empresa</div>
+  <div class="card-body">
+    <p class="text-body-secondary">
+      Vale a planilha no modelo do escritório ou a baixada aqui. Nada é gravado antes da sua confirmação: primeiro
+      aparece uma prévia do que vai acontecer com cada linha.
+    </p>
+    <ul class="small text-body-secondary">
+      <li>O titular é achado pela matrícula (coluna CADASTRO) ou pelo nome. Se ainda não tem cadastro, entra só com
+        nome e matrícula, para completar depois.</li>
+      <li>O dependente é achado pelo nome e precisa já estar cadastrado na página do titular.</li>
+      <li>A linha "Processado" entra no plano na data de INICIO, com a carteirinha; a "Pendente" fica em análise.</li>
+      <li>O que já está no sistema não se repete. Se o pedido estava em aberto e a planilha diz Processado, ele avança.</li>
+    </ul>
+    <form method="post" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      <div class="row g-2 align-items-start">
+        <div class="col-md-5">
+          {{ form.cliente.label_tag }}{{ form.cliente }}
+          {% for erro in form.cliente.errors %}<div class="invalid-feedback d-block">{{ erro }}</div>{% endfor %}
+        </div>
+        <div class="col-md-4">
+          {{ form.arquivo.label_tag }}{{ form.arquivo }}
+          {% for erro in form.arquivo.errors %}<div class="invalid-feedback d-block">{{ erro }}</div>{% endfor %}
+          <div class="form-text">{{ form.arquivo.help_text }}</div>
+        </div>
+        <div class="col-md-3">
+          <div class="invisible" aria-hidden="true">.</div>
+          <button type="submit" class="btn btn-primary w-100">Ver prévia</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% else %}
+<h1 class="h3 mb-3">{% if concluida %}Planilha importada{% else %}Prévia da importação{% endif %}</h1>
+
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <div class="d-flex flex-wrap column-gap-4 row-gap-1">
+      <div><span class="text-body-secondary">Cliente:</span> <a href="{{ cliente.get_absolute_url }}" class="fw-semibold">{{ cliente }}</a></div>
+      <div class="text-break"><span class="text-body-secondary">Arquivo:</span> {{ arquivo }}</div>
+    </div>
+    <div class="d-flex flex-wrap gap-2 mt-2">
+      {% if contagem.importar %}<span class="badge text-bg-success">{{ contagem.importar }} {% if concluida %}importada{{ contagem.importar|pluralize }}{% else %}a importar{% endif %}</span>{% endif %}
+      {% if contagem.atualizar %}<span class="badge text-bg-info">{{ contagem.atualizar }} {% if concluida %}atualizada{{ contagem.atualizar|pluralize }}{% else %}a atualizar{% endif %}</span>{% endif %}
+      {% if contagem.unidade %}<span class="badge text-bg-warning">{{ contagem.unidade }} sem unidade</span>{% endif %}
+      {% if contagem.problema %}<span class="badge text-bg-danger">{{ contagem.problema }} com problema</span>{% endif %}
+      {% if contagem.pular %}<span class="badge text-bg-secondary">{{ contagem.pular }} sem mudança</span>{% endif %}
+    </div>
+    {% if concluida %}
+      {% if contagem.problema or contagem.unidade %}<p class="small text-body-secondary mt-2 mb-0">As linhas com problema ficaram de fora. Corrija o que a mensagem pede e importe a planilha de novo: o que já entrou não se repete.</p>{% endif %}
+    {% elif pode_confirmar %}
+      <p class="small text-body-secondary mt-2 mb-0">
+        Nada foi gravado ainda. Confira as linhas e confirme no fim da página.
+        {% if contagem.unidade %}Antes, escolha a unidade de cada titular novo.{% endif %}
+        {% if contagem.problema %}As linhas com problema ficam de fora.{% endif %}
+      </p>
+    {% else %}
+      <p class="small text-body-secondary mt-2 mb-0">Nenhuma linha desta planilha muda algo no sistema.</p>
+    {% endif %}
+  </div>
+</div>
+
+{% for aviso in avisos %}<div class="alert alert-warning py-2">{{ aviso }}</div>{% endfor %}
+
+{% if not concluida %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  <input type="hidden" name="dados" value="{{ dados }}">
+{% endif %}
+  {% for aba, resultados in abas %}
+  <div class="card shadow-sm mb-3">
+    <div class="card-header fw-semibold">Aba {{ aba }} <span class="fw-normal text-body-secondary">· {{ resultados|length }} linha{{ resultados|length|pluralize }}</span></div>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead class="table-light">
+          <tr><th>Linha</th><th>Nome</th><th>Cadastro</th><th>Plano</th><th>Digitação</th><th>Início</th><th>Status</th><th>Resultado</th></tr>
+        </thead>
+        <tbody>
+        {% for r in resultados %}
+          <tr>
+            <td class="text-body-secondary">{{ r.linha.numero }}</td>
+            <td class="fw-semibold">{{ r.linha.nome }}</td>
+            <td>{{ r.linha.cadastro|default:"—" }}</td>
+            <td>{{ r.linha.plano|default:"—" }}</td>
+            <td class="text-nowrap">{{ r.linha.digitada_em|default:"—" }}</td>
+            <td class="text-nowrap">{{ r.linha.vigencia|default:"—" }}</td>
+            <td>{{ r.linha.status|default:"—" }}</td>
+            <td style="min-width: 18rem">
+              {% if r.situacao == "importar" %}<span class="badge text-bg-success">{% if concluida %}Importada{% else %}Importar{% endif %}</span>
+              {% elif r.situacao == "atualizar" %}<span class="badge text-bg-info">{% if concluida %}Atualizada{% else %}Atualizar{% endif %}</span>
+              {% elif r.situacao == "pular" %}<span class="badge text-bg-secondary">Sem mudança</span>
+              {% elif r.situacao == "unidade" %}<span class="badge text-bg-warning">{% if concluida %}Não importada{% else %}Falta a unidade{% endif %}</span>
+              {% else %}<span class="badge text-bg-danger">{% if concluida %}Não importada{% else %}Problema{% endif %}</span>{% endif %}
+              {{ r.mensagem }}
+              {% for aviso in r.avisos %}<div class="small text-body-secondary">{{ aviso }}</div>{% endfor %}
+              {% if r.unidades and not concluida %}
+              <div class="mt-1">
+                <label class="form-label small mb-0" for="unidade-{{ r.linha.id }}">Unidade do titular</label>
+                <select name="unidade-{{ r.linha.id }}" id="unidade-{{ r.linha.id }}" class="form-select form-select-sm">
+                  <option value="">Escolha</option>
+                  {% for unidade in r.unidades %}<option value="{{ unidade.pk }}"{% if unidade.pk == r.escolhida %} selected{% endif %}>{{ unidade }}</option>{% endfor %}
+                </select>
+              </div>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endfor %}
+
+{% if concluida %}
+<div class="d-flex flex-wrap gap-2 mb-4">
+  <a href="{% url 'movimentacoes:lista' %}?cliente={{ cliente.pk }}&amp;situacao=todas" class="btn btn-primary">Ver as movimentações do cliente</a>
+  <a href="{% url 'movimentacoes:importar_planilha' %}" class="btn btn-outline-secondary">Importar outra planilha</a>
+</div>
+{% else %}
+  <div class="d-flex flex-wrap gap-2 mb-4">
+    {% if pode_confirmar %}
+    <button type="submit" name="acao" value="confirmar" class="btn btn-primary">Confirmar importação</button>
+    {% if tem_escolha %}<button type="submit" name="acao" value="previa" class="btn btn-outline-primary">Atualizar prévia</button>{% endif %}
+    {% endif %}
+    <a href="{% url 'movimentacoes:importar_planilha' %}" class="btn btn-outline-secondary">{% if pode_confirmar %}Cancelar{% else %}Enviar outra planilha{% endif %}</a>
+  </div>
+</form>
+{% endif %}
+{% endif %}
+{% endblock %}
