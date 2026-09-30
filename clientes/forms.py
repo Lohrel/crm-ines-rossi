@@ -93,7 +93,8 @@ class BootstrapFormMixin:
         super().__init__(*args, **kwargs)
         for campo in self.fields.values():
             widget = campo.widget
-            if isinstance(widget, forms.CheckboxInput | forms.CheckboxSelectMultiple):
+            # O RadioSelect inclui o CheckboxSelectMultiple, que é uma subclasse dele.
+            if isinstance(widget, forms.CheckboxInput | forms.RadioSelect):
                 classe = "form-check-input"
             elif isinstance(widget, forms.Select):
                 classe = "form-select"

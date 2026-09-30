@@ -4,7 +4,7 @@ from apolices.models import Contrato, Ramo, Seguradora
 from clientes.documentos import CNPJ
 from clientes.forms import BootstrapFormMixin, DocumentoField
 from clientes.models import Cliente
-from clientes.widgets import CampoData
+from clientes.widgets import CampoData, EscolhaDeCor
 
 
 class SeguradoraForm(BootstrapFormMixin, forms.ModelForm):
@@ -14,7 +14,12 @@ class SeguradoraForm(BootstrapFormMixin, forms.ModelForm):
 
     class Meta:
         model = Seguradora
-        fields = ["nome", "cnpj", "telefone", "site", "ativo"]
+        fields = ["nome", "cnpj", "telefone", "site", "cor", "ativo"]
+        widgets = {"cor": EscolhaDeCor}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["cor"].choices = [("", "Sem cor"), *Seguradora.Cor.choices]
 
     def clean_cnpj(self):
         # Vazio vira None para não conflitar com outras seguradoras sem CNPJ.

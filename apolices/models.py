@@ -15,6 +15,21 @@ from clientes.validators import validar_cnpj
 
 
 class Seguradora(Registro):
+    class Cor(models.TextChoices):
+        """Cores fortes e fáceis de distinguir, sem o vermelho, o amarelo e o verde claro que o
+        sistema usa para vencido, em análise e concluído. Os tons ficam em static/css/crm.css."""
+
+        AZUL = "azul", "Azul"
+        CELESTE = "celeste", "Celeste"
+        VERDE = "verde", "Verde"
+        VERDE_AZULADO = "verde-azulado", "Verde-azulado"
+        LARANJA = "laranja", "Laranja"
+        MARROM = "marrom", "Marrom"
+        VINHO = "vinho", "Vinho"
+        ROSA = "rosa", "Rosa"
+        ROXO = "roxo", "Roxo"
+        CINZA = "cinza", "Cinza"
+
     nome = models.CharField(max_length=150, unique=True)
     # null (e não texto vazio) para que várias seguradoras sem CNPJ não violem a unicidade.
     cnpj = models.CharField(  # noqa: DJ001
@@ -22,6 +37,14 @@ class Seguradora(Registro):
     )
     telefone = models.CharField("telefone de atendimento", max_length=30, blank=True)
     site = models.URLField(blank=True)
+    cor = models.CharField(
+        max_length=20,
+        choices=Cor.choices,
+        blank=True,
+        default="",
+        help_text="Aparece numa faixa nas listas de movimentações, contratos e boletos, para achar "
+        "o portal certo sem precisar ler.",
+    )
     ativo = models.BooleanField(default=True)
 
     history = HistoricalRecords()

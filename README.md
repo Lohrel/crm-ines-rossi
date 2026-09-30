@@ -38,6 +38,7 @@ Cada etapa só começa quando a anterior está testada e em uso.
 - [ ] **9.** Campos específicos de auto e imóvel
 - [ ] **10.** Acabamento visual: cores e logo da corretora, menu, painel inicial e ajustes para celular
   - [x] 10a. Cores, fonte e logo da corretora, menu que recolhe no celular, tela de entrada e textos organizados nas telas de movimentações e cadastros
+  - [x] 10b. Cor de cada seguradora, escolhida no cadastro: faixa nas listas e ponto antes do nome, para achar o portal certo sem ler
 
 As telas usam o Bootstrap com as cores, a fonte e o logo da corretora (etapa 10a). Problemas de uso encontrados nos testes são corrigidos na própria etapa.
 

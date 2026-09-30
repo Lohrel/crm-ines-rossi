@@ -31,7 +31,7 @@
 
 {% if contrato %}
 <div class="alert alert-light border d-flex flex-wrap justify-content-between align-items-center gap-2">
-  <span>Boletos do contrato <strong>{{ contrato.cliente }} · {{ contrato.ramo }} · {{ contrato.seguradora }} {{ contrato.numero }}</strong> (vence dia {{ contrato.dia_vencimento }})</span>
+  <span>Boletos do contrato <strong>{{ contrato.cliente }} · {{ contrato.ramo }} · {% include "apolices/_seguradora.html" with seguradora=contrato.seguradora %} {{ contrato.numero }}</strong> (vence dia {{ contrato.dia_vencimento }})</span>
   <a href="{% url 'boletos:lista' %}">Ver boletos de todos os contratos</a>
 </div>
 {% endif %}
@@ -49,7 +49,7 @@
       </thead>
       <tbody>
       {% for boleto in object_list %}
-        <tr>
+        <tr{% if boleto.contrato.seguradora.cor %} class="faixa-seguradora cor-{{ boleto.contrato.seguradora.cor }}"{% endif %}>
           <td class="text-nowrap">
             <a href="{{ boleto.get_absolute_url }}" class="fw-semibold">{{ boleto.vencimento|date:"d/m/Y" }}</a>
             {% if boleto.fora_do_vencimento %}<div><span class="badge text-bg-warning" title="O contrato vence dia {{ boleto.contrato.dia_vencimento }}">fora do vencimento</span></div>{% endif %}
@@ -57,7 +57,7 @@
           <td>
             <a href="{{ boleto.contrato.cliente.get_absolute_url }}">{{ boleto.contrato.cliente }}</a>
             {% if boleto.contrato.situacao == "CAN" %}<span class="badge text-bg-secondary">contrato cancelado</span>{% endif %}
-            <div class="small text-body-secondary">{{ boleto.contrato.ramo }} · {{ boleto.contrato.seguradora }} {{ boleto.contrato.numero }}</div>
+            <div class="small text-body-secondary">{{ boleto.contrato.ramo }} · {% include "apolices/_seguradora.html" with seguradora=boleto.contrato.seguradora %} {{ boleto.contrato.numero }}</div>
           </td>
           <td>{{ boleto.get_tipo_display }}<div class="small text-body-secondary">ref. {{ boleto.referencia|date:"m/Y" }}</div></td>
           <td>{% include "boletos/_situacao.html" %}</td>

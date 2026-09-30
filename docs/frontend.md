@@ -40,6 +40,7 @@ As telas novas seguem o que já existe:
 | Prazos | vencido em vermelho e perto de vencer em amarelo (boletos: 7 dias; pendências: 3 dias), com o texto de `clientes/prazos.py` ("vence em 3 dias") |
 | Formulários | cadastros e edições usam o `FormularioMixin` (`clientes/views.py`), com a tela comum `clientes/formulario.html`; os campos saem de `clientes/_campos.html`, com asterisco vermelho nos obrigatórios. Nas listas de escolha, a opção vazia é "Escolha" (o `BootstrapFormMixin` troca o "---------" do Django). Botão ao lado de campos com rótulo: ponha em cima dele um `<div class="form-label invisible" aria-hidden="true">.</div>`, da altura do rótulo |
 | Selos de movimentação | Inclusão em marinho, Alteração de plano em marinho claro e Exclusão com contorno escuro (`movimentacoes/_tipo.html`) |
+| Cor da seguradora | escolhida no cadastro da seguradora, numa paleta de 10 tons (`Seguradora.Cor`, com os tons em `crm.css` nas classes `cor-<valor>`). Nas listas, a linha ganha uma faixa à esquerda (`<tr class="faixa-seguradora cor-...">`); onde o nome aparece, use `apolices/_seguradora.html`, que põe um ponto e o nome na cor. Sem cor escolhida, nada muda. A paleta não tem o vermelho, o amarelo e o verde claro dos avisos |
 | Datas e meses | `CampoData` e `MesField`: a barra entra sozinha, o primeiro clique seleciona a data inteira (para digitar por cima) e há um botão de calendário |
 | Exclusão | caixa `<details>` "Excluir registros" no fim da página, à direita, e página de confirmação digitada (`ExclusaoConfirmadaView` com `clientes/excluir.html`) |
 | Importação | prévia de cada linha antes de gravar; se a prévia tem um campo de texto, o primeiro botão do formulário (escondido) só atualiza a prévia, para o Enter nunca confirmar |
@@ -83,6 +84,12 @@ do cliente e a carteirinha para baixo da etapa, e a tabela passou a caber na tel
 - O logo e o nome da corretora estão no repositório com autorização do Lohrel (30/09/2026). Se o
   software passar a ser proprietário, eles podem sair daqui. Os SVGs foram tirados do arquivo `.ai`
   do envelope; os originais (cartão e envelopes) não vão para o repositório.
+
+**10b (feita).** Cada seguradora tem uma cor, escolhida no cadastro, para achar o portal certo sem
+ler. Entre três propostas (etiqueta colorida, faixa na linha ou as duas), o Lohrel escolheu a faixa,
+menos poluída: uma faixa à esquerda da linha nas listas de movimentações, contratos, boletos,
+pendências, seguradoras e planos da pessoa, e um ponto colorido antes do nome da seguradora nas
+outras telas. No celular, a faixa aparece mesmo quando a tabela esconde a coluna da seguradora.
 
 Falta:
 

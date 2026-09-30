@@ -9,7 +9,7 @@
 </ol></nav>
 
 <h1 class="h3 mb-1">{% if concluida %}Planilha importada{% elif relatorio %}Prévia da importação{% else %}Importar a planilha do seguro de vida{% endif %}</h1>
-<div class="text-body-secondary mb-3">{{ contrato.seguradora }} {{ contrato.numero }}{% if contrato.produto %} · {{ contrato.produto }}{% endif %} · {{ contrato.ramo }}</div>
+<div class="text-body-secondary mb-3">{% include "apolices/_seguradora.html" with seguradora=contrato.seguradora %} {{ contrato.numero }}{% if contrato.produto %} · {{ contrato.produto }}{% endif %} · {{ contrato.ramo }}</div>
 
 {% if not contrato.calcula_capital %}
 <div class="alert alert-warning">

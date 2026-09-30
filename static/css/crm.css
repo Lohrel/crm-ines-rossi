@@ -268,6 +268,85 @@ dl.row > dd:last-child {
   margin-bottom: 0;
 }
 
+/* Cor de cada seguradora, escolhida no cadastro (Seguradora.Cor): uma faixa à esquerda da
+   linha nas listas e um ponto antes do nome, para achar o portal certo sem ler. Sem cor
+   escolhida, nada muda. Todos os tons passam no contraste AA como texto pequeno, inclusive
+   na linha destacada pelo mouse. */
+.cor-azul { --cor-seguradora: #1d4ed8; }
+.cor-celeste { --cor-seguradora: #0369a1; }
+.cor-verde { --cor-seguradora: #137538; }
+.cor-verde-azulado { --cor-seguradora: #0f766e; }
+.cor-laranja { --cor-seguradora: #b43c0b; }
+.cor-marrom { --cor-seguradora: #78350f; }
+.cor-vinho { --cor-seguradora: #9f1239; }
+.cor-rosa { --cor-seguradora: #be185d; }
+.cor-roxo { --cor-seguradora: #6d28d9; }
+.cor-cinza { --cor-seguradora: #475569; }
+
+.seguradora-cor {
+  font-weight: 600;
+  color: var(--cor-seguradora);
+}
+.seguradora-cor::before {
+  content: "";
+  display: inline-block;
+  width: 0.6em;
+  height: 0.6em;
+  margin-right: 0.3em;
+  border-radius: 50%;
+  background-color: var(--cor-seguradora);
+}
+/* A sombra de baixo é a do próprio Bootstrap, que pinta a linha destacada pelo mouse. */
+.table > tbody > tr.faixa-seguradora > :first-child {
+  padding-left: 1rem;
+  box-shadow:
+    inset 5px 0 0 var(--cor-seguradora),
+    inset 0 0 0 9999px var(--bs-table-bg-state, var(--bs-table-bg-type, var(--bs-table-accent-bg)));
+}
+.amostra-cor {
+  display: inline-block;
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 50%;
+  background-color: var(--cor-seguradora, #fff);
+}
+/* Escolha da cor no cadastro: cada opção é uma pílula com a amostra e o nome. O botão de
+   opção fica invisível, mas continua lá para o teclado e o leitor de tela. */
+.escolha-de-cor {
+  position: relative;
+}
+.escolha-de-cor input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+}
+main .escolha-de-cor label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.3rem 0.75rem 0.3rem 0.45rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 999px;
+  font-size: 0.9375rem;
+  font-weight: 400;
+  color: var(--bs-body-color);
+  background-color: #fff;
+  cursor: pointer;
+}
+main .escolha-de-cor input:checked + label {
+  border-color: var(--crm-marinho);
+  box-shadow: 0 0 0 1px var(--crm-marinho);
+  font-weight: 600;
+}
+main .escolha-de-cor input:focus-visible + label {
+  outline: 2px solid var(--crm-link);
+  outline-offset: 2px;
+}
+
 /* Menu: fundo marinho, logo branco e uma linha vermelha embaixo, como a faixa do cartão.
    No celular, os itens recolhem atrás do botão de três linhas. */
 .navbar.navbar-crm {
