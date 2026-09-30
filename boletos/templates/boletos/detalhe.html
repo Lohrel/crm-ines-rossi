@@ -2,7 +2,7 @@
 {% block titulo %}{{ object }}{% endblock %}
 {% block conteudo %}
 {% with boleto=object contrato=object.contrato %}
-<nav aria-label="breadcrumb"><ol class="breadcrumb">
+<nav aria-label="Caminho"><ol class="breadcrumb">
   <li class="breadcrumb-item"><a href="{% url 'boletos:lista' %}">Boletos</a></li>
   <li class="breadcrumb-item"><a href="{% url 'boletos:lista' %}?contrato={{ contrato.pk }}&situacao=todos">{{ contrato.cliente }} · {{ contrato.ramo }}</a></li>
   <li class="breadcrumb-item active">{{ boleto.get_tipo_display }} {{ boleto.referencia|date:"m/Y" }}</li>

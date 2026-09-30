@@ -67,6 +67,7 @@ class ClienteDetailView(DetailView):
         contexto["contratos_com_bens"] = [
             contrato for contrato in contratos if contrato.ramo.bem_segurado or contrato.bens.all()
         ]
+        contexto["total_de_bens"] = sum(len(contrato.bens.all()) for contrato in contratos)
         vidas = VidasDoCliente(self.object)
         contexto["vidas"] = vidas
         for unidade in self.object.unidades.all():

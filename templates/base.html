@@ -11,12 +11,12 @@
   <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.min.css' %}">
   <link rel="stylesheet" href="{% static 'css/crm.css' %}">
 </head>
-<body class="{% block classe_do_corpo %}bg-body-tertiary{% endblock %}">
+<body class="{% block classe_do_corpo %}fundo-crm{% endblock %}">
   {% if user.is_authenticated %}
-  {# No celular, os itens recolhem atrás do botão de três linhas. #}
-  <nav class="navbar navbar-expand-xl navbar-crm" data-bs-theme="dark">
+  {# Abaixo de 992 px (tablet e celular), os itens recolhem atrás do botão de três linhas. #}
+  <nav class="navbar navbar-expand-lg navbar-crm" data-bs-theme="dark" aria-label="Menu principal">
     <div class="container">
-      <a class="navbar-brand py-0 me-xl-4" href="{% url 'inicio' %}">
+      <a class="navbar-brand py-0 me-lg-3 me-xl-4" href="{% url 'inicio' %}">
         <img src="{% static 'img/logo-branco.svg' %}" alt="Inês Rossi Corretora de Seguros" width="92" height="42">
       </a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menu-principal"
@@ -29,7 +29,19 @@
           <li class="nav-item"><a class="nav-link{% if item.aberto %} active{% endif %}" href="{{ item.url }}"{% if item.aberto %} aria-current="page"{% endif %}>{{ item.texto }}</a></li>
           {% endfor %}
         </ul>
-        <div class="usuario d-flex align-items-center justify-content-between gap-3">
+        {# No computador, o nome num botão pequeno que mostra o Sair; no menu recolhido, os dois à vista. #}
+        <div class="usuario dropdown d-none d-lg-block">
+          <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">{{ user.first_name|default:user.nome_exibicao }}</button>
+          <div class="dropdown-menu dropdown-menu-end" data-bs-theme="light">
+            <span class="dropdown-item-text small text-body-secondary">{{ user.nome_exibicao }}</span>
+            <hr class="dropdown-divider">
+            <form method="post" action="{% url 'logout' %}">
+              {% csrf_token %}
+              <button type="submit" class="dropdown-item">Sair</button>
+            </form>
+          </div>
+        </div>
+        <div class="usuario d-flex d-lg-none align-items-center justify-content-between gap-3">
           <span class="navbar-text">{{ user.nome_exibicao }}</span>
           <form method="post" action="{% url 'logout' %}">
             {% csrf_token %}

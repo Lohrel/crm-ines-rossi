@@ -11,21 +11,24 @@
 
 <form method="get" class="card card-body shadow-sm mb-3">
   <div class="row g-2 align-items-end">
-    <div class="col-md-3">{{ filtro.q.label_tag }}{{ filtro.q }}</div>
-    <div class="col-md-2">{{ filtro.situacao.label_tag }}{{ filtro.situacao }}</div>
-    <div class="col-md-2">{{ filtro.mes.label_tag }}{{ filtro.mes }}</div>
-    <div class="col-md-2">{{ filtro.cliente.label_tag }}{{ filtro.cliente }}</div>
-    <div class="col-md-2">{{ filtro.tipo.label_tag }}{{ filtro.tipo }}</div>
-    <div class="col-md-1"><button type="submit" class="btn btn-outline-primary w-100">Filtrar</button></div>
+    <div class="col-md-6 col-xl-3">{{ filtro.q.label_tag }}{{ filtro.q }}</div>
+    <div class="col-md-3 col-xl-2">{{ filtro.situacao.label_tag }}{{ filtro.situacao }}</div>
+    <div class="col-md-3 col-xl-2">{{ filtro.mes.label_tag }}{{ filtro.mes }}</div>
+    <div class="col-md-4 col-xl-2">{{ filtro.cliente.label_tag }}{{ filtro.cliente }}</div>
+    <div class="col-md-4 col-xl-2">{{ filtro.tipo.label_tag }}{{ filtro.tipo }}</div>
+    <div class="col-md-4 col-xl-1"><button type="submit" class="btn btn-outline-primary w-100 text-nowrap">Filtrar</button></div>
   </div>
   {% if filtro.mes.errors %}<div class="text-danger small mt-2">{{ filtro.mes.errors|join:" " }}</div>{% endif %}
 </form>
 
-<p class="small text-body-secondary">
-  Sem filtro, a lista mostra tudo que ainda não terminou, de qualquer mês: não é preciso passar pendências para o mês seguinte.
-  Para ver um mês inteiro (inclusive o que já foi concluído), escolha o mês da vigência e a situação "Todas".
-  Para incluir alguém, abra a pessoa em Clientes › Beneficiários.
-</p>
+<details class="como-funciona mb-3">
+  <summary>Como funciona esta lista</summary>
+  <p>
+    Sem filtro, a lista mostra tudo que ainda não terminou, de qualquer mês: não é preciso passar pendências para o mês seguinte.
+    Para ver um mês inteiro (inclusive o que já foi concluído), escolha o mês da vigência e a situação "Todas".
+    Para incluir alguém, abra a pessoa em Clientes › Beneficiários.
+  </p>
+</details>
 
 <div class="card shadow-sm">
   <div class="table-responsive">
@@ -33,7 +36,7 @@
       <thead class="table-light">
         <tr>
           <th style="min-width: 9.5rem">Pessoa</th><th style="min-width: 11rem">Cliente</th><th style="min-width: 12rem">Pedido</th>
-          <th>Envio</th><th>Vigência</th><th>Etapa</th><th>Observação</th>
+          <th>Envio</th><th>Vigência</th><th>Etapa</th><th class="d-none d-xl-table-cell">Observação</th>
         </tr>
       </thead>
       <tbody>
@@ -61,8 +64,9 @@
             {% include "movimentacoes/_etapa.html" %}
             {% if mov.dias_em_aberto is not None %}<div class="small text-body-secondary">{{ mov.dias_em_aberto }} dia{{ mov.dias_em_aberto|pluralize }}</div>{% endif %}
             {% if mov.carteirinha %}<div class="small text-body-secondary">Carteirinha {{ mov.carteirinha }}</div>{% endif %}
+            {% if mov.observacao %}<div class="small fst-italic d-xl-none">{{ mov.observacao|truncatechars:60 }}</div>{% endif %}
           </td>
-          <td class="small">{{ mov.observacao|truncatechars:60 }}</td>
+          <td class="small d-none d-xl-table-cell">{{ mov.observacao|truncatechars:60 }}</td>
         </tr>
       {% empty %}
         <tr><td colspan="7" class="text-center text-body-secondary py-3">Nenhuma movimentação encontrada.</td></tr>
@@ -73,7 +77,7 @@
 </div>
 
 {% if is_paginated %}
-<nav class="mt-3"><ul class="pagination">
+<nav class="mt-3" aria-label="Páginas"><ul class="pagination">
   {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?{{ parametros_busca }}&page={{ page_obj.previous_page_number }}">Anterior</a></li>{% endif %}
   <li class="page-item disabled"><span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span></li>
   {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?{{ parametros_busca }}&page={{ page_obj.next_page_number }}">Próxima</a></li>{% endif %}

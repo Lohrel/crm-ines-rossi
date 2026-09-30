@@ -309,3 +309,16 @@ def test_administrador_exclui_digitando_o_titulo(admin):
     assert resposta.status_code == 302 and resposta.url == "/calendario/?mes=10%2F2026"
     assert not Evento.objects.exists()
     assert Evento.history.filter(history_type="-").count() == 1
+
+
+def test_navegar_entre_os_meses(logado):
+    pagina = logado.get(reverse("calendario:mes"), {"mes": "10/2026"}).content.decode()
+    assert '<span aria-hidden="true">‹</span> Setembro</a>' in pagina
+    assert 'Novembro <span aria-hidden="true">›</span></a>' in pagina
+    assert (
+        f'<a href="{reverse("calendario:mes")}" class="btn btn-outline-secondary">Hoje</a>'
+        in pagina
+    )
+    # No mês atual, o "Hoje" fica marcado.
+    atual = logado.get(reverse("calendario:mes")).content.decode()
+    assert 'class="btn btn-outline-secondary active" aria-current="date">Hoje</a>' in atual

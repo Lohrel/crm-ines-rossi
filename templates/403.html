@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block titulo %}Sem permissão{% endblock %}
+{% block conteudo %}
+<div class="pagina-de-erro">
+  <p class="codigo-do-erro" aria-hidden="true">403</p>
+  <h1 class="h3">Você não tem permissão para esta página</h1>
+  <p class="text-body-secondary">Algumas ações, como excluir registros, são só para administradores. Se precisar, peça a quem administra o sistema.</p>
+  <a href="{% url 'inicio' %}" class="btn btn-primary">Voltar para o início</a>
+</div>
+{% endblock %}

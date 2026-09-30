@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block titulo %}{{ cliente.nome }}{% endblock %}
 {% block conteudo %}
-<nav aria-label="breadcrumb"><ol class="breadcrumb">
+<nav aria-label="Caminho"><ol class="breadcrumb">
   <li class="breadcrumb-item"><a href="{% url 'clientes:lista' %}">Clientes</a></li>
   <li class="breadcrumb-item active">{{ cliente.nome }}</li>
 </ol></nav>
@@ -21,7 +21,21 @@
   </div>
 </div>
 
-<div class="card shadow-sm mb-4">
+{# Atalhos para cada parte da página, que ficam no alto da tela ao rolar. #}
+<nav class="atalhos-do-cliente mb-4" aria-label="Partes da página do cliente">
+  <a href="#pendencias">Pendências <span class="badge rounded-pill">{{ pendencias|length }}</span></a>
+  {% if cliente.eh_empresa %}
+    <a href="#contatos">Contatos <span class="badge rounded-pill">{{ cliente.contatos.all|length }}</span></a>
+    <a href="#unidades">Unidades <span class="badge rounded-pill">{{ cliente.unidades.all|length }}</span></a>
+  {% else %}
+    <a href="#dados">Dados pessoais</a>
+  {% endif %}
+  <a href="#contratos">Contratos <span class="badge rounded-pill">{{ contratos|length }}</span></a>
+  {% if contratos_com_bens %}<a href="#bens">Veículos e imóveis <span class="badge rounded-pill">{{ total_de_bens }}</span></a>{% endif %}
+  <a href="#historico">Histórico</a>
+</nav>
+
+<div class="card shadow-sm mb-4" id="pendencias">
   <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
     <span class="fw-semibold">Pendências em aberto</span>
     <div class="d-flex align-items-center gap-3">
@@ -37,7 +51,7 @@
 </div>
 
 {% if not cliente.eh_empresa %}
-<div class="card shadow-sm mb-4"><div class="card-body">
+<div class="card shadow-sm mb-4" id="dados"><div class="card-body">
   <dl class="row mb-0">
     <dt class="col-sm-3">CPF</dt><dd class="col-sm-9">{{ cliente.cpf_formatado }}</dd>
     <dt class="col-sm-3">Nascimento</dt><dd class="col-sm-9">{{ cliente.data_nascimento|date:"d/m/Y"|default:"—" }}</dd>
@@ -49,7 +63,7 @@
   </dl>
 </div></div>
 {% else %}
-<div class="card shadow-sm mb-4">
+<div class="card shadow-sm mb-4" id="contatos">
   <div class="card-header d-flex justify-content-between align-items-center">
     <span class="fw-semibold">Contatos (RH e outros)</span>
     <a href="{% url 'clientes:novo_contato' cliente.pk %}" class="btn btn-sm btn-primary">Novo contato</a>
@@ -58,7 +72,7 @@
   {% if contatos %}
   <div class="table-responsive">
     <table class="table table-sm align-middle mb-0">
-      <thead><tr><th>Nome</th><th>Cargo/setor</th><th>Unidades que atende</th><th>Telefone</th><th>WhatsApp</th><th>E-mail</th><th></th></tr></thead>
+      <thead><tr><th>Nome</th><th>Cargo/setor</th><th>Unidades que atende</th><th>Telefone</th><th>WhatsApp</th><th>E-mail</th><th><span class="visually-hidden">Ações</span></th></tr></thead>
       <tbody>
       {% for contato in contatos %}
         <tr>
@@ -83,6 +97,7 @@
   {% endwith %}
 </div>
 
+  <div id="unidades">
   {% for unidade in cliente.unidades.all %}
   <div class="card shadow-sm mb-3">
     <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
@@ -120,9 +135,10 @@
   {% empty %}
     <div class="alert alert-warning">Esta empresa ainda não tem unidades cadastradas.</div>
   {% endfor %}
+  </div>
 {% endif %}
 
-<div class="card shadow-sm mb-4">
+<div class="card shadow-sm mb-4" id="contratos">
   <div class="card-header d-flex justify-content-between align-items-center">
     <span class="fw-semibold">Contratos</span>
     <a href="{% url 'apolices:novo_contrato' cliente.pk %}" class="btn btn-sm btn-primary">Novo contrato</a>
@@ -139,19 +155,25 @@
 </div></div>
 {% endif %}
 
-<div class="card shadow-sm mb-5">
+<div class="card shadow-sm mb-5" id="historico">
   <div class="card-header fw-semibold">Histórico de alterações</div>
   <ul class="list-group list-group-flush">
-    {% for evento in historico %}
-      <li class="list-group-item small">
-        <span class="text-body-secondary">{{ evento.quando|date:"d/m/Y H:i" }}</span> ·
-        <strong>{{ evento.quem }}</strong> {{ evento.acao|lower }} {{ evento.registro }}
-        {% if evento.campos %}<span class="text-body-secondary">({{ evento.campos|join:", " }})</span>{% endif %}
-      </li>
+    {% for evento in historico|slice:":5" %}
+      {% include "clientes/_evento_do_historico.html" %}
     {% empty %}
       <li class="list-group-item small text-body-secondary">Sem alterações registradas.</li>
     {% endfor %}
   </ul>
+  {% if historico|length > 5 %}
+  <details class="historico-anterior">
+    {% with resto=historico|length|add:"-5" %}
+    <summary class="small">{% if resto == 1 %}Ver a outra alteração{% else %}Ver as outras {{ resto }} alterações{% endif %}</summary>
+    {% endwith %}
+    <ul class="list-group list-group-flush">
+      {% for evento in historico|slice:"5:" %}{% include "clientes/_evento_do_historico.html" %}{% endfor %}
+    </ul>
+  </details>
+  {% endif %}
 </div>
 
 {% if perms.clientes.delete_cliente or perms.clientes.delete_unidade and cliente.eh_empresa %}

@@ -37,17 +37,20 @@
 {% endwith %}
 {% endif %}
 
-<p class="small text-body-secondary">
-  Sem filtro, a lista mostra as pendências em aberto de todos, pelo prazo: as vencidas ficam em vermelho e as dos próximos {{ dias_de_antecedencia }} dias, em amarelo.
-  Para criar uma pendência já ligada ao cliente, à filial ou à movimentação, use o botão "Nova pendência" na página deles.
-</p>
+<details class="como-funciona mb-3">
+  <summary>Como funciona esta lista</summary>
+  <p>
+    Sem filtro, a lista mostra as pendências em aberto de todos, pelo prazo: as vencidas ficam em vermelho e as dos próximos {{ dias_de_antecedencia }} dias, em amarelo.
+    Para criar uma pendência já ligada ao cliente, à filial ou à movimentação, use o botão "Nova pendência" na página deles.
+  </p>
+</details>
 
 <div class="card shadow-sm">
   {% include "pendencias/_tabela.html" with pendencias=object_list mostrar_cliente=True %}
 </div>
 
 {% if is_paginated %}
-<nav class="mt-3"><ul class="pagination">
+<nav class="mt-3" aria-label="Páginas"><ul class="pagination">
   {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?{{ parametros_busca }}&page={{ page_obj.previous_page_number }}">Anterior</a></li>{% endif %}
   <li class="page-item disabled"><span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span></li>
   {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?{{ parametros_busca }}&page={{ page_obj.next_page_number }}">Próxima</a></li>{% endif %}

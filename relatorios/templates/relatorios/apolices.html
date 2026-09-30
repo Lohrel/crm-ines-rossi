@@ -48,7 +48,7 @@
             <span{% if contrato.renovacao_passou %} class="text-danger" title="A data de renovação já passou"{% endif %}>{{ contrato.data_renovacao|date:"d/m/Y"|default:"—" }}</span>
             {% if contrato.situacao != "ATV" %}<div><span class="badge text-bg-{% if contrato.situacao == 'CAN' %}secondary{% else %}warning{% endif %}">{{ contrato.get_situacao_display }}</span></div>{% endif %}
           </td>
-          <td class="text-end">{{ contrato.vidas }}</td>
+          <td class="text-end">{% if contrato.ramo.bem_segurado %}—{% else %}{{ contrato.vidas }}{% endif %}</td>
         </tr>
       {% empty %}
         <tr><td colspan="6" class="text-center text-body-secondary py-3">Nenhum contrato com estes filtros.</td></tr>

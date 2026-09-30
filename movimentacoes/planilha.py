@@ -148,7 +148,8 @@ class PlanilhaDoMes:
         """Os planos vigentes do cliente e qualquer outro com inclusão na planilha."""
         com_inclusao = self.digitadas(Movimentacao.Tipo.INCLUSAO).values("contrato")
         return list(
-            Contrato.objects.filter(
+            Contrato.objects.de_pessoas()
+            .filter(
                 Q(cliente=self.cliente),
                 Q(pk__in=com_inclusao) | Q(situacao__in=Contrato.SITUACOES_VIGENTES),
             )

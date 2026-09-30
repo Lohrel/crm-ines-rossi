@@ -31,12 +31,19 @@
   --crm-marinho-ativo: #151832;
   /* O vermelho da marca fica no logo e em detalhes finos, nunca em botões: no sistema,
      vermelho quer dizer excluir ou vencido. Os avisos usam um tom mais escuro, que em
-     letra pequena passa no contraste mínimo (5,2:1 contra 4,4:1 do vermelho da marca). */
+     letra pequena passa no contraste mínimo: 6,0:1 no branco e 5,2:1 no fundo das páginas
+     (o vermelho da marca fica em 4,4:1 e 3,8:1). */
   --crm-vermelho: #e62a2b;
-  --crm-alerta: #d42426;
-  --crm-alerta-rgb: 212, 36, 38;
+  --crm-alerta: #c21f22;
+  --crm-alerta-rgb: 194, 31, 34;
   --crm-link: #2f3c8f;
-  --crm-borda: #e1e3ec;
+  --crm-borda: #d3d8e5;
+  /* Tons azul-acinzentados da etapa 10c (opção A): fundo da página, cabeçalho dos cartões e
+     das tabelas e cartão dos filtros. As cores de aviso e as das seguradoras não mudam. */
+  --crm-fundo: #eceef4;
+  --crm-fundo-cabecalho: #e2e6f0;
+  --crm-fundo-tabela: #eef0f6;
+  --crm-fundo-filtros: #f6f7fb;
   --crm-fonte-marca: "Montserrat", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
 
   --bs-primary: var(--crm-marinho);
@@ -154,16 +161,23 @@ h1, .h1, h2, .h2, h3, .h3, h4, .h4 {
   --bs-dropdown-link-active-bg: var(--crm-marinho);
 }
 
+.fundo-crm {
+  background-color: var(--crm-fundo);
+}
 .card {
   --bs-card-border-color: var(--crm-borda);
-  --bs-card-cap-bg: #fbfbfd;
+  --bs-card-cap-bg: var(--crm-fundo-cabecalho);
+}
+/* Os filtros das listas ficam num cartão mais claro que o fundo e mais escuro que a lista. */
+main form.card[method="get"] {
+  background-color: var(--crm-fundo-filtros);
 }
 .card-header {
   color: var(--crm-marinho);
 }
 .table > thead.table-light,
 .table > tfoot.table-light {
-  --bs-table-bg: #eef0f6;
+  --bs-table-bg: var(--crm-fundo-tabela);
   --bs-table-color: var(--crm-marinho);
   --bs-table-border-color: var(--crm-borda);
 }
@@ -447,9 +461,11 @@ a.item-calendario:hover {
 .calendario-mes td.fora-do-mes {
   background-color: #f3f4f8;
 }
-.calendario-mes td.fora-do-mes .numero-do-dia,
-.calendario-mes td.fora-do-mes .item-calendario {
-  opacity: 0.6;
+/* Os dias de outro mês se distinguem pelo fundo e pelo número em cinza. As datas neles não
+   ficam mais transparentes, o que as deixava abaixo do contraste mínimo. */
+.calendario-mes td.fora-do-mes .numero-do-dia {
+  font-weight: 400;
+  color: var(--crm-texto-discreto);
 }
 .cabecalho-do-dia {
   display: flex;
@@ -507,17 +523,31 @@ a.item-calendario:hover {
 .navbar-crm .navbar-nav .nav-link {
   padding-inline: 0.8rem;
 }
-/* Com sete itens, o menu só cabe numa linha a partir de 1200 px; abaixo disso ele recolhe
-   (navbar-expand-xl em base.html). */
-@media (min-width: 1200px) {
+/* Os sete itens cabem numa linha a partir de 992 px (um notebook de 1366 px com zoom de 125%
+   tem 1093 px): entre 992 e 1199 px, os itens ficam mais juntos. Abaixo disso o menu recolhe
+   (navbar-expand-lg em base.html). */
+@media (min-width: 992px) {
   .navbar-crm .navbar-brand img {
-    height: 42px;
+    height: 40px;
+  }
+  .navbar-crm .navbar-nav .nav-link {
+    padding-inline: 0.55rem;
+    font-size: 0.95rem;
   }
   .navbar-crm .navbar-nav .nav-link.active {
     box-shadow: inset 0 -3px 0 var(--crm-vermelho);
   }
 }
-@media (max-width: 1199.98px) {
+@media (min-width: 1200px) {
+  .navbar-crm .navbar-brand img {
+    height: 42px;
+  }
+  .navbar-crm .navbar-nav .nav-link {
+    padding-inline: 0.8rem;
+    font-size: 1rem;
+  }
+}
+@media (max-width: 991.98px) {
   .navbar-crm .navbar-collapse {
     padding-block: 0.5rem;
   }
@@ -615,7 +645,7 @@ a.item-calendario:hover {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--crm-texto-discreto);
-  background-color: var(--bs-card-cap-bg);
+  background-color: var(--crm-fundo-tabela);
 }
 .quadro .list-group-item {
   font-size: 0.9375rem;
@@ -664,9 +694,161 @@ a.placa:focus-visible {
 }
 /* Na página do cliente, a apólice abre o grupo dos seus veículos ou imóveis. */
 .lista-de-bens .apolice-dos-bens {
-  background-color: var(--bs-tertiary-bg);
+  background-color: var(--crm-fundo-tabela);
 }
 /* Os dados de uma linha, separados por um ponto (o que está em branco não aparece). */
 .partes > * + *::before {
   content: " · ";
+}
+
+/* Página do cliente: atalhos para cada parte, que ficam no alto da tela ao rolar. No celular,
+   eles rolam para o lado. */
+.atalhos-do-cliente {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-inline: -0.25rem;
+  padding: 0.5rem 0.25rem;
+  background-color: var(--crm-fundo);
+}
+.atalhos-do-cliente a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--crm-borda);
+  border-radius: 2rem;
+  background-color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+  color: var(--crm-marinho);
+}
+.atalhos-do-cliente a:hover,
+.atalhos-do-cliente a:focus-visible {
+  border-color: var(--crm-marinho);
+  background-color: var(--bs-primary-bg-subtle);
+}
+.atalhos-do-cliente .badge {
+  font-weight: 600;
+  color: var(--crm-marinho);
+  background-color: var(--crm-fundo-cabecalho);
+}
+@media (max-width: 575.98px) {
+  .atalhos-do-cliente {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+}
+/* Ao pular para uma parte, o cabeçalho dela não fica escondido atrás dos atalhos. */
+#pendencias, #dados, #contatos, #unidades, #contratos, #bens, #historico {
+  scroll-margin-top: 4rem;
+}
+.historico-anterior > summary {
+  padding: 0.6rem 1rem;
+  border-top: 1px solid var(--bs-card-border-color);
+  color: var(--bs-link-color);
+  cursor: pointer;
+}
+.historico-anterior[open] > summary {
+  border-bottom: 1px solid var(--bs-card-border-color);
+}
+
+/* Planos da pessoa em selos neutros: o verde fica para "concluído" e "enviado". */
+.badge.selo-plano {
+  color: var(--crm-marinho);
+  background-color: var(--crm-fundo-cabecalho);
+  border: 1px solid var(--crm-borda);
+}
+/* Atalhos da última coluna um embaixo do outro, para a tabela caber na tela. */
+.table td.acoes-empilhadas {
+  padding-left: 0.25rem;
+}
+.table td.acoes-empilhadas .btn-link {
+  display: block;
+  margin-left: auto;
+  padding: 0.05rem 0;
+  text-align: right;
+  white-space: nowrap;
+}
+/* Explicação de uma lista ou tela: recolhida num "Como funciona", que abre ao clicar. */
+.como-funciona {
+  font-size: 0.875rem;
+  color: var(--crm-texto-discreto);
+}
+.como-funciona > summary {
+  display: inline-block;
+  cursor: pointer;
+}
+.como-funciona > summary::before {
+  content: "ⓘ ";
+}
+.como-funciona[open] > summary {
+  margin-bottom: 0.35rem;
+}
+.como-funciona > p {
+  max-width: 60rem;
+  margin-bottom: 0;
+}
+/* Calendário: mês anterior, hoje e mês seguinte, com o nome dos meses. */
+.navegar-meses .btn {
+  white-space: nowrap;
+}
+/* Quadro de vidas (uma coluna por plano): a unidade fica à vista ao rolar para o lado. */
+.quadro-de-vidas > * > tr > :first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  box-shadow: inset -1px 0 0 var(--crm-borda), inset 0 0 0 9999px var(--bs-table-bg);
+}
+
+/* Botões secundários (Cancelar, Importar planilha...): o cinza do Bootstrap ficava abaixo do
+   contraste mínimo e parecia um botão desativado. */
+.btn-outline-secondary {
+  --bs-btn-color: var(--crm-texto-discreto);
+  --bs-btn-border-color: #8a8fa3;
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--crm-texto-discreto);
+  --bs-btn-hover-border-color: var(--crm-texto-discreto);
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: #4a4e60;
+  --bs-btn-active-border-color: #4a4e60;
+  --bs-btn-disabled-color: var(--crm-texto-discreto);
+}
+/* A caixa "Excluir registros" fica sobre o branco, para o vermelho ler bem. */
+details.border-danger-subtle {
+  background-color: #fff;
+}
+/* Links no meio de um texto pequeno (ex.: "preencher" o salário) continuam sublinhados. */
+.table a.link-no-texto {
+  text-decoration: underline;
+}
+/* Páginas de erro (403, 404 e 500): um cartão no meio da tela, com o caminho de volta. */
+.pagina-de-erro {
+  max-width: 34rem;
+  margin: 2.5rem auto;
+  padding: 2rem 1.5rem;
+  border: 1px solid var(--crm-borda);
+  border-radius: 0.5rem;
+  background-color: #fff;
+  text-align: center;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+.codigo-do-erro {
+  margin-bottom: 0.25rem;
+  font-family: var(--crm-fonte-marca);
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--crm-fundo-cabecalho);
+  -webkit-text-stroke: 1px var(--crm-borda);
+}
+/* O título escondido das colunas de ações ("Ações", para leitores de tela) fica preso à
+   tabela que rola para o lado, sem esticar a página no celular. */
+.table-responsive {
+  position: relative;
 }

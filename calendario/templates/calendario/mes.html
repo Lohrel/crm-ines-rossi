@@ -4,11 +4,11 @@
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
   <div class="d-flex flex-wrap align-items-center gap-2">
     <h1 class="h3 mb-0 me-1">{{ mes|date:"F \d\e Y"|capfirst }}</h1>
-    <div class="btn-group" role="group" aria-label="Mudar de mês">
-      <a href="{{ url_anterior }}" class="btn btn-outline-secondary" title="Mês anterior" aria-label="Mês anterior">‹</a>
-      <a href="{{ url_seguinte }}" class="btn btn-outline-secondary" title="Mês seguinte" aria-label="Mês seguinte">›</a>
+    <div class="btn-group navegar-meses" role="group" aria-label="Mudar de mês">
+      <a href="{{ url_anterior }}" class="btn btn-outline-secondary" title="Mês anterior"><span aria-hidden="true">‹</span> {{ mes_anterior|date:"F"|capfirst }}</a>
+      <a href="{% url 'calendario:mes' %}" class="btn btn-outline-secondary{% if eh_este_mes %} active{% endif %}"{% if eh_este_mes %} aria-current="date"{% endif %}>Hoje</a>
+      <a href="{{ url_seguinte }}" class="btn btn-outline-secondary" title="Mês seguinte">{{ mes_seguinte|date:"F"|capfirst }} <span aria-hidden="true">›</span></a>
     </div>
-    {% if not eh_este_mes %}<a href="{% url 'calendario:mes' %}" class="btn btn-outline-secondary">Hoje</a>{% endif %}
   </div>
   <a href="{% url 'calendario:novo' %}" class="btn btn-primary">Novo evento</a>
 </div>
@@ -68,8 +68,11 @@
   {% endfor %}
 </div>
 
-<p class="small text-body-secondary mt-3">
+<details class="como-funciona mt-3">
+  <summary>Como funciona o calendário</summary>
+  <p>
   O calendário junta o que a equipe anota (férias, reuniões, aniversários) com as datas que o sistema já conhece: prazos das pendências em aberto, renovações dos contratos, o fechamento das movimentações e o envio da planilha do seguro de vida.
   No computador, passe o mouse sobre um dia e clique no <strong>+</strong> para anotar nele.
-</p>
+  </p>
+</details>
 {% endblock %}

@@ -100,13 +100,22 @@ class ContratoForm(BootstrapFormMixin, forms.ModelForm):
 class FiltroContratosForm(BootstrapFormMixin, forms.Form):
     q = forms.CharField(label="Buscar", required=False)
     seguradora = forms.ModelChoiceField(
-        Seguradora.objects.all(), required=False, empty_label="Todas as seguradoras"
+        Seguradora.objects.all(),
+        required=False,
+        empty_label="Todas as seguradoras",
+        widget=forms.Select(attrs={"aria-label": "Seguradora"}),
     )
-    ramo = forms.ModelChoiceField(Ramo.objects.all(), required=False, empty_label="Todos os ramos")
+    ramo = forms.ModelChoiceField(
+        Ramo.objects.all(),
+        required=False,
+        empty_label="Todos os ramos",
+        widget=forms.Select(attrs={"aria-label": "Ramo"}),
+    )
     situacao = forms.ChoiceField(
         label="Situação",
         required=False,
         choices=[("", "Vigentes"), ("todas", "Todas"), *Contrato.Situacao.choices],
+        widget=forms.Select(attrs={"aria-label": "Situação"}),
     )
     boleto = forms.BooleanField(label="Só boletos enviados pela corretora", required=False)
     # Traz também os vigentes com a data de renovação já passada, que ficam no topo.

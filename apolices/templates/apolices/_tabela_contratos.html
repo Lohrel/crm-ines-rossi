@@ -5,7 +5,7 @@
         {% if mostrar_cliente %}<th>Cliente</th>{% endif %}
         <th>Seguradora / nº</th><th>Ramo / produto</th><th>Vidas</th><th>Vence dia</th><th>Valor mensal</th>
         {% if not mostrar_cliente %}<th>Unidades</th>{% endif %}
-        <th>Situação</th><th></th>
+        <th>Situação</th><th><span class="visually-hidden">Ações</span></th>
       </tr>
     </thead>
     <tbody>
@@ -36,9 +36,9 @@
           {% if contrato.situacao == "ATV" %}<span class="badge text-bg-success">{{ contrato.get_situacao_display }}</span>
           {% elif contrato.situacao == "CAN" %}<span class="badge text-bg-secondary">{{ contrato.get_situacao_display }}</span>
           {% else %}<span class="badge text-bg-warning">{{ contrato.get_situacao_display }}</span>{% endif %}
-          {% if contrato.vigente and contrato.data_renovacao %}<div class="small text-nowrap {% if contrato.renovacao_passou %}text-danger{% else %}text-body-secondary{% endif %}">Renovação {{ contrato.data_renovacao|date:"d/m/Y" }}</div>{% endif %}
+          {% if contrato.vigente and contrato.data_renovacao %}<div class="small {% if contrato.renovacao_passou %}text-danger{% else %}text-body-secondary{% endif %}">Renovação {{ contrato.data_renovacao|date:"d/m/Y" }}</div>{% endif %}
         </td>
-        <td class="text-end text-nowrap">
+        <td class="text-end acoes-empilhadas">
           {% if contrato.corretora_envia_boleto %}<a href="{% url 'boletos:lista' %}?contrato={{ contrato.pk }}&situacao=todos" class="btn btn-sm btn-link">Boletos</a>{% endif %}
           {% if contrato.calcula_capital %}<a href="{% url 'beneficiarios:seguro_de_vida' contrato.pk %}" class="btn btn-sm btn-link">Planilha de vidas</a>{% endif %}
           <a href="{% url 'pendencias:lista' %}?contrato={{ contrato.pk }}" class="btn btn-sm btn-link">Pendências</a>

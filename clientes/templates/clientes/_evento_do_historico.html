@@ -1,0 +1,5 @@
+<li class="list-group-item small">
+  <span class="text-body-secondary">{{ evento.quando|date:"d/m/Y H:i" }}</span> ·
+  <strong>{{ evento.quem }}</strong> {{ evento.acao|lower }} {{ evento.registro }}
+  {% if evento.campos %}<span class="text-body-secondary">({{ evento.campos|join:", " }})</span>{% endif %}
+</li>

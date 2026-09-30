@@ -142,7 +142,8 @@ class Painel:
         """Próximos fechamentos das movimentações e o envio da planilha do seguro de vida."""
         vigentes = Contrato.objects.vigentes()
         fechamentos = (
-            vigentes.filter(dia_fechamento__isnull=False)
+            vigentes.de_pessoas()
+            .filter(dia_fechamento__isnull=False)
             .order_by()
             .values("dia_fechamento")
             .annotate(contratos=Count("pk"))

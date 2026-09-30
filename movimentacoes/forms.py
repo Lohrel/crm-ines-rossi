@@ -79,9 +79,8 @@ class MovimentacaoForm(BootstrapFormMixin, forms.ModelForm):
 
     @staticmethod
     def _planos_possiveis(tipo: str, pessoa: Beneficiario):
-        contratos = Contrato.objects.filter(cliente=pessoa.cliente).select_related(
-            "ramo", "seguradora"
-        )
+        contratos = Contrato.objects.de_pessoas().filter(cliente=pessoa.cliente)
+        contratos = contratos.select_related("ramo", "seguradora")
         no_plano = pessoa.vinculos.filter(data_exclusao__isnull=True).values("contrato")
         if tipo == Movimentacao.Tipo.EXCLUSAO:
             return contratos.filter(pk__in=no_plano)

@@ -1,0 +1,22 @@
+{% load static %}<!doctype html>
+{# Sai sem o menu e sem nada do banco: numa falha do servidor, só o que não depende dele. #}
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Algo deu errado · Inês Rossi</title>
+  <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
+  <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.min.css' %}">
+  <link rel="stylesheet" href="{% static 'css/crm.css' %}">
+</head>
+<body class="fundo-crm">
+  <main class="container py-4">
+    <div class="pagina-de-erro">
+      <img src="{% static 'img/logo-completo-cor.svg' %}" alt="Inês Rossi Corretora de Seguros" width="200" height="86" class="mb-3">
+      <h1 class="h3">Algo deu errado</h1>
+      <p class="text-body-secondary">O sistema não conseguiu terminar o que foi pedido, e o erro ficou registrado. Tente de novo em alguns minutos; se continuar, avise quem administra o sistema.</p>
+      <a href="/" class="btn btn-primary">Voltar para o início</a>
+    </div>
+  </main>
+</body>
+</html>

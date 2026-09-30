@@ -201,7 +201,8 @@ def test_pagina_da_pessoa_leva_a_preencher_o_salario(logado, titular, conjuge, v
     na_vida(conjuge, vida, None)
     pagina = logado.get(titular.get_absolute_url()).content.decode()
     editar = reverse("beneficiarios:editar_plano", args=[vinculo.pk])
-    assert f'não informado</span> (<a href="{editar}">preencher</a>)' in pagina
+    link = f'<a href="{editar}" class="link-no-texto">preencher</a>'
+    assert f"não informado</span> ({link})" in pagina
     # Dependente não tem salário: a linha do plano mostra só o capital.
     assert "Salário" not in logado.get(conjuge.get_absolute_url()).content.decode()
 

@@ -29,14 +29,17 @@ As telas novas seguem o que já existe:
 
 | Elemento | Como é feito |
 |---|---|
-| Cores | marinho `#1E2242` (`--crm-marinho`) é a cor principal: menu, botões, títulos e links. O vermelho da marca (`#E62A2B`) fica só no logo e em detalhes finos, nunca em botões, porque no sistema vermelho quer dizer excluir ou vencido. Os avisos usam `--crm-alerta` (`#D42426`), mais legível em letra pequena |
+| Cores | marinho `#1E2242` (`--crm-marinho`) é a cor principal: menu, botões, títulos e links. O vermelho da marca (`#E62A2B`) fica só no logo e em detalhes finos, nunca em botões, porque no sistema vermelho quer dizer excluir ou vencido. Os avisos usam `--crm-alerta` (`#C21F22`), que passa no contraste mínimo em letra pequena também sobre o fundo das páginas |
+| Tons neutros | azul-acinzentados, escolhidos pelo Lohrel na etapa 10c (opção A) para as telas não ficarem só brancas: fundo das páginas `--crm-fundo` (`#ECEEF4`, classe `fundo-crm` no `body`), cabeçalho dos cartões `--crm-fundo-cabecalho` (`#E2E6F0`), cabeçalho das tabelas `--crm-fundo-tabela` (`#EEF0F6`) e cartão dos filtros `--crm-fundo-filtros` (`#F6F7FB`, em todo `form.card` com `method="get"`). Os cartões continuam brancos por dentro. As cores de aviso e as das seguradoras não mudam |
 | Texto | Montserrat nos títulos, no menu, nos cabeçalhos dos quadros e no caminho; o resto na fonte do sistema. Rótulos dos campos pequenos, em seminegrito e sem dois pontos; ajuda menor e em cinza; cabeçalho das tabelas pequeno, em maiúsculas; nas páginas de detalhe (`dl.row`), o nome do campo discreto e o valor em destaque |
 | Links | nomes nas tabelas, caminho e títulos sem sublinhado, que aparece ao passar o mouse; no meio de um texto, continuam sublinhados |
 | Título da página | `<h1 class="h3">`, com uma linha `.text-body-secondary` embaixo quando precisa |
 | Caminho | `breadcrumb` nas páginas que ficam dentro de um cliente (cliente › contrato › ...) |
 | Blocos | `card shadow-sm mb-4`, com `card-header fw-semibold` |
-| Tabelas | `table table-sm align-middle` dentro de `.table-responsive`, cabeçalho `table-light` |
-| Botões | ação principal `btn-primary`; as demais `btn-outline-primary` ou `btn-outline-secondary`; vermelho só para excluir |
+| Tabelas | `table table-sm align-middle` dentro de `.table-responsive`, cabeçalho `table-light`. Coluna de ações com o título escondido (`<th><span class="visually-hidden">Ações</span></th>`); se a linha tem vários atalhos, eles ficam um embaixo do outro (`td.acoes-empilhadas`), para a tabela caber na tela. No computador (a partir de 1024 px), nenhuma tabela deve rolar para o lado, com exceção do quadro de vidas, que tem uma coluna por plano e deixa a unidade fixa |
+| Botões | ação principal `btn-primary`; as demais `btn-outline-primary` ou `btn-outline-secondary` (num cinza mais escuro que o do Bootstrap, que parecia desativado); vermelho só para excluir |
+| Selos | planos da pessoa em selos neutros (`badge selo-plano`); o verde fica para "concluído", "enviado" e "ativo". Nas listas, selo só para o que é exceção (ex.: "Inativo" ao lado do nome), não para o que vale para quase todas as linhas |
+| Explicações | o texto de ajuda de uma lista (ou do calendário) fica recolhido em `<details class="como-funciona"><summary>Como funciona esta lista</summary><p>...</p></details>` |
 | Prazos | vencido em vermelho e perto de vencer em amarelo (boletos: 7 dias; pendências: 3 dias), com o texto de `clientes/prazos.py` ("vence em 3 dias") |
 | Formulários | cadastros e edições usam o `FormularioMixin` (`clientes/views.py`), com a tela comum `clientes/formulario.html`; os campos saem de `clientes/_campos.html`, com asterisco vermelho nos obrigatórios. Nas listas de escolha, a opção vazia é "Escolha" (o `BootstrapFormMixin` troca o "---------" do Django). Botão ao lado de campos com rótulo: ponha em cima dele um `<div class="form-label invisible" aria-hidden="true">.</div>`, da altura do rótulo |
 | Selos de movimentação | Inclusão em marinho, Alteração de plano em marinho claro e Exclusão com contorno escuro (`movimentacoes/_tipo.html`) |
@@ -47,6 +50,7 @@ As telas novas seguem o que já existe:
 | Veículos e imóveis | cartão "Veículos e imóveis segurados" na página do cliente (`apolices/_bens_do_cliente.html`), só quando ele tem apólice de auto ou imóvel: um grupo por apólice, com a faixa da seguradora e o botão "Adicionar veículo" ou "Adicionar imóvel"; em cada item, o nome e, embaixo, os dados mais consultados separados por ponto (classe `partes`). A placa usa a classe `placa`, que lembra a do Mercosul, e na tabela de contratos leva à página do veículo. Para excluir um veículo, digita-se a placa |
 | Datas e meses | `CampoData` e `MesField`: a barra entra sozinha, o primeiro clique seleciona a data inteira (para digitar por cima) e há um botão de calendário |
 | Exclusão | caixa `<details>` "Excluir registros" no fim da página, à direita, e página de confirmação digitada (`ExclusaoConfirmadaView` com `clientes/excluir.html`) |
+| Páginas de erro | `templates/403.html` e `templates/404.html`, com o menu, e `templates/500.html`, sozinha (sai sem nada do banco): um cartão no meio da tela (`pagina-de-erro`) com o botão "Voltar para o início" |
 | Importação | prévia de cada linha antes de gravar; se a prévia tem um campo de texto, o primeiro botão do formulário (escondido) só atualiza a prévia, para o Enter nunca confirmar |
 
 O escritório valoriza economizar digitação e cliques. Atalhos que já abrem o formulário certo são
@@ -55,11 +59,15 @@ bem-vindos, como "Nova pendência" dentro do cliente ou "preencher" o salário n
 ## Onde fica cada tela
 
 O menu (`contas/menu.py`) tem Clientes, Contratos, Movimentações, Boletos, Pendências, Calendário e
-Relatórios.
+Relatórios. Ele fica numa linha a partir de 992 px (um notebook de 1366 px com zoom de 125% tem
+1093 px), com o nome de quem entrou num botão que mostra o Sair, e recolhe abaixo disso.
 Algumas telas ficam dentro de outras:
 
 - Seguradoras: botão na página de Contratos.
-- Beneficiários: botão na página do cliente.
+- Beneficiários: botão na página do cliente. A página do cliente tem atalhos no topo para cada parte
+  (Pendências, Contatos, Unidades, Contratos, Veículos e imóveis e Histórico, com as quantidades),
+  que ficam no alto da tela ao rolar, e o histórico mostra as 5 alterações mais recentes, com as
+  outras num "Ver as outras".
 - Planilha mensal (baixar e importar): botão em Movimentações.
 - Planilha do seguro de vida: "Planilha de vidas" na tabela de contratos e na Planilha mensal.
 - Início (`contas/templates/contas/inicio.html`): o painel das etapas 8a e 8b, com um arquivo por
@@ -103,24 +111,31 @@ menos poluída: uma faixa à esquerda da linha nas listas de movimentações, co
 pendências, seguradoras e planos da pessoa, e um ponto colorido antes do nome da seguradora nas
 outras telas. No celular, a faixa aparece mesmo quando a tabela esconde a coluna da seguradora.
 
+**10c (feita).** Uma análise das 47 telas a 1280, 1024 e 390 px, com dados fictícios e o axe-core
+(acessibilidade), levou às propostas que o Lohrel escolheu (30/09/2026): o menu numa linha a
+partir de 992 px, os tons azul-acinzentados (entre três opções), a página do cliente com atalhos e
+o histórico recolhido, menos selos repetidos nas listas, o calendário com o nome dos meses nas
+setas e o "Hoje" sempre à mão, e as explicações das listas recolhidas. Entraram também as páginas
+de erro em português, as correções de acessibilidade (contraste, nomes dos campos e das colunas)
+e a correção de auto e imóvel nas vidas: os contratos que guardam veículos ou imóveis não entram no
+quadro de vidas, nos planos das pessoas, na planilha mensal nem nos fechamentos.
+
 Falta:
 
-- Menu: com sete itens, ele só cabe numa linha a partir de 1200 px e recolhe abaixo disso
-  (`navbar-expand-xl`). Reorganizar com o Lohrel (ex.: agrupar itens).
+- **10d**, celular: as listas (Clientes, Movimentações, Boletos, Pendências e Contratos, e as
+  tabelas da página do cliente) viram fichas abaixo de 576 px, com os botões grandes, e os filtros
+  ficam recolhidos num botão com o resumo do que está filtrado. Combinado com o Lohrel a partir de
+  um protótipo feito só no navegador (CSS e HTML aplicados na tela, sem mudar o código).
 - Painel inicial: feito na etapa 8a, já no visual da corretora. Falta a equipe aprovar.
-- Celular: nenhuma tela rola mais para o lado a 390 px, mas os filtros ocupam a primeira tela e, nas
-  tabelas largas (que rolam dentro de `.table-responsive`), os botões da última coluna (ex.: "Enviado
-  hoje", "Concluir") ficam escondidos à direita.
-- Lista de contratos: a 1280 px, a tabela passa um pouco da largura quando uma linha tem três
-  atalhos (ex.: "Planilha de vidas", "Pendências" e "Editar"), e o "Editar" fica escondido à
-  direita.
 - Nesta etapa muda só a aparência, não o comportamento: os testes existentes continuam passando.
 
 ## Conferir as telas
 
 Use um navegador headless (Playwright com Chromium) e dados fictícios:
 
-- tire capturas a 1280 px e a 390 px de largura;
+- tire capturas a 1280, 1024 e 390 px de largura;
+- rode o axe-core (`npm install axe-core` numa pasta fora do repositório) em cada tela: a etapa 10c
+  deixou todas sem problemas;
 - no celular, `document.documentElement.scrollWidth` maior que a largura da janela indica rolagem
   lateral;
 - na importação da planilha do seguro de vida (`beneficiarios/importar_vidas.html`), o botão
