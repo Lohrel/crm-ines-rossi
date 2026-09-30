@@ -140,8 +140,9 @@ pytest -q
   (`clientes/views.py`), e o endereço de volta em `proximo` passa sempre por `destino_seguro`.
 - Importação de planilha sempre tem prévia antes de gravar: a prévia roda numa transação desfeita no
   fim, a planilha lida vai assinada no formulário (`django.core.signing`) e a confirmação grava tudo
-  numa transação só. Há limites de tamanho, de arquivo descompactado e de linhas. O modelo é
-  `movimentacoes/importacao.py`; o PR #11 separa as partes comuns em `clientes/planilhas.py`.
+  numa transação só. Há limites de tamanho, de arquivo descompactado e de linhas. Veja
+  `movimentacoes/importacao.py` (planilha mensal) e `beneficiarios/importacao_de_vidas.py` (seguro
+  de vida); as partes comuns ficam em `clientes/planilhas.py`.
 - Planilhas do Excel com openpyxl (a leitura é protegida pelo `defusedxml`). Na exportação, texto que
   começa com `=` não pode virar fórmula.
 - Testes com pytest-django. Fixtures compartilhados ficam em `*/tests/fixtures.py`, carregados pelo
@@ -151,11 +152,11 @@ pytest -q
 
 ## Estado atual (30/09/2026)
 
-- As etapas 0 a 7a estão no `main`.
-- **7b**, importar a planilha atual do seguro de vida com prévia de cada vida: PR #11, branch
-  `etapa-7b-importar-vidas`. Está esperando o Lohrel testar com a planilha real no computador dele
-  (a importação ignora linhas sem nome). Se ele achar um problema, corrija nesse mesmo branch. A
-  descrição do PR explica como a importação funciona. Com o merge, a etapa 7 termina.
+- As etapas 0 a 7 estão no `main`.
+- A etapa 7b (importar a planilha atual do seguro de vida, com prévia de cada vida) entrou no `main`
+  pelo PR #11 antes do teste com a planilha real, que o Lohrel faz no computador dele (a importação
+  ignora linhas sem nome). Se ele achar um problema, corrija num branch novo a partir do `main`, com
+  um PR novo. A descrição do PR #11 explica como a importação funciona.
 - A instalação no servidor do escritório, com os 4 logins, ainda não foi confirmada.
 - Próximas etapas:
   - **8. Painel e relatórios**: proposta em
