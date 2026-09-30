@@ -1,3 +1,4 @@
+import re
 from calendar import monthrange
 from datetime import date
 from decimal import Decimal
@@ -9,8 +10,8 @@ from django.db.models import Q
 from django.urls import reverse
 from simple_history.models import HistoricalRecords
 
-from clientes.documentos import CNPJ
-from clientes.models import Cliente, Registro, Unidade
+from clientes.documentos import CNPJ, cpf_ou_cnpj
+from clientes.models import Cliente, Endereco, ExclusaoProtegida, Registro, Unidade
 from clientes.validators import validar_cnpj
 
 # O painel e a lista de contratos avisam as renovações com esta antecedência.
@@ -66,11 +67,23 @@ class Seguradora(Registro):
         return CNPJ(self.cnpj).formatado() if self.cnpj else ""
 
 
+class TipoDeBem(models.TextChoices):
+    VEICULO = "VEI", "Veículo"
+    IMOVEL = "IMO", "Imóvel"
+
+
 class Ramo(models.Model):
     """Ramo do seguro: vida, saúde, dental, auto, imóvel..."""
 
     nome = models.CharField(max_length=60, unique=True)
     ativo = models.BooleanField(default=True)
+    bem_segurado = models.CharField(
+        "bem segurado",
+        max_length=3,
+        choices=TipoDeBem.choices,
+        blank=True,
+        help_text="No seguro de auto ou imóvel, cada contrato guarda os veículos ou imóveis.",
+    )
 
     class Meta:
         ordering = ["nome"]
@@ -237,6 +250,11 @@ class Contrato(Registro):
         return self.vigente and self.data_renovacao is not None and self.data_renovacao < hoje
 
     @property
+    def veiculos_com_placa(self) -> list["BemSegurado"]:
+        """Os veículos segurados com placa (nas listas, use prefetch_related("bens"))."""
+        return [bem for bem in self.bens.all() if bem.placa]
+
+    @property
     def nome_do_plano(self) -> str:
         """Como o escritório chama o plano (ex.: PLENO); sem produto, o número do contrato."""
         return self.produto or self.numero
@@ -334,3 +352,122 @@ class Subfatura(Registro):
 
     def get_absolute_url(self) -> str:
         return self.contrato.get_absolute_url()
+
+
+# Placa antiga (ABC1234) ou do Mercosul (ABC1D23), sem o traço.
+PLACA = re.compile(r"[A-Z]{3}\d[A-Z0-9]\d{2}")
+
+
+def limpar_placa(texto: str) -> str:
+    return re.sub(r"[^0-9A-Za-z]", "", texto or "").upper()
+
+
+class BemSegurado(ExclusaoProtegida, Endereco, Registro):
+    """Veículo ou imóvel de uma apólice de auto ou imóvel, guardado para consulta.
+
+    Traz os dados da planilha que o escritório usava (placa, Renavam, condutor, coberturas,
+    capitais...). A vigência, o número da apólice e a seguradora ficam no próprio contrato.
+    No veículo, o CEP é o de pernoite; no imóvel, o do endereço.
+    """
+
+    contrato = models.ForeignKey(Contrato, on_delete=models.CASCADE, related_name="bens")
+    tipo = models.CharField(max_length=3, choices=TipoDeBem.choices)
+    descricao = models.CharField("descrição", max_length=150)
+    proprietario = models.CharField(
+        "proprietário", max_length=200, blank=True, help_text="Em branco, é o próprio cliente."
+    )
+    documento_proprietario = models.CharField("CPF/CNPJ do proprietário", max_length=14, blank=True)
+    placa = models.CharField(max_length=7, blank=True)
+    ano_modelo = models.CharField(
+        "ano/modelo", max_length=9, blank=True, help_text="Ex.: 2024/2025."
+    )
+    renavam = models.CharField("Renavam", max_length=11, blank=True)
+    cor = models.CharField(max_length=30, blank=True)
+    combustivel = models.CharField("combustível", max_length=30, blank=True)
+    condutor_principal = models.CharField("condutor principal", max_length=200, blank=True)
+    condutor_jovem = models.BooleanField("condutor entre 18 e 24 anos", default=False)
+    danos_materiais = models.DecimalField(
+        "danos materiais a terceiros (R$)",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Em branco, não contratado.",
+    )
+    danos_corporais = models.DecimalField(
+        "danos corporais a terceiros (R$)",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Em branco, não contratado.",
+    )
+    danos_morais = models.DecimalField(
+        "danos morais/estéticos a terceiros (R$)",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Em branco, não contratado.",
+    )
+    capitais = models.TextField(
+        "capitais segurados",
+        blank=True,
+        help_text="Cada cobertura com o seu valor, uma por linha (ex.: incêndio, vendaval).",
+    )
+    premio = models.DecimalField(
+        "prêmio (R$)", max_digits=12, decimal_places=2, null=True, blank=True
+    )
+    observacao = models.TextField(
+        "observação", blank=True, help_text="Ex.: forma de pagamento ou franquia."
+    )
+
+    history = HistoricalRecords()
+
+    class Meta:
+        verbose_name = "bem segurado"
+        verbose_name_plural = "bens segurados"
+        ordering = ["contrato", "tipo", "descricao", "pk"]
+
+    def __str__(self) -> str:
+        """Com a placa ou a rua, para distinguir os carros de uma frota ou os imóveis."""
+        if self.eh_veiculo:
+            detalhe = self.placa_formatada
+        else:
+            detalhe = ", ".join(parte for parte in [self.logradouro, self.numero] if parte)
+        return f"{self.descricao} · {detalhe}" if detalhe else self.descricao
+
+    def get_absolute_url(self) -> str:
+        return reverse("apolices:bem", args=[self.pk])
+
+    @property
+    def eh_veiculo(self) -> bool:
+        return self.tipo == TipoDeBem.VEICULO
+
+    @property
+    def nome_no_historico(self) -> str:
+        """Na linha do tempo do cliente, "Veículo: ..." ou "Imóvel: ..."."""
+        return self.get_tipo_display()
+
+    @property
+    def nome_para_confirmar(self) -> str:
+        """O que se digita para excluir: a placa do veículo ou a descrição."""
+        return self.placa_formatada or self.descricao
+
+    @property
+    def placa_formatada(self) -> str:
+        """A placa antiga sai com traço (ABC-1234); a do Mercosul, sem (ABC1D23)."""
+        if len(self.placa) == 7 and self.placa[3:].isdigit():
+            return f"{self.placa[:3]}-{self.placa[3:]}"
+        return self.placa
+
+    @property
+    def documento_formatado(self) -> str:
+        documento = cpf_ou_cnpj(self.documento_proprietario)
+        return documento.formatado() if documento else self.documento_proprietario
+
+    def clean(self) -> None:
+        super().clean()
+        self.placa = limpar_placa(self.placa)
+        if self.placa and not PLACA.fullmatch(self.placa):
+            raise ValidationError({"placa": "Placa inválida. Use ABC1D23 ou ABC-1234."})

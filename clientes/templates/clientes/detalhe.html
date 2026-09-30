@@ -130,6 +130,8 @@
   {% include "apolices/_tabela_contratos.html" with contratos=contratos mostrar_cliente=False %}
 </div>
 
+{% if contratos_com_bens %}{% include "apolices/_bens_do_cliente.html" %}{% endif %}
+
 {% if cliente.observacoes %}
 <div class="card shadow-sm mb-4"><div class="card-body">
   <h2 class="h6">Observações</h2>

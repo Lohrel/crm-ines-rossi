@@ -44,6 +44,7 @@ As telas novas seguem o que já existe:
 | Painel | cada quadro é um `card` com o título no cabeçalho, o número em destaque (`numero-do-quadro`), que leva à lista já filtrada com os mesmos registros, e até 3 registros embaixo (`list-group-flush`), o mais urgente primeiro. Nos registros, o nome vem na primeira linha e o prazo, em selo, no começo da segunda |
 | Calendário | cada data tem a cor da categoria (`item-ferias`, `item-evento`, `item-prazo`, `item-renovacao` com a cor da seguradora e `item-pendencia`, em `crm.css`): etiqueta de até duas linhas na grade do mês (`calendario/_item.html`) e faixa à esquerda nas listas (`item-da-lista`). A grade (tabela `calendario-mes`, de domingo a sábado) aparece a partir de 992 px; abaixo, a lista dos dias, com cada evento de vários dias só no primeiro dia |
 | Relatórios | um por página em `relatorios/`: filtros num cartão, com os botões "Filtrar" e "Baixar em Excel" (os mesmos filtros com `formato=excel`), o resumo numa linha, a tabela em páginas de 200 e o Excel inteiro, gerado por `relatorios/excel.py` (título com os filtros na linha 1, colunas na linha 2) |
+| Veículos e imóveis | cartão "Veículos e imóveis segurados" na página do cliente (`apolices/_bens_do_cliente.html`), só quando ele tem apólice de auto ou imóvel: um grupo por apólice, com a faixa da seguradora e o botão "Adicionar veículo" ou "Adicionar imóvel"; em cada item, o nome e, embaixo, os dados mais consultados separados por ponto (classe `partes`). A placa usa a classe `placa`, que lembra a do Mercosul, e na tabela de contratos leva à página do veículo. Para excluir um veículo, digita-se a placa |
 | Datas e meses | `CampoData` e `MesField`: a barra entra sozinha, o primeiro clique seleciona a data inteira (para digitar por cima) e há um botão de calendário |
 | Exclusão | caixa `<details>` "Excluir registros" no fim da página, à direita, e página de confirmação digitada (`ExclusaoConfirmadaView` com `clientes/excluir.html`) |
 | Importação | prévia de cada linha antes de gravar; se a prévia tem um campo de texto, o primeiro botão do formulário (escondido) só atualiza a prévia, para o Enter nunca confirmar |
@@ -66,6 +67,10 @@ Algumas telas ficam dentro de outras:
   cliente.
 - Evento do calendário: cada um tem página própria (`calendario/evento.html`), aberta pela data no
   calendário; o "+" de cada dia da grade abre o cadastro já com a data.
+- Veículos e imóveis: no cartão da página do cliente, que tem o botão de cadastro em cada apólice
+  de auto ou imóvel. Cada um tem página própria (`apolices/bem.html`), com todos os dados, o
+  histórico e a exclusão. O formulário tem dois blocos, os mesmos da página: o veículo (ou o
+  imóvel) e as coberturas (ou os capitais) com o prêmio.
 
 ## Problemas conhecidos
 
@@ -106,6 +111,9 @@ Falta:
 - Celular: nenhuma tela rola mais para o lado a 390 px, mas os filtros ocupam a primeira tela e, nas
   tabelas largas (que rolam dentro de `.table-responsive`), os botões da última coluna (ex.: "Enviado
   hoje", "Concluir") ficam escondidos à direita.
+- Lista de contratos: a 1280 px, a tabela passa um pouco da largura quando uma linha tem três
+  atalhos (ex.: "Planilha de vidas", "Pendências" e "Editar"), e o "Editar" fica escondido à
+  direita.
 - Nesta etapa muda só a aparência, não o comportamento: os testes existentes continuam passando.
 
 ## Conferir as telas

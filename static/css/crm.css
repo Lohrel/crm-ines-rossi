@@ -636,3 +636,37 @@ a.item-calendario:hover {
 .quadro > .card-header + .titulo-da-lista {
   border-top: 0;
 }
+
+/* Veículos e imóveis segurados: a placa lembra a do Mercosul, com a faixa marinho em cima. */
+.placa {
+  display: inline-block;
+  padding: 0 0.4em;
+  border: 1px solid #9aa0b8;
+  border-top: 3px solid var(--crm-marinho);
+  border-radius: 0.25rem;
+  font-family: var(--bs-font-monospace);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  color: var(--bs-body-color);
+  background-color: #fff;
+}
+a.placa {
+  text-decoration: none;
+}
+a.placa:hover,
+a.placa:focus-visible {
+  border-color: var(--crm-marinho);
+  color: var(--crm-marinho);
+  background-color: var(--bs-primary-bg-subtle);
+}
+/* Na página do cliente, a apólice abre o grupo dos seus veículos ou imóveis. */
+.lista-de-bens .apolice-dos-bens {
+  background-color: var(--bs-tertiary-bg);
+}
+/* Os dados de uma linha, separados por um ponto (o que está em branco não aparece). */
+.partes > * + *::before {
+  content: " · ";
+}

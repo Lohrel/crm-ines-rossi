@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block titulo %}{{ object }}{% endblock %}
+{% block conteudo %}
+{% with bem=object contrato=object.contrato cliente=object.contrato.cliente %}
+<nav aria-label="breadcrumb"><ol class="breadcrumb">
+  <li class="breadcrumb-item"><a href="{% url 'clientes:lista' %}">Clientes</a></li>
+  <li class="breadcrumb-item"><a href="{{ cliente.get_absolute_url }}#bens">{{ cliente }}</a></li>
+  <li class="breadcrumb-item active">{{ bem.get_tipo_display }}</li>
+</ol></nav>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-1">{{ bem.descricao }}{% if bem.placa %} <span class="placa align-middle">{{ bem.placa_formatada }}</span>{% endif %}</h1>
+    <div>
+      {% include "apolices/_seguradora.html" with seguradora=contrato.seguradora %}
+      <span class="text-body-secondary">· {{ contrato.ramo }} · apólice {{ contrato.numero }}</span>
+      {% if not contrato.vigente %}<span class="badge text-bg-secondary">{{ contrato.get_situacao_display }}</span>{% endif %}
+    </div>
+    <div class="small text-body-secondary">
+      Início em {{ contrato.inicio_vigencia|date:"d/m/Y" }}{% if contrato.data_renovacao %} · renovação em <span{% if contrato.renovacao_passou %} class="text-danger"{% endif %}>{{ contrato.data_renovacao|date:"d/m/Y" }}</span>{% endif %}
+    </div>
+  </div>
+  <a href="{% url 'apolices:editar_bem' bem.pk %}" class="btn btn-outline-primary">Editar</a>
+</div>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-header fw-semibold">{% if bem.eh_veiculo %}Veículo{% else %}Imóvel{% endif %}</div>
+  <div class="card-body">
+    <dl class="row mb-0">
+      {% if bem.eh_veiculo %}
+        <dt class="col-sm-4 col-lg-3">Placa</dt><dd class="col-sm-8 col-lg-9">{{ bem.placa_formatada|default:"—" }}</dd>
+        <dt class="col-sm-4 col-lg-3">Ano/modelo</dt><dd class="col-sm-8 col-lg-9">{{ bem.ano_modelo|default:"—" }}</dd>
+        <dt class="col-sm-4 col-lg-3">Cor</dt><dd class="col-sm-8 col-lg-9">{{ bem.cor|default:"—" }}</dd>
+        <dt class="col-sm-4 col-lg-3">Combustível</dt><dd class="col-sm-8 col-lg-9">{{ bem.combustivel|default:"—" }}</dd>
+        <dt class="col-sm-4 col-lg-3">Renavam</dt><dd class="col-sm-8 col-lg-9">{{ bem.renavam|default:"—" }}</dd>
+        <dt class="col-sm-4 col-lg-3">CEP de pernoite</dt><dd class="col-sm-8 col-lg-9">{{ bem.cep|default:"—" }}</dd>
+        <dt class="col-sm-4 col-lg-3">Condutor principal</dt><dd class="col-sm-8 col-lg-9">{{ bem.condutor_principal|default:"—" }}</dd>
+        <dt class="col-sm-4 col-lg-3">Condutor de 18 a 24 anos</dt><dd class="col-sm-8 col-lg-9">{{ bem.condutor_jovem|yesno:"Sim,Não" }}</dd>
+      {% else %}
+        <dt class="col-sm-4 col-lg-3">Tipo de imóvel</dt><dd class="col-sm-8 col-lg-9">{{ bem.descricao }}</dd>
+        <dt class="col-sm-4 col-lg-3">Endereço</dt>
+        <dd class="col-sm-8 col-lg-9">
+          {{ bem.endereco_resumido|default:"—" }}{% if bem.complemento %}<div>{{ bem.complemento }}</div>{% endif %}
+          {% if bem.cep %}<div class="small text-body-secondary">CEP {{ bem.cep }}</div>{% endif %}
+        </dd>
+      {% endif %}
+      <dt class="col-sm-4 col-lg-3">Proprietário</dt>
+      <dd class="col-sm-8 col-lg-9">
+        {% if bem.proprietario %}{{ bem.proprietario }}{% else %}{{ cliente }} <span class="text-body-secondary">(o próprio cliente)</span>{% endif %}
+        {% if bem.documento_proprietario %}<div class="small text-body-secondary">{{ bem.documento_formatado }}</div>{% endif %}
+      </dd>
+    </dl>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-header fw-semibold">{% if bem.eh_veiculo %}Coberturas{% else %}Capitais{% endif %} e prêmio</div>
+  <div class="card-body">
+    <dl class="row mb-0">
+      {% if bem.eh_veiculo %}
+        <dt class="col-sm-4 col-lg-3">Danos materiais a terceiros</dt>
+        <dd class="col-sm-8 col-lg-9">{% if bem.danos_materiais is not None %}R$ {{ bem.danos_materiais|floatformat:"2g" }}{% else %}<span class="text-body-secondary">Não contratado</span>{% endif %}</dd>
+        <dt class="col-sm-4 col-lg-3">Danos corporais a terceiros</dt>
+        <dd class="col-sm-8 col-lg-9">{% if bem.danos_corporais is not None %}R$ {{ bem.danos_corporais|floatformat:"2g" }}{% else %}<span class="text-body-secondary">Não contratado</span>{% endif %}</dd>
+        <dt class="col-sm-4 col-lg-3">Danos morais/estéticos</dt>
+        <dd class="col-sm-8 col-lg-9">{% if bem.danos_morais is not None %}R$ {{ bem.danos_morais|floatformat:"2g" }}{% else %}<span class="text-body-secondary">Não contratado</span>{% endif %}</dd>
+      {% else %}
+        <dt class="col-sm-4 col-lg-3">Capitais segurados</dt>
+        <dd class="col-sm-8 col-lg-9" style="white-space: pre-line">{{ bem.capitais|default:"—" }}</dd>
+      {% endif %}
+      <dt class="col-sm-4 col-lg-3">Prêmio</dt>
+      <dd class="col-sm-8 col-lg-9">{% if bem.premio is not None %}R$ {{ bem.premio|floatformat:"2g" }}{% else %}—{% endif %}</dd>
+      {% if bem.observacao %}
+        <dt class="col-sm-4 col-lg-3">Observação</dt>
+        <dd class="col-sm-8 col-lg-9" style="white-space: pre-line">{{ bem.observacao }}</dd>
+      {% endif %}
+    </dl>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-header fw-semibold">Histórico</div>
+  <ul class="list-group list-group-flush">
+    {% for registro in historico %}
+      <li class="list-group-item small">
+        <span class="text-body-secondary">{{ registro.quando|date:"d/m/Y H:i" }}</span> ·
+        <strong>{{ registro.quem }}</strong> {{ registro.acao|lower }} o {% if bem.eh_veiculo %}veículo{% else %}imóvel{% endif %}
+        {% if registro.campos %}<span class="text-body-secondary">({{ registro.campos|join:", " }})</span>{% endif %}
+      </li>
+    {% empty %}
+      <li class="list-group-item small text-body-secondary">Sem alterações registradas.</li>
+    {% endfor %}
+  </ul>
+</div>
+
+{% if perms.apolices.delete_bemsegurado %}
+{# Exclusões ficam no fim da página, longe dos botões do dia a dia, para evitar cliques por engano. #}
+<div class="d-flex justify-content-end">
+  <details class="border border-danger-subtle rounded p-3 text-end">
+    <summary class="text-danger small">Excluir registros</summary>
+    <p class="small text-body-secondary mt-2 mb-2">A exclusão pede confirmação digitada e fica no histórico.</p>
+    <a href="{% url 'apolices:excluir_bem' bem.pk %}" class="btn btn-sm btn-outline-danger">Excluir {% if bem.eh_veiculo %}veículo{% else %}imóvel{% endif %}</a>
+  </details>
+</div>
+{% endif %}
+{% endwith %}
+{% endblock %}

@@ -1,8 +1,18 @@
+import re
+
 from django import forms
 
-from apolices.models import DIAS_PARA_RENOVACAO, Contrato, Ramo, Seguradora
+from apolices.models import (
+    DIAS_PARA_RENOVACAO,
+    PLACA,
+    BemSegurado,
+    Contrato,
+    Ramo,
+    Seguradora,
+    limpar_placa,
+)
 from clientes.documentos import CNPJ
-from clientes.forms import BootstrapFormMixin, DocumentoField
+from clientes.forms import BootstrapFormMixin, CpfOuCnpjField, DocumentoField
 from clientes.models import Cliente
 from clientes.widgets import CampoData, EscolhaDeCor
 
@@ -106,3 +116,111 @@ class FiltroContratosForm(BootstrapFormMixin, forms.Form):
     vencimento = forms.IntegerField(
         label="Dia de vencimento", required=False, min_value=1, max_value=31
     )
+
+
+class PlacaField(forms.CharField):
+    """Placa antiga (ABC-1234) ou do Mercosul (ABC1D23); guarda sem traço, em maiúsculas."""
+
+    def __init__(self, **kwargs):
+        kwargs.setdefault("help_text", "Ex.: ABC1D23 ou ABC-1234.")
+        super().__init__(**kwargs)
+        self.widget.attrs.setdefault("maxlength", "8")
+
+    def to_python(self, value) -> str:
+        return limpar_placa(super().to_python(value))
+
+    def validate(self, value) -> None:
+        super().validate(value)
+        if value and not PLACA.fullmatch(value):
+            raise forms.ValidationError("Placa inválida. Use ABC1D23 ou ABC-1234.")
+
+
+class RenavamField(forms.CharField):
+    """Renavam com 9 ou 11 números; aceita o número colado com pontuação e guarda só os números."""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.widget.attrs.update(maxlength="15", inputmode="numeric")
+
+    def to_python(self, value) -> str:
+        return re.sub(r"\D", "", super().to_python(value))
+
+    def validate(self, value) -> None:
+        super().validate(value)
+        if value and len(value) not in (9, 11):
+            raise forms.ValidationError("O Renavam tem 9 ou 11 números.")
+
+
+# Os campos de cada um, nos blocos do formulário e da página do veículo ou do imóvel.
+BLOCOS_DO_VEICULO = {
+    "Veículo": [
+        "descricao",
+        "placa",
+        "ano_modelo",
+        "cor",
+        "combustivel",
+        "renavam",
+        "proprietario",
+        "documento_proprietario",
+        "condutor_principal",
+        "cep",
+        "condutor_jovem",
+    ],
+    "Coberturas e prêmio": [
+        "danos_materiais",
+        "danos_corporais",
+        "danos_morais",
+        "premio",
+        "observacao",
+    ],
+}
+BLOCOS_DO_IMOVEL = {
+    "Imóvel": [
+        "descricao",
+        "cep",
+        "logradouro",
+        "numero",
+        "complemento",
+        "bairro",
+        "cidade",
+        "uf",
+        "proprietario",
+        "documento_proprietario",
+    ],
+    "Capitais e prêmio": ["capitais", "premio", "observacao"],
+}
+
+
+class BemSeguradoForm(BootstrapFormMixin, forms.ModelForm):
+    """Base do veículo e do imóvel: o mesmo cadastro, com os campos de cada um."""
+
+    blocos: dict[str, list[str]] = {}
+    documento_proprietario = CpfOuCnpjField(label="CPF/CNPJ do proprietário", required=False)
+
+    class Meta:
+        model = BemSegurado
+        fields: list[str] = []
+        widgets = {
+            "capitais": forms.Textarea(attrs={"rows": 3}),
+            "observacao": forms.Textarea(attrs={"rows": 2}),
+        }
+
+
+class VeiculoForm(BemSeguradoForm):
+    blocos = BLOCOS_DO_VEICULO
+    placa = PlacaField(required=False)
+    renavam = RenavamField(label="Renavam", required=False)
+
+    class Meta(BemSeguradoForm.Meta):
+        fields = [campo for campos in BLOCOS_DO_VEICULO.values() for campo in campos]
+        labels = {"descricao": "Marca e modelo", "cep": "CEP de pernoite"}
+        help_texts = {"descricao": "Com a versão, como no documento do veículo."}
+
+
+class ImovelForm(BemSeguradoForm):
+    blocos = BLOCOS_DO_IMOVEL
+
+    class Meta(BemSeguradoForm.Meta):
+        fields = [campo for campos in BLOCOS_DO_IMOVEL.values() for campo in campos]
+        labels = {"descricao": "Tipo de imóvel"}
+        help_texts = {"descricao": "Ex.: casa, apartamento, comercial."}

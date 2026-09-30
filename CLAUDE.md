@@ -152,18 +152,17 @@ pytest -q
 
 ## Estado atual (30/09/2026)
 
-- As etapas 0 a 7, a 8a (painel na página inicial) e a 8b (calendário) estão no `main`.
+- As etapas 0 a 8 estão no `main`: a 8a (painel na página inicial), a 8b (calendário) e a 8c
+  (relatórios, PR #19), com o [guia da etapa 8](docs/etapa-8-painel-e-relatorios.md).
 - A etapa 7b (importar a planilha atual do seguro de vida, com prévia de cada vida) entrou no `main`
   pelo PR #11 antes do teste com a planilha real, que o Lohrel faz no computador dele (a importação
   ignora linhas sem nome). Se ele achar um problema, corrija num branch novo a partir do `main`, com
   um PR novo. A descrição do PR #11 explica como a importação funciona.
-- **8c**, relatórios: branch `etapa-8c-relatorios`, esperando o Lohrel testar. O escopo foi
-  combinado com ele (veja o [guia da etapa 8](docs/etapa-8-painel-e-relatorios.md)). Se ele pedir
-  ajustes, corrija nesse mesmo branch. Com ela, a etapa 8 termina.
+- **9**, auto e imóvel: branch `etapa-9-auto-e-imovel`, esperando o Lohrel testar. Os campos
+  vieram das colunas da planilha de exemplo que ele mandou (com dados fictícios, que não vão para
+  o repositório). Se ele pedir ajustes, corrija nesse mesmo branch.
 - A instalação no servidor do escritório, com os 4 logins, ainda não foi confirmada.
-- Próximas etapas:
-  - **9. Campos de auto e imóvel**: poucos clientes. Os campos (dados do veículo, endereço do imóvel)
-    ainda precisam ser levantados com o Lohrel.
+- Próxima etapa:
   - **10. Acabamento visual**: as partes 10a (cores, fonte e logo da corretora, menu que recolhe no
     celular, tela de entrada e textos organizados) e 10b (cor de cada seguradora) estão feitas, e o
     painel, o calendário e os relatórios da etapa 8 já saíram no visual da corretora. Faltam a
@@ -198,6 +197,11 @@ pytest -q
 - Relatórios (etapa 8c): vidas ativas numa data (por empresa, filial ou contrato), inclusões por
   período (pela vigência ou pelo envio à operadora) e apólices com os dados do cliente e o período de
   renovação. Todos veem todos os relatórios, e cada um também sai em Excel.
+- Auto e imóvel (etapa 9): poucos clientes, e os dados servem só para consulta. Cada apólice de
+  auto ou imóvel guarda os seus veículos ou imóveis (`BemSegurado`, vários por apólice, como numa
+  frota), com os campos da planilha do escritório. A vigência, a seguradora e o número ficam no
+  contrato. O ramo diz se a apólice guarda veículos ou imóveis (campo "bem segurado" do ramo, no
+  admin). Eles aparecem na página do cliente, e a placa entra na busca de clientes e de contratos.
 - Cada seguradora tem uma cor, escolhida no cadastro, para a equipe saber qual portal abrir sem ler.
   Ela aparece como uma faixa discreta à esquerda da linha nas listas (o Lohrel preferiu a faixa a uma
   etiqueta colorida, menos poluída) e como um ponto antes do nome nas outras telas.

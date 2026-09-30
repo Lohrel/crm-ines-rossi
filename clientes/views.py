@@ -61,7 +61,12 @@ class ClienteDetailView(DetailView):
         contexto["historico"] = LinhaDoTempo(self.object).eventos()
         contexto["pendencias"] = self.object.pendencias.em_aberto().para_tabela()
         contratos = self.object.contratos.select_related("seguradora", "ramo")
-        contexto["contratos"] = anotar_vidas(contratos.prefetch_related("unidades"))
+        contratos = list(anotar_vidas(contratos.prefetch_related("unidades", "bens")))
+        contexto["contratos"] = contratos
+        # Auto e imóvel: os veículos e imóveis de cada apólice, para consulta.
+        contexto["contratos_com_bens"] = [
+            contrato for contrato in contratos if contrato.ramo.bem_segurado or contrato.bens.all()
+        ]
         vidas = VidasDoCliente(self.object)
         contexto["vidas"] = vidas
         for unidade in self.object.unidades.all():

@@ -38,7 +38,7 @@ Cada etapa só começa quando a anterior está testada e em uso.
   - [x] 8a. Painel na página inicial: movimentações em aberto, boletos a enviar, as pendências de quem entrou, prazos do mês e renovações, cada quadro levando à lista já filtrada
   - [x] 8b. Calendário do escritório: férias, reuniões e aniversários anotados pela equipe, junto com os prazos das pendências, as renovações e os prazos do mês, e o quadro "Próximos 7 dias" no painel
   - [x] 8c. Relatórios de vidas ativas (por empresa, filial ou contrato), inclusões por período e apólices com os dados do cliente e a renovação, na tela e em Excel
-- [ ] **9.** Campos específicos de auto e imóvel
+- [x] **9.** Auto e imóvel: os veículos e imóveis de cada apólice, com os dados da planilha do escritório, para consulta na página do cliente, e a busca pela placa
 - [ ] **10.** Acabamento visual: cores e logo da corretora, menu, painel inicial e ajustes para celular
   - [x] 10a. Cores, fonte e logo da corretora, menu que recolhe no celular, tela de entrada e textos organizados nas telas de movimentações e cadastros
   - [x] 10b. Cor de cada seguradora, escolhida no cadastro: faixa nas listas e ponto antes do nome, para achar o portal certo sem ler
@@ -75,7 +75,8 @@ painel, o calendário e os relatórios em [docs/etapa-8-painel-e-relatorios.md](
 config/          Configurações do Django (lidas do arquivo .env)
 contas/          Usuários, login, menu e página inicial com o painel
 clientes/        Clientes PF/PJ, unidades (filiais) e contatos, com histórico
-apolices/        Seguradoras, ramos, contratos e subfaturas das filiais
+apolices/        Seguradoras, ramos, contratos, subfaturas das filiais e os veículos e imóveis das
+                 apólices de auto e imóvel
 beneficiarios/   Titulares, dependentes, planos de cada pessoa, anexos, contagem de vidas e a planilha
                  do seguro de vida (baixar e importar)
 movimentacoes/   Pedidos de inclusão, exclusão e alteração de plano, com etapas, fechamento do mês,
