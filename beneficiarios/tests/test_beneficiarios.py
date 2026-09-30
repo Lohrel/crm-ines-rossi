@@ -1,3 +1,4 @@
+import re
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -210,6 +211,22 @@ def test_lista_mostra_quadro_e_busca_dependente_pelo_cpf(logado, empresa, titula
     assert "Ana Titular" in pagina and "Bruno Cônjuge" in pagina
     assert "Total do grupo" in pagina
     assert "Nenhum beneficiário" in logado.get(url, {"q": "ninguém"}).content.decode()
+
+
+def test_lista_com_menos_ruido(logado, empresa, titular, conjuge, saude, dental):
+    incluir(titular, saude)
+    incluir(titular, dental)
+    incluir(conjuge, saude)
+    pagina = logado.get(reverse("beneficiarios:lista", args=[empresa.pk])).content.decode()
+    # "Pessoas" vem logo depois da unidade, para o total nunca ficar escondido à direita.
+    cabecalhos = re.findall(
+        r"<th(?:\s[^>]*)?>([^<]+)", pagina.split("Vidas hoje")[1].split("</thead>")[0]
+    )
+    assert [c.strip() for c in cabecalhos] == ["Unidade", "Pessoas", "Dental", "Saúde"]
+    # Sem o selo "Titular" em todas as linhas, e os planos em selos neutros (não verdes).
+    assert ">Titular</span>" not in pagina
+    assert '<span class="badge selo-plano me-1">Saúde</span>' in pagina
+    assert "text-bg-success" not in pagina
 
 
 def test_quem_saiu_de_todos_os_planos_so_aparece_quando_pedido(logado, empresa, titular, saude):

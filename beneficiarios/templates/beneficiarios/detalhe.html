@@ -2,7 +2,7 @@
 {% block titulo %}{{ object.nome }}{% endblock %}
 {% block conteudo %}
 {% with cliente=object.cliente %}
-<nav aria-label="breadcrumb"><ol class="breadcrumb">
+<nav aria-label="Caminho"><ol class="breadcrumb">
   <li class="breadcrumb-item"><a href="{{ cliente.get_absolute_url }}">{{ cliente }}</a></li>
   <li class="breadcrumb-item"><a href="{% url 'beneficiarios:lista' cliente.pk %}">Beneficiários</a></li>
   {% if object.titular %}<li class="breadcrumb-item"><a href="{{ object.titular.get_absolute_url }}">{{ object.titular }}</a></li>{% endif %}
@@ -48,14 +48,14 @@
   </div>
   <div class="table-responsive">
     <table class="table table-sm align-middle mb-0">
-      <thead><tr><th>Plano</th><th>Carteirinha</th><th>Inclusão</th><th>Exclusão</th><th>Situação</th><th></th></tr></thead>
+      <thead><tr><th>Plano</th><th>Carteirinha</th><th>Inclusão</th><th>Exclusão</th><th>Situação</th><th><span class="visually-hidden">Ações</span></th></tr></thead>
       <tbody>
       {% for plano in planos %}
         <tr{% if plano.contrato.seguradora.cor %} class="faixa-seguradora cor-{{ plano.contrato.seguradora.cor }}"{% endif %}>
           <td>{{ plano.contrato.ramo }}<div class="small text-body-secondary">{% include "apolices/_seguradora.html" with seguradora=plano.contrato.seguradora %} {{ plano.contrato.numero }}{% if plano.contrato.produto %} · {{ plano.contrato.produto }}{% endif %}</div>
             {% if plano.contrato.calcula_capital %}
             <div class="small">
-              {% if plano.contrato.usa_salario and object.eh_titular %}Salário {% if plano.salario is not None %}R$ {{ plano.salario|floatformat:"2g" }}{% else %}<span class="text-body-secondary">não informado</span> (<a href="{% url 'beneficiarios:editar_plano' plano.pk %}">preencher</a>){% endif %} · {% endif %}
+              {% if plano.contrato.usa_salario and object.eh_titular %}Salário {% if plano.salario is not None %}R$ {{ plano.salario|floatformat:"2g" }}{% else %}<span class="text-body-secondary">não informado</span> (<a href="{% url 'beneficiarios:editar_plano' plano.pk %}" class="link-no-texto">preencher</a>){% endif %} · {% endif %}
               Capital {% if plano.capital is not None %}R$ {{ plano.capital|floatformat:"2g" }}{% else %}—{% endif %}
               {% if plano.fatura is not None %} · Fatura R$ {{ plano.fatura|floatformat:"2g" }}{% endif %}
             </div>
@@ -89,7 +89,7 @@
   {% for dependente in dependentes %}
     <li class="list-group-item d-flex flex-wrap justify-content-between gap-2">
       <span><a href="{{ dependente.get_absolute_url }}">{{ dependente.nome }}</a> <span class="small text-body-secondary">{{ dependente.get_parentesco_display }}</span></span>
-      <span>{% for plano in dependente.planos %}<span class="badge text-bg-success me-1">{{ plano.contrato.ramo }}</span>{% empty %}<span class="small text-body-secondary">Sem plano ativo</span>{% endfor %}</span>
+      <span>{% for plano in dependente.planos %}<span class="badge selo-plano me-1">{{ plano.contrato.ramo }}</span>{% empty %}<span class="small text-body-secondary">Sem plano ativo</span>{% endfor %}</span>
     </li>
   {% empty %}
     <li class="list-group-item text-body-secondary">Nenhum dependente.</li>

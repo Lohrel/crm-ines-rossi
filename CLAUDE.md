@@ -158,16 +158,15 @@ pytest -q
   pelo PR #11 antes do teste com a planilha real, que o Lohrel faz no computador dele (a importação
   ignora linhas sem nome). Se ele achar um problema, corrija num branch novo a partir do `main`, com
   um PR novo. A descrição do PR #11 explica como a importação funciona.
-- **9**, auto e imóvel: branch `etapa-9-auto-e-imovel`, esperando o Lohrel testar. Os campos
-  vieram das colunas da planilha de exemplo que ele mandou (com dados fictícios, que não vão para
-  o repositório). Se ele pedir ajustes, corrija nesse mesmo branch.
+- A etapa 9 (auto e imóvel) está no `main` (PR #20).
+- **10c**, acabamento no computador: branch `etapa-10c-computador`, esperando o Lohrel testar. O
+  escopo foi escolhido por ele a partir de uma análise das telas (veja
+  [docs/frontend.md](docs/frontend.md)). Se ele pedir ajustes, corrija nesse mesmo branch.
 - A instalação no servidor do escritório, com os 4 logins, ainda não foi confirmada.
 - Próxima etapa:
-  - **10. Acabamento visual**: as partes 10a (cores, fonte e logo da corretora, menu que recolhe no
-    celular, tela de entrada e textos organizados) e 10b (cor de cada seguradora) estão feitas, e o
-    painel, o calendário e os relatórios da etapa 8 já saíram no visual da corretora. Faltam a
-    organização do menu (com sete itens, ele recolhe abaixo de 1200 px), a aprovação do painel pela
-    equipe e ajustes finos no celular. Veja [docs/frontend.md](docs/frontend.md).
+  - **10d. Celular**, depois do merge da 10c: as listas viram fichas abaixo de 576 px e os filtros
+    ficam recolhidos num botão (combinado com o Lohrel). Com ela e a aprovação do painel pela
+    equipe, a etapa 10 termina. Veja [docs/frontend.md](docs/frontend.md).
 
 ## Decisões do escritório que valem para as próximas etapas
 
@@ -202,6 +201,12 @@ pytest -q
   frota), com os campos da planilha do escritório. A vigência, a seguradora e o número ficam no
   contrato. O ramo diz se a apólice guarda veículos ou imóveis (campo "bem segurado" do ramo, no
   admin). Eles aparecem na página do cliente, e a placa entra na busca de clientes e de contratos.
+- Acabamento (etapa 10c): o menu fica numa linha a partir de 992 px, com o nome de quem entrou num
+  botão com o Sair. As telas usam tons azul-acinzentados claros (o Lohrel achou as telas brancas
+  demais e escolheu esta entre três opções). Nas listas, selo só para a exceção (ex.: "Inativo"),
+  não para o que vale para quase todas as linhas, e os planos da pessoa ficam em selos neutros. As
+  explicações das listas ficam recolhidas em "Como funciona esta lista". A versão para imprimir foi
+  oferecida e não foi pedida.
 - Cada seguradora tem uma cor, escolhida no cadastro, para a equipe saber qual portal abrir sem ler.
   Ela aparece como uma faixa discreta à esquerda da linha nas listas (o Lohrel preferiu a faixa a uma
   etiqueta colorida, menos poluída) e como um ponto antes do nome nas outras telas.

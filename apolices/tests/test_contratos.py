@@ -242,9 +242,9 @@ def test_filtro_das_renovacoes_dos_proximos_60_dias(logado, contrato_empresa, se
     assert numeros == ["PASSOU", "PERTO"]
     assert "LONGE" not in conteudo and "CANCELADO" not in conteudo and "SAU-001" not in conteudo
     passou = f"{hoje - timedelta(days=3):%d/%m/%Y}"
-    assert f'<div class="small text-nowrap text-danger">Renovação {passou}</div>' in conteudo
+    assert f'<div class="small text-danger">Renovação {passou}</div>' in conteudo
     perto = f"{hoje + timedelta(days=60):%d/%m/%Y}"
-    assert f'<div class="small text-nowrap text-body-secondary">Renovação {perto}</div>' in conteudo
+    assert f'<div class="small text-body-secondary">Renovação {perto}</div>' in conteudo
     # Sem o filtro, a data aparece nos vigentes; nos cancelados, não.
     todos = logado.get(url, {"situacao": "todas"}).content.decode()
     assert f"Renovação {hoje + timedelta(days=61):%d/%m/%Y}" in todos

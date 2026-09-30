@@ -225,3 +225,54 @@ def test_lista_de_escolha_do_banco_sem_tracejado(logado, empresa):
     pagina = logado.get(reverse("apolices:novo_contrato", args=[empresa.pk])).content.decode()
     assert "---------" not in pagina
     assert '<option value="" selected>Escolha</option>' in pagina
+
+
+def test_atalhos_para_cada_parte_da_pagina_do_cliente(logado, empresa, matriz, filial, contato_rh):
+    pagina = logado.get(empresa.get_absolute_url()).content.decode()
+    assert 'aria-label="Partes da página do cliente"' in pagina
+    for parte, total in [("pendencias", 0), ("contatos", 1), ("unidades", 2), ("contratos", 0)]:
+        assert f'href="#{parte}"' in pagina and f'id="{parte}"' in pagina
+        assert f'<span class="badge rounded-pill">{total}</span>' in pagina
+    assert 'href="#historico"' in pagina and 'id="historico"' in pagina
+    # Sem apólice de auto ou imóvel, não há o atalho dos veículos.
+    assert 'href="#bens"' not in pagina
+
+
+def test_atalhos_da_pessoa_fisica(logado, pessoa):
+    pagina = logado.get(pessoa.get_absolute_url()).content.decode()
+    assert 'href="#dados"' in pagina and 'id="dados"' in pagina
+    assert 'href="#contatos"' not in pagina and 'href="#unidades"' not in pagina
+
+
+def test_historico_mostra_as_5_ultimas_e_recolhe_o_resto(logado, pessoa):
+    for numero in range(7):
+        pessoa.telefone = f"(11) 3333-000{numero}"
+        pessoa.save()
+    pagina = logado.get(pessoa.get_absolute_url()).content.decode()
+    visiveis, recolhidas = pagina.split('<details class="historico-anterior">')
+    visiveis = visiveis[visiveis.index('id="historico"') :]
+    assert visiveis.count("<li") == 5
+    assert "Ver as outras 3 alterações" in recolhidas
+    assert recolhidas.split("</details>")[0].count("<li") == 3
+
+
+def test_historico_curto_nao_recolhe(logado, pessoa):
+    pagina = logado.get(pessoa.get_absolute_url()).content.decode()
+    assert "historico-anterior" not in pagina
+
+
+def test_lista_de_clientes_com_menos_ruido(logado, empresa, matriz, filial, pessoa):
+    Cliente.objects.filter(pk=pessoa.pk).update(ativo=False)
+    pagina = logado.get(reverse("clientes:lista")).content.decode()
+    assert "2 clientes" in pagina
+    assert "<th>Situação</th>" not in pagina and ">Ativo</span>" not in pagina
+    assert 'João Exemplo</a> <span class="badge text-bg-secondary">Inativo</span>' in pagina
+    assert "<td>Empresa · 2 unidades</td>" in pagina and "<td>Pessoa física</td>" in pagina
+
+
+def test_historico_com_uma_alteracao_a_mais(logado, pessoa):
+    for numero in range(5):
+        pessoa.telefone = f"(11) 3333-000{numero}"
+        pessoa.save()
+    pagina = logado.get(pessoa.get_absolute_url()).content.decode()
+    assert "Ver a outra alteração" in pagina

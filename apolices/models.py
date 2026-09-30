@@ -103,6 +103,10 @@ class ContratoQuerySet(models.QuerySet):
         """Vigentes que renovam até a data, inclusive os com a data de renovação já passada."""
         return self.vigentes().filter(data_renovacao__lte=data)
 
+    def de_pessoas(self):
+        """Planos com pessoas (vidas): todos, menos os de auto e imóvel, que guardam bens."""
+        return self.filter(ramo__bem_segurado="")
+
     def com_capital(self):
         """Seguros de vida com capital por vida (os que têm a planilha do seguro de vida)."""
         return self.filter(Q(capital_multiplo__isnull=False) | Q(capital_maximo__isnull=False))

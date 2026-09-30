@@ -2,7 +2,7 @@
 {% block titulo %}Importar planilha do seguro de vida{% endblock %}
 {% block conteudo %}
 {% with cliente=contrato.cliente %}
-<nav aria-label="breadcrumb"><ol class="breadcrumb">
+<nav aria-label="Caminho"><ol class="breadcrumb">
   <li class="breadcrumb-item"><a href="{{ cliente.get_absolute_url }}">{{ cliente }}</a></li>
   <li class="breadcrumb-item"><a href="{% url 'beneficiarios:seguro_de_vida' contrato.pk %}">Planilha do seguro de vida</a></li>
   <li class="breadcrumb-item active">Importar</li>

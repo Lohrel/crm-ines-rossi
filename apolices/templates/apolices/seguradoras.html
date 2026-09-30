@@ -10,7 +10,7 @@
 </p>
 <div class="card shadow-sm"><div class="table-responsive">
   <table class="table table-hover align-middle mb-0">
-    <thead class="table-light"><tr><th>Nome</th><th>CNPJ</th><th>Atendimento</th><th>Situação</th><th></th></tr></thead>
+    <thead class="table-light"><tr><th>Nome</th><th>CNPJ</th><th>Atendimento</th><th>Situação</th><th><span class="visually-hidden">Ações</span></th></tr></thead>
     <tbody>
     {% for seguradora in object_list %}
       <tr{% if seguradora.cor %} class="faixa-seguradora cor-{{ seguradora.cor }}"{% endif %}>

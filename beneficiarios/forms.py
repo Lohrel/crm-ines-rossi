@@ -1,6 +1,7 @@
 from datetime import date
 
 from django import forms
+from django.utils.text import capfirst
 
 from apolices.models import Contrato, Subfatura
 from beneficiarios.importacao_de_vidas import ler_planilha
@@ -116,9 +117,8 @@ class VinculoForm(BootstrapFormMixin, forms.ModelForm):
 
     @staticmethod
     def _contratos_possiveis(pessoa: Beneficiario):
-        contratos = Contrato.objects.filter(cliente=pessoa.cliente).select_related(
-            "ramo", "seguradora"
-        )
+        contratos = Contrato.objects.de_pessoas().filter(cliente=pessoa.cliente)
+        contratos = contratos.select_related("ramo", "seguradora")
         if not pessoa.eh_titular:
             contratos = contratos.filter(vinculos__in=pessoa.titular.vinculos.ativos()).distinct()
         return contratos
@@ -192,7 +192,9 @@ class BuscaBeneficiarioForm(BootstrapFormMixin, forms.Form):
     def __init__(self, *args, cliente: Cliente, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["q"].widget.attrs["placeholder"] = "Nome, CPF, matrícula ou carteirinha"
-        self.fields["contrato"].queryset = cliente.contratos.select_related("seguradora", "ramo")
+        self.fields["contrato"].queryset = cliente.contratos.de_pessoas().select_related(
+            "seguradora", "ramo"
+        )
         if cliente.eh_empresa:
             self.fields["unidade"].queryset = cliente.unidades.all()
         else:
@@ -209,6 +211,13 @@ class SubfaturaForm(BootstrapFormMixin, forms.ModelForm):
     class Meta:
         model = Subfatura
         fields = ["local", "identificador", "boleto_separado"]
+
+    def __init__(self, *args, filial=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Na tabela das filiais não há rótulo em cada campo: o nome diz de qual filial ele é.
+        if filial is not None:
+            for campo in self.fields.values():
+                campo.widget.attrs["aria-label"] = f"{capfirst(campo.label)} de {filial}"
 
 
 class ImportacaoDeVidasForm(EnvioDePlanilhaForm):

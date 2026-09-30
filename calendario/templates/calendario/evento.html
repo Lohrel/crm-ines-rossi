@@ -2,7 +2,7 @@
 {% block titulo %}{{ object }}{% endblock %}
 {% block conteudo %}
 {% with evento=object %}
-<nav aria-label="breadcrumb"><ol class="breadcrumb">
+<nav aria-label="Caminho"><ol class="breadcrumb">
   <li class="breadcrumb-item"><a href="{{ url_do_mes }}">Calendário</a></li>
   <li class="breadcrumb-item active">{{ evento.inicio|date:"d/m/Y" }}</li>
 </ol></nav>

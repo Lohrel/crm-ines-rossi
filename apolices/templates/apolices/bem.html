@@ -2,7 +2,7 @@
 {% block titulo %}{{ object }}{% endblock %}
 {% block conteudo %}
 {% with bem=object contrato=object.contrato cliente=object.contrato.cliente %}
-<nav aria-label="breadcrumb"><ol class="breadcrumb">
+<nav aria-label="Caminho"><ol class="breadcrumb">
   <li class="breadcrumb-item"><a href="{% url 'clientes:lista' %}">Clientes</a></li>
   <li class="breadcrumb-item"><a href="{{ cliente.get_absolute_url }}#bens">{{ cliente }}</a></li>
   <li class="breadcrumb-item active">{{ bem.get_tipo_display }}</li>

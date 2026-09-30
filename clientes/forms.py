@@ -291,7 +291,10 @@ class ContatoForm(MarcacaoExclusivaFormMixin, BootstrapFormMixin, forms.ModelFor
 class BuscaClienteForm(BootstrapFormMixin, forms.Form):
     q = forms.CharField(label="Buscar", required=False)
     tipo = forms.ChoiceField(
-        label="Tipo", required=False, choices=[("", "Todos"), *Cliente.Tipo.choices]
+        label="Tipo",
+        required=False,
+        choices=[("", "Todos"), *Cliente.Tipo.choices],
+        widget=forms.Select(attrs={"aria-label": "Tipo de cliente"}),
     )
 
 

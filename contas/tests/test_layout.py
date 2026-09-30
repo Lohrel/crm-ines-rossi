@@ -36,9 +36,22 @@ def test_inicio_nao_marca_nenhum_item(logado):
 
 def test_menu_recolhe_no_celular(logado):
     pagina = logado.get(reverse("inicio")).content.decode()
-    assert "navbar-expand-xl" in pagina
+    # Numa linha a partir de 992 px (lg): cabe num notebook com zoom de 125%.
+    assert "navbar-expand-lg" in pagina
     assert 'data-bs-target="#menu-principal"' in pagina
     assert 'id="menu-principal"' in pagina
+    assert 'aria-label="Menu principal"' in pagina
+
+
+def test_nome_de_quem_entrou_num_botao_com_o_sair(logado):
+    pagina = logado.get(reverse("inicio")).content.decode()
+    # No computador, o primeiro nome abre um menu pequeno com o nome inteiro e o Sair.
+    assert 'data-bs-toggle="dropdown" aria-expanded="false">Ana</button>' in pagina
+    assert '<span class="dropdown-item-text small text-body-secondary">Ana Lima</span>' in pagina
+    assert '<button type="submit" class="dropdown-item">Sair</button>' in pagina
+    # No menu recolhido (tablet e celular), o nome e o Sair ficam à vista.
+    assert '<span class="navbar-text">Ana Lima</span>' in pagina
+    assert pagina.count(f'action="{reverse("logout")}"') == 2
 
 
 def test_paginas_tem_o_logo_e_o_tema_da_corretora(logado):
@@ -59,7 +72,7 @@ def test_tela_de_entrada_mostra_o_logo_sem_o_menu(client):
 
 def test_arquivos_citados_no_layout_existem():
     pasta = pathlib.Path(settings.BASE_DIR) / "templates"
-    for template in ["base.html", "registration/login.html"]:
+    for template in ["base.html", "registration/login.html", "500.html"]:
         texto = (pasta / template).read_text()
         caminhos = re.findall(r"{% static '([^']+)' %}", texto)
         for caminho in caminhos:
@@ -74,3 +87,41 @@ def test_fontes_citadas_no_css_existem_com_a_licenca():
         assert finders.find(posixpath.normpath(posixpath.join("css", endereco))), endereco
     # A licença da Montserrat (SIL OFL) acompanha os arquivos da fonte.
     assert finders.find("fonts/montserrat/OFL.txt")
+
+
+@pytest.mark.parametrize(
+    ("rota", "resumo"),
+    [
+        ("movimentacoes:lista", "Como funciona esta lista"),
+        ("boletos:lista", "Como funciona esta lista"),
+        ("pendencias:lista", "Como funciona esta lista"),
+        ("calendario:mes", "Como funciona o calendário"),
+    ],
+)
+def test_explicacoes_recolhidas_num_como_funciona(logado, rota, resumo):
+    pagina = logado.get(reverse(rota)).content.decode()
+    assert '<details class="como-funciona' in pagina
+    assert f"<summary>{resumo}</summary>" in pagina
+
+
+def test_pagina_nao_encontrada_em_portugues(logado):
+    resposta = logado.get("/clientes/999999/")
+    assert resposta.status_code == 404
+    pagina = resposta.content.decode()
+    assert "Página não encontrada" in pagina and "Voltar para o início" in pagina
+    assert 'id="menu-principal"' in pagina
+
+
+def test_sem_permissao_em_portugues(logado, pessoa):
+    resposta = logado.get(reverse("clientes:excluir", args=[pessoa.pk]))
+    assert resposta.status_code == 403
+    assert "Você não tem permissão para esta página" in resposta.content.decode()
+
+
+def test_erro_do_servidor_em_portugues(rf):
+    from django.views.defaults import server_error
+
+    resposta = server_error(rf.get("/"))
+    assert resposta.status_code == 500
+    pagina = resposta.content.decode()
+    assert "Algo deu errado" in pagina and "img/logo-completo-cor.svg" in pagina

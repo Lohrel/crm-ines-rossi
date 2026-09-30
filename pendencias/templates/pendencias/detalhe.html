@@ -2,7 +2,7 @@
 {% block titulo %}Pendência de {{ object.cliente }}{% endblock %}
 {% block conteudo %}
 {% with pendencia=object %}
-<nav aria-label="breadcrumb"><ol class="breadcrumb">
+<nav aria-label="Caminho"><ol class="breadcrumb">
   <li class="breadcrumb-item"><a href="{% url 'pendencias:lista' %}">Pendências</a></li>
   <li class="breadcrumb-item"><a href="{% url 'pendencias:lista' %}?cliente={{ pendencia.cliente.pk }}&situacao=todas">{{ pendencia.cliente }}</a></li>
   <li class="breadcrumb-item active">Prazo {{ pendencia.prazo|date:"d/m/Y" }}</li>

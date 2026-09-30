@@ -2,7 +2,7 @@
 {% block titulo %}{{ object }}{% endblock %}
 {% block conteudo %}
 {% with mov=object %}
-<nav aria-label="breadcrumb"><ol class="breadcrumb">
+<nav aria-label="Caminho"><ol class="breadcrumb">
   <li class="breadcrumb-item"><a href="{% url 'movimentacoes:lista' %}">Movimentações</a></li>
   <li class="breadcrumb-item"><a href="{{ mov.cliente.get_absolute_url }}">{{ mov.cliente }}</a></li>
   <li class="breadcrumb-item active">{{ mov.beneficiario }}</li>

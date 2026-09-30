@@ -24,9 +24,8 @@ class EscolhaPorClienteMixin:
         unidades = Unidade.objects.select_related("cliente").order_by(
             "cliente__nome", "-matriz", "razao_social"
         )
-        contratos = Contrato.objects.select_related("cliente", "ramo", "seguradora").order_by(
-            "cliente__nome", "ramo__nome", "numero"
-        )
+        contratos = Contrato.objects.de_pessoas().select_related("cliente", "ramo", "seguradora")
+        contratos = contratos.order_by("cliente__nome", "ramo__nome", "numero")
         if "unidade" in self.fields:
             self.fields["unidade"].choices = [("", "Todas"), *por_cliente(unidades, str)]
         self.fields["contrato"].choices = [("", "Todos"), *por_cliente(contratos, rotulo_do_plano)]

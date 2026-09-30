@@ -219,7 +219,9 @@ class Importacao:
             linha: por_pk[pk] for linha, pk in (unidades_escolhidas or {}).items() if pk in por_pk
         }
         self.contratos = list(
-            Contrato.objects.filter(cliente=cliente).select_related("ramo", "seguradora")
+            Contrato.objects.de_pessoas()
+            .filter(cliente=cliente)
+            .select_related("ramo", "seguradora")
         )
         self.contatos = (
             list(Contato.objects.filter(cliente=cliente).prefetch_related("unidades"))

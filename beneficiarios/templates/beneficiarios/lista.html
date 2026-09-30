@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block titulo %}Beneficiários de {{ cliente }}{% endblock %}
 {% block conteudo %}
-<nav aria-label="breadcrumb"><ol class="breadcrumb">
+<nav aria-label="Caminho"><ol class="breadcrumb">
   <li class="breadcrumb-item"><a href="{% url 'clientes:lista' %}">Clientes</a></li>
   <li class="breadcrumb-item"><a href="{{ cliente.get_absolute_url }}">{{ cliente }}</a></li>
   <li class="breadcrumb-item active">Beneficiários</li>
@@ -18,31 +18,31 @@
     <span class="badge text-bg-primary fs-6">{{ vidas.total_pessoas }} pessoa{{ vidas.total_pessoas|pluralize }}</span>
   </div>
   {% if contratos %}
-  <div class="table-responsive">
-    <table class="table table-sm align-middle mb-0 text-center">
+  <div class="table-responsive" tabindex="0" role="region" aria-label="Vidas por unidade e plano">
+    <table class="table table-sm align-middle mb-0 text-center quadro-de-vidas">
       <thead class="table-light">
         <tr>
           <th class="text-start">Unidade</th>
+          <th>Pessoas</th>
           {% for contrato in contratos %}
             <th>{{ contrato.ramo }}<div class="small fw-normal text-body-secondary">{% include "apolices/_seguradora.html" with seguradora=contrato.seguradora %} {{ contrato.numero }}</div></th>
           {% endfor %}
-          <th>Pessoas</th>
         </tr>
       </thead>
       <tbody>
         {% for linha in quadro %}
         <tr>
           <td class="text-start">{% if linha.unidade %}{{ linha.unidade }}{% else %}Sem unidade{% endif %}</td>
-          {% for vidas_celula in linha.celulas %}<td>{{ vidas_celula|default:"—" }}</td>{% endfor %}
           <td class="fw-semibold">{{ linha.pessoas }}</td>
+          {% for vidas_celula in linha.celulas %}<td>{{ vidas_celula|default:"—" }}</td>{% endfor %}
         </tr>
         {% endfor %}
       </tbody>
       <tfoot class="table-light fw-semibold">
         <tr>
           <td class="text-start">Total do grupo</td>
-          {% for total in total_por_contrato %}<td>{{ total }}</td>{% endfor %}
           <td>{{ vidas.total_pessoas }}</td>
+          {% for total in total_por_contrato %}<td>{{ total }}</td>{% endfor %}
         </tr>
       </tfoot>
     </table>
@@ -72,17 +72,17 @@
       <tbody>
       {% for titular in object_list %}
         <tr>
-          <td><a href="{{ titular.get_absolute_url }}" class="fw-semibold">{{ titular.nome }}</a> <span class="badge text-bg-light border">Titular</span></td>
+          <td><a href="{{ titular.get_absolute_url }}" class="fw-semibold">{{ titular.nome }}</a></td>
           <td class="text-nowrap">{{ titular.cpf_formatado|default:"—" }}</td>
           {% if cliente.eh_empresa %}<td>{{ titular.unidade|default:"—" }}</td>{% endif %}
-          <td>{% for plano in titular.planos %}<span class="badge text-bg-success me-1">{{ plano.contrato.ramo }}</span>{% empty %}<span class="text-body-secondary small">Nenhum</span>{% endfor %}</td>
+          <td>{% for plano in titular.planos %}<span class="badge selo-plano me-1">{{ plano.contrato.ramo }}</span>{% empty %}<span class="text-body-secondary small">Nenhum</span>{% endfor %}</td>
         </tr>
         {% for dependente in titular.dependentes.all %}
         <tr>
           <td class="ps-4"><span class="text-body-secondary">↳</span> <a href="{{ dependente.get_absolute_url }}">{{ dependente.nome }}</a> <span class="small text-body-secondary">{{ dependente.get_parentesco_display }}</span></td>
           <td class="text-nowrap">{{ dependente.cpf_formatado|default:"—" }}</td>
           {% if cliente.eh_empresa %}<td></td>{% endif %}
-          <td>{% for plano in dependente.planos %}<span class="badge text-bg-success me-1">{{ plano.contrato.ramo }}</span>{% empty %}<span class="text-body-secondary small">Nenhum</span>{% endfor %}</td>
+          <td>{% for plano in dependente.planos %}<span class="badge selo-plano me-1">{{ plano.contrato.ramo }}</span>{% empty %}<span class="text-body-secondary small">Nenhum</span>{% endfor %}</td>
         </tr>
         {% endfor %}
       {% empty %}
@@ -94,7 +94,7 @@
 </div>
 
 {% if is_paginated %}
-<nav class="mt-3"><ul class="pagination">
+<nav class="mt-3" aria-label="Páginas"><ul class="pagination">
   {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?{{ parametros_busca }}&page={{ page_obj.previous_page_number }}">Anterior</a></li>{% endif %}
   <li class="page-item disabled"><span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span></li>
   {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?{{ parametros_busca }}&page={{ page_obj.next_page_number }}">Próxima</a></li>{% endif %}

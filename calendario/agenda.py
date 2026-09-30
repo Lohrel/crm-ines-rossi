@@ -161,7 +161,8 @@ class Agenda:
     def _prazos(self):
         vigentes = Contrato.objects.vigentes()
         fechamentos = list(
-            vigentes.filter(dia_fechamento__isnull=False)
+            vigentes.de_pessoas()
+            .filter(dia_fechamento__isnull=False)
             .order_by()
             .values_list("dia_fechamento")
             .annotate(contratos=Count("pk"))

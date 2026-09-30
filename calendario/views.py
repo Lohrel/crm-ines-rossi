@@ -54,6 +54,8 @@ class CalendarioView(TemplateView):
                 "dias_com_datas": lista_por_dia(
                     datas, mes, somar_meses(mes, 1) - timedelta(days=1)
                 ),
+                "mes_anterior": somar_meses(mes, -1),
+                "mes_seguinte": somar_meses(mes, 1),
                 "url_anterior": url_do_mes(somar_meses(mes, -1)),
                 "url_seguinte": url_do_mes(somar_meses(mes, 1)),
                 "eh_este_mes": mes == hoje.replace(day=1),

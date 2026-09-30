@@ -92,7 +92,7 @@ class BeneficiarioListView(ListView):
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
         cliente = self.get_cliente()
-        contratos = list(cliente.contratos.select_related("ramo", "seguradora"))
+        contratos = list(cliente.contratos.de_pessoas().select_related("ramo", "seguradora"))
         vidas = VidasDoCliente(cliente)
         contexto.update(
             cliente=cliente,
@@ -393,6 +393,7 @@ class SeguroDeVidaView(TemplateView):
                 unidade,
                 SubfaturaForm(
                     dados,
+                    filial=unidade,
                     prefix=f"unidade-{unidade.pk}",
                     instance=existentes.get(unidade.pk)
                     or Subfatura(contrato=self.contrato, unidade=unidade),

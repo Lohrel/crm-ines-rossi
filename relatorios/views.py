@@ -298,5 +298,5 @@ class ApolicesView(RelatorioView):
             contrato.data_renovacao,
             contrato.dia_vencimento,
             contrato.valor_mensal,
-            contrato.vidas,
+            None if contrato.ramo.bem_segurado else contrato.vidas,
         ]
