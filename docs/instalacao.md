@@ -81,56 +81,11 @@ Os outros funcionários são criados pelo administrador em `https://crm.local/ad
 
 ## 6. Backups
 
-- O backup roda sozinho todo dia no horário `BACKUP_TIME` e fica na pasta `backups/` do servidor:
-  - `diario/`: últimos 7 dias
-  - `semanal/`: últimos 4 domingos
-  - `mensal/`: últimos 12 meses (dia 1)
-- Cada backup gera dois arquivos com o mesmo horário: o banco (`.dump.gpg`) e os anexos, como DPS, eSocial e os documentos de clientes e seguradoras (`_anexos.tar.gpg`). Os dois são criptografados: sem a `BACKUP_PASSPHRASE` ninguém consegue abri-los.
-- Antes de entrar na pasta `diario/`, cada arquivo é aberto e conferido. Se o backup falhar (disco cheio, banco fora do ar), nada é publicado e o motivo aparece em `docker compose logs backup`.
-- Os anexos ficam num volume do Docker (`anexos`), fora da pasta pública do site. Só são baixados pela tela do beneficiário, com login.
-
-**Cópias fora do servidor (obrigatório):**
-
-- Toda semana, copie a pasta `backups/` para um HD externo que fica guardado fora do servidor.
-- Configure uma cópia automática para a nuvem (ex.: `rclone` para Backblaze B2 ou Google Drive). Como os arquivos já saem criptografados, a nuvem não vê os dados.
-
-**Fazer um backup agora:**
-
-```bash
-docker compose exec backup fazer-backup.sh
-```
-
-**Ver se os backups estão rodando:**
-
-```bash
-docker compose logs backup
-ls -lh backups/diario
-```
+O backup do banco e dos anexos roda sozinho todo dia e fica na pasta `backups/` do servidor. A cópia para o HD externo, a senha dos backups, a restauração e o teste mensal estão no [guia de backups](backup.md). **Configure a cópia para o HD externo no dia da instalação.**
 
 ## 7. Teste de restauração (todo mês)
 
-Backup que nunca foi restaurado não é garantia. Uma vez por mês, restaure o backup mais recente **numa máquina de teste** (não no servidor em uso), seguindo os passos 1 a 3 com o mesmo `.env`, e depois:
-
-```bash
-# copie o arquivo para a pasta backups/ da máquina de teste e rode:
-docker compose stop web
-docker compose exec backup restaurar.sh diario/crm_AAAA-MM-DD_HHMM.dump.gpg
-docker compose start web
-```
-
-O comando restaura o banco e, logo em seguida, os anexos do mesmo horário (copie os dois arquivos). Ao iniciar, o sistema atualiza o banco restaurado para a versão atual (as migrações). Abra o sistema e confira se os dados estão lá e se um anexo abre.
-
-Antes de mexer em qualquer dado, o comando abre e confere os dois arquivos. Se um deles estiver cortado (ex.: cópia interrompida), estragado ou a senha estiver errada, ele para com um ERRO e **nada é alterado**: tente o backup do dia anterior. O backup é restaurado num banco novo, ao lado do atual, e só no fim os dois trocam de nome: se algo falhar, o banco atual fica como estava. O banco de antes fica guardado como `crm_antes_da_restauracao` até a próxima restauração.
-
-> ⚠️ `restaurar.sh` **substitui** os dados do banco e os anexos. No servidor em uso, só rode em caso de perda de dados, com o sistema parado para ninguém gravar nada no meio:
->
-> ```bash
-> docker compose stop web
-> docker compose exec backup restaurar.sh diario/crm_AAAA-MM-DD_HHMM.dump.gpg
-> docker compose start web
-> ```
-
-> ⚠️ Nunca use `docker compose down -v` nem "Reset to factory defaults" ou "Clean / Purge data" no Docker Desktop: eles apagam o banco e os anexos (os volumes do Docker). Só a pasta `backups/` sobrevive.
+Veja a seção 7 do [guia de backups](backup.md).
 
 ## 8. Atualizar o sistema
 
@@ -173,15 +128,7 @@ Enquanto não houver uma máquina dedicada, o sistema pode rodar num PC Windows 
 
 **Cópia dos backups para o HD externo**
 
-Crie uma tarefa no **Agendador de Tarefas** do Windows que roda todo dia após o horário do backup:
-
-```powershell
-robocopy C:\caminho\crm-ines-rossi\backups E:\backups-crm /E /R:2 /W:5
-```
-
-(troque `C:\caminho\...` pela pasta do projeto e `E:` pela letra do HD externo)
-
-O comando copia os backups novos (e refaz uma cópia que tenha sido interrompida), mas nunca apaga nada do HD. Não use `/MIR`: ele apaga do HD tudo o que sumir do servidor, então um disco com defeito ou uma exclusão por engano no servidor levariam junto as cópias do HD. Como o HD guarda tudo, apague de vez em quando os backups diários com mais de alguns meses, deixando os mensais.
+Veja a seção 4 do [guia de backups](backup.md): preparar o HD, agendar a cópia e conferir toda semana.
 
 **Mudar para a máquina dedicada depois**
 
