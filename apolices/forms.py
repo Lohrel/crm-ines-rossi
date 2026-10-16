@@ -7,12 +7,18 @@ from apolices.models import (
     PLACA,
     BemSegurado,
     Contrato,
+    DocumentoDaSeguradora,
     Ramo,
     Seguradora,
     limpar_placa,
 )
 from clientes.documentos import CNPJ
-from clientes.forms import BootstrapFormMixin, CpfOuCnpjField, DocumentoField
+from clientes.forms import (
+    ArquivoAnexadoForm,
+    BootstrapFormMixin,
+    CpfOuCnpjField,
+    DocumentoField,
+)
 from clientes.models import Cliente
 from clientes.widgets import CampoData, EscolhaDeCor
 
@@ -34,6 +40,19 @@ class SeguradoraForm(BootstrapFormMixin, forms.ModelForm):
     def clean_cnpj(self):
         # Vazio vira None para não conflitar com outras seguradoras sem CNPJ.
         return self.cleaned_data["cnpj"] or None
+
+
+class DocumentoDaSeguradoraForm(ArquivoAnexadoForm):
+    campo_do_dono = "seguradora"
+
+    class Meta:
+        model = DocumentoDaSeguradora
+        fields = ["tipo", "ramo", "descricao", "arquivo"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["ramo"].queryset = Ramo.objects.filter(ativo=True)
+        self.fields["ramo"].empty_label = "Todos os ramos"
 
 
 class ContratoForm(BootstrapFormMixin, forms.ModelForm):

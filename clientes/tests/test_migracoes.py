@@ -48,3 +48,23 @@ def test_contatos_da_unidade_passam_para_a_empresa():
 def _ultimas_migracoes():
     executor = MigrationExecutor(connection)
     return executor.loader.graph.leaf_nodes()
+
+
+@pytest.mark.django_db(transaction=True)
+def test_documentos_chegam_sem_mexer_nos_cadastros_que_ja_existem():
+    """O sistema está em uso: a migração dos documentos só cria tabelas novas."""
+    apps = _migrar_para(
+        [("clientes", "0004_contato_da_empresa_final"), ("apolices", "0008_bens_segurados")]
+    )
+    Cliente = apps.get_model("clientes", "Cliente")
+    Seguradora = apps.get_model("apolices", "Seguradora")
+    empresa = Cliente.objects.create(tipo="PJ", nome="Supermercados Exemplo")
+    seguradora = Seguradora.objects.create(nome="Seguradora Exemplo", cor="azul")
+
+    try:
+        apps = _migrar_para([("clientes", "0005_documentos"), ("apolices", "0009_documentos")])
+        assert apps.get_model("clientes", "Cliente").objects.get(pk=empresa.pk).nome == empresa.nome
+        assert apps.get_model("apolices", "Seguradora").objects.get(pk=seguradora.pk).cor == "azul"
+        assert not apps.get_model("clientes", "DocumentoDoCliente").objects.exists()
+    finally:
+        _migrar_para(_ultimas_migracoes())

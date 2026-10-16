@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator
 
 from clientes.documentos import CNPJ, CPF, Documento, cpf_ou_cnpj
-from clientes.models import Cliente, Contato, Unidade
+from clientes.models import ArquivoAnexado, Cliente, Contato, DocumentoDoCliente, Unidade
 from clientes.planilhas import PlanilhaInvalidaError
 from clientes.widgets import CampoData
 
@@ -181,6 +181,46 @@ class EnvioDePlanilhaForm(BootstrapFormMixin, forms.Form):
     def ler(self, arquivo) -> None:
         """Lê a planilha e guarda o resultado no formulário; levanta PlanilhaInvalidaError."""
         raise NotImplementedError
+
+
+class ArquivoAnexadoForm(BootstrapFormMixin, forms.ModelForm):
+    """Envio de um arquivo: guarda o nome original e quem enviou.
+
+    A subclasse diz o modelo e os campos; `dono` é o registro a que o arquivo pertence.
+    """
+
+    campo_do_dono = ""
+
+    def __init__(self, *args, dono=None, usuario=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if dono is not None:
+            setattr(self.instance, self.campo_do_dono, dono)
+        self.instance.enviado_por = usuario
+        accept = ",".join(f".{extensao}" for extensao in ArquivoAnexado.EXTENSOES)
+        self.fields["arquivo"].widget.attrs["accept"] = accept
+
+    def save(self, commit=True):
+        self.instance.nome_original = self.cleaned_data["arquivo"].name[:255]
+        return super().save(commit)
+
+
+class DocumentoDoClienteForm(ArquivoAnexadoForm):
+    campo_do_dono = "cliente"
+
+    class Meta:
+        model = DocumentoDoCliente
+        fields = ["tipo", "contrato", "descricao", "arquivo"]
+
+    def __init__(self, *args, dono=None, **kwargs):
+        super().__init__(*args, dono=dono, **kwargs)
+        contratos = self.fields["contrato"]
+        contratos.queryset = contratos.queryset.filter(cliente=dono).select_related(
+            "seguradora", "ramo"
+        )
+        contratos.label_from_instance = lambda c: f"{c.ramo} · {c.seguradora} · {c.nome_do_plano}"
+        contratos.empty_label = "Nenhum contrato em especial"
+        if not contratos.queryset.exists():
+            del self.fields["contrato"]
 
 
 class MarcacaoExclusivaFormMixin:

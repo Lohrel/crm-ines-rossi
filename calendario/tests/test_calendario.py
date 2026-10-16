@@ -312,7 +312,8 @@ def test_administrador_exclui_digitando_o_titulo(admin):
 
 
 def test_navegar_entre_os_meses(logado):
-    pagina = logado.get(reverse("calendario:mes"), {"mes": "10/2026"}).content.decode()
+    # Um mês do passado, para o "Hoje" não aparecer marcado.
+    pagina = logado.get(reverse("calendario:mes"), {"mes": "10/2020"}).content.decode()
     assert '<span aria-hidden="true">‹</span> Setembro</a>' in pagina
     assert 'Novembro <span aria-hidden="true">›</span></a>' in pagina
     assert (

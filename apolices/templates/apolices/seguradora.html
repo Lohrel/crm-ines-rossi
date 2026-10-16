@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block titulo %}{{ seguradora.nome }}{% endblock %}
+{% block conteudo %}
+<nav aria-label="Caminho"><ol class="breadcrumb">
+  <li class="breadcrumb-item"><a href="{% url 'apolices:seguradoras' %}">Seguradoras</a></li>
+  <li class="breadcrumb-item active">{{ seguradora.nome }}</li>
+</ol></nav>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-1">{% include "apolices/_seguradora.html" %}</h1>
+    {% if not seguradora.ativo %}<span class="badge text-bg-secondary">Inativa</span>{% endif %}
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'apolices:editar_seguradora' seguradora.pk %}" class="btn btn-outline-primary">Editar</a>
+    <a href="{% url 'apolices:contratos' %}?seguradora={{ seguradora.pk }}" class="btn btn-outline-primary">Contratos</a>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-4"><div class="card-body">
+  <dl class="row mb-0">
+    <dt class="col-sm-3">CNPJ</dt><dd class="col-sm-9">{{ seguradora.cnpj_formatado|default:"—" }}</dd>
+    <dt class="col-sm-3">Telefone de atendimento</dt><dd class="col-sm-9">{{ seguradora.telefone|default:"—" }}</dd>
+    <dt class="col-sm-3">Site</dt><dd class="col-sm-9">{% if seguradora.site %}<a href="{{ seguradora.site }}" target="_blank" rel="noopener noreferrer">{{ seguradora.site }}</a>{% else %}—{% endif %}</dd>
+  </dl>
+</div></div>
+
+{% url 'apolices:novo_documento' seguradora.pk as url_novo %}
+{% include "clientes/_documentos.html" with rota_baixar="apolices:baixar_documento" explicacao="Guarde aqui as regras de produto, tabelas de preço e formulários da seguradora." %}
+
+<div class="card shadow-sm mb-5" id="historico">
+  <div class="card-header fw-semibold">Histórico de alterações</div>
+  <ul class="list-group list-group-flush">
+    {% for evento in historico %}
+      {% include "clientes/_evento_do_historico.html" %}
+    {% empty %}
+      <li class="list-group-item small text-body-secondary">Sem alterações registradas.</li>
+    {% endfor %}
+  </ul>
+</div>
+
+{% if perms.apolices.delete_documentodaseguradora and documentos %}
+{# Exclusões ficam no fim da página, longe dos botões do dia a dia, para evitar cliques por engano. #}
+<div class="d-flex justify-content-end">
+  <details class="border border-danger-subtle rounded p-3 text-end">
+    <summary class="text-danger small">Excluir registros</summary>
+    <p class="small text-body-secondary mt-2 mb-2">A exclusão pede confirmação digitada e fica no histórico.</p>
+    <div class="d-flex flex-column align-items-end gap-2">
+      {% for documento in documentos %}
+        <a href="{% url 'apolices:excluir_documento' documento.pk %}" class="btn btn-sm btn-outline-danger">Excluir documento {{ documento.nome_original }}</a>
+      {% endfor %}
+    </div>
+  </details>
+</div>
+{% endif %}
+{% endblock %}

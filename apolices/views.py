@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 
 from django.contrib import messages
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
@@ -9,16 +9,18 @@ from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
 from apolices.forms import (
     ContratoForm,
+    DocumentoDaSeguradoraForm,
     FiltroContratosForm,
     ImovelForm,
     SeguradoraForm,
     VeiculoForm,
 )
-from apolices.historico import LinhaDoTempoDoBem
+from apolices.historico import LinhaDoTempoDaSeguradora, LinhaDoTempoDoBem
 from apolices.models import (
     DIAS_PARA_RENOVACAO,
     BemSegurado,
     Contrato,
+    DocumentoDaSeguradora,
     Seguradora,
     TipoDeBem,
     limpar_placa,
@@ -27,7 +29,13 @@ from beneficiarios.vidas import anotar_vidas
 from boletos.models import Boleto
 from clientes.forms import SecaoDoFormulario
 from clientes.models import Cliente
-from clientes.views import ExclusaoConfirmadaView, FormularioMixin
+from clientes.views import (
+    ArquivoAnexadoCreateView,
+    ArquivoAnexadoDeleteView,
+    ExclusaoConfirmadaView,
+    FormularioMixin,
+    entregar_arquivo,
+)
 
 
 class ContratoListView(ListView):
@@ -160,6 +168,22 @@ class SeguradoraListView(ListView):
     model = Seguradora
     template_name = "apolices/seguradoras.html"
 
+    def get_queryset(self):
+        return Seguradora.objects.annotate(total_de_documentos=Count("documentos"))
+
+
+class SeguradoraDetailView(DetailView):
+    """Dados da seguradora, os documentos dela (regras de produto, tabelas...) e o histórico."""
+
+    model = Seguradora
+    template_name = "apolices/seguradora.html"
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        contexto["documentos"] = self.object.documentos.select_related("enviado_por", "ramo")
+        contexto["historico"] = LinhaDoTempoDaSeguradora(self.object).eventos()
+        return contexto
+
 
 class SeguradoraCreateView(FormularioMixin, CreateView):
     model = Seguradora
@@ -180,7 +204,22 @@ class SeguradoraUpdateView(FormularioMixin, UpdateView):
         return f"Editar {self.object}"
 
     def get_url_cancelar(self) -> str:
-        return reverse("apolices:seguradoras")
+        return self.object.get_absolute_url()
+
+
+class DocumentoDaSeguradoraCreateView(ArquivoAnexadoCreateView):
+    model = DocumentoDaSeguradora
+    modelo_do_dono = Seguradora
+    form_class = DocumentoDaSeguradoraForm
+
+
+def baixar_documento_da_seguradora(request, pk: int):
+    return entregar_arquivo(get_object_or_404(DocumentoDaSeguradora, pk=pk))
+
+
+class DocumentoDaSeguradoraDeleteView(ArquivoAnexadoDeleteView):
+    model = DocumentoDaSeguradora
+    permission_required = "apolices.delete_documentodaseguradora"
 
 
 FORMULARIOS_DOS_BENS = {TipoDeBem.VEICULO: VeiculoForm, TipoDeBem.IMOVEL: ImovelForm}

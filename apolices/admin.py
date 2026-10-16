@@ -1,7 +1,7 @@
 from django.contrib import admin
 from simple_history.admin import SimpleHistoryAdmin
 
-from apolices.models import BemSegurado, Contrato, Ramo, Seguradora
+from apolices.models import BemSegurado, Contrato, DocumentoDaSeguradora, Ramo, Seguradora
 
 
 @admin.register(Ramo)
@@ -29,3 +29,10 @@ class BemSeguradoAdmin(SimpleHistoryAdmin):
     list_filter = ["tipo"]
     search_fields = ["descricao", "placa", "contrato__numero", "contrato__cliente__nome"]
     list_select_related = ["contrato__seguradora"]
+
+
+@admin.register(DocumentoDaSeguradora)
+class DocumentoDaSeguradoraAdmin(SimpleHistoryAdmin):
+    list_display = ["__str__", "tipo", "seguradora", "enviado_por", "criado_em"]
+    list_filter = ["tipo"]
+    readonly_fields = ["nome_original", "enviado_por"]

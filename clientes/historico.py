@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from itertools import chain
 
-from clientes.models import Cliente, Contato, Unidade
+from clientes.models import Cliente, Contato, DocumentoDoCliente, Unidade
 
 
 @dataclass(frozen=True)
@@ -28,6 +28,7 @@ def _cadastro_do_cliente(cliente: Cliente) -> Iterable:
         Cliente.history.filter(id=cliente.pk),
         Unidade.history.filter(cliente_id=cliente.pk),
         Contato.history.filter(cliente_id=cliente.pk),
+        DocumentoDoCliente.history.filter(cliente_id=cliente.pk),
     )
 
 

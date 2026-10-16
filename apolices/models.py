@@ -11,7 +11,14 @@ from django.urls import reverse
 from simple_history.models import HistoricalRecords
 
 from clientes.documentos import CNPJ, cpf_ou_cnpj
-from clientes.models import Cliente, Endereco, ExclusaoProtegida, Registro, Unidade
+from clientes.models import (
+    ArquivoAnexado,
+    Cliente,
+    Endereco,
+    ExclusaoProtegida,
+    Registro,
+    Unidade,
+)
 from clientes.validators import validar_cnpj
 
 # O painel e a lista de contratos avisam as renovações com esta antecedência.
@@ -60,7 +67,7 @@ class Seguradora(Registro):
         return self.nome
 
     def get_absolute_url(self) -> str:
-        return reverse("apolices:seguradoras")
+        return reverse("apolices:seguradora", args=[self.pk])
 
     @property
     def cnpj_formatado(self) -> str:
@@ -475,3 +482,37 @@ class BemSegurado(ExclusaoProtegida, Endereco, Registro):
         self.placa = limpar_placa(self.placa)
         if self.placa and not PLACA.fullmatch(self.placa):
             raise ValidationError({"placa": "Placa inválida. Use ABC1D23 ou ABC-1234."})
+
+
+class DocumentoDaSeguradora(ArquivoAnexado):
+    """Regras de produto, tabelas, formulários e comunicados de uma seguradora."""
+
+    class Tipo(models.TextChoices):
+        REGRAS = "REG", "Regras do produto ou manual"
+        TABELA = "TAB", "Tabela de preços"
+        FORMULARIO = "FOR", "Formulário (proposta, DPS em branco, movimentação)"
+        COMUNICADO = "COM", "Comunicado ou reajuste"
+        OUTRO = "OUT", "Outro"
+
+    seguradora = models.ForeignKey(Seguradora, on_delete=models.CASCADE, related_name="documentos")
+    tipo = models.CharField(max_length=3, choices=Tipo.choices)
+    ramo = models.ForeignKey(
+        Ramo,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        help_text="Opcional: o ramo a que o documento vale (ex.: só Dental).",
+    )
+
+    history = HistoricalRecords()
+
+    class Meta(ArquivoAnexado.Meta):
+        verbose_name = "documento da seguradora"
+        verbose_name_plural = "documentos da seguradora"
+
+    def get_absolute_url(self) -> str:
+        return f"{self.seguradora.get_absolute_url()}#documentos"
+
+    def pasta_no_disco(self) -> str:
+        return f"seguradoras/{self.seguradora_id}"

@@ -16,6 +16,22 @@ urlpatterns = [
     path("bens/<int:pk>/excluir/", views.BemSeguradoDeleteView.as_view(), name="excluir_bem"),
     path("seguradoras/", views.SeguradoraListView.as_view(), name="seguradoras"),
     path("seguradoras/nova/", views.SeguradoraCreateView.as_view(), name="nova_seguradora"),
+    path("seguradoras/<int:pk>/", views.SeguradoraDetailView.as_view(), name="seguradora"),
+    path(
+        "seguradoras/<int:dono_pk>/documentos/novo/",
+        views.DocumentoDaSeguradoraCreateView.as_view(),
+        name="novo_documento",
+    ),
+    path(
+        "seguradoras/documentos/<int:pk>/baixar/",
+        views.baixar_documento_da_seguradora,
+        name="baixar_documento",
+    ),
+    path(
+        "seguradoras/documentos/<int:pk>/excluir/",
+        views.DocumentoDaSeguradoraDeleteView.as_view(),
+        name="excluir_documento",
+    ),
     path(
         "seguradoras/<int:pk>/editar/",
         views.SeguradoraUpdateView.as_view(),

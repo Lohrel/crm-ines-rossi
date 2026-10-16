@@ -1,7 +1,7 @@
 from django.contrib import admin
 from simple_history.admin import SimpleHistoryAdmin
 
-from clientes.models import Cliente, Contato, Unidade
+from clientes.models import Cliente, Contato, DocumentoDoCliente, Unidade
 
 
 class UnidadeInline(admin.TabularInline):
@@ -23,3 +23,10 @@ class ContatoAdmin(SimpleHistoryAdmin):
     list_display = ["nome", "cargo", "cliente", "principal"]
     search_fields = ["nome", "cliente__nome", "unidades__razao_social"]
     filter_horizontal = ["unidades"]
+
+
+@admin.register(DocumentoDoCliente)
+class DocumentoDoClienteAdmin(SimpleHistoryAdmin):
+    list_display = ["__str__", "tipo", "cliente", "enviado_por", "criado_em"]
+    list_filter = ["tipo"]
+    readonly_fields = ["nome_original", "enviado_por"]

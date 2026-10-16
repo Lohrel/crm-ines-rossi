@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 from itertools import chain
 
-from apolices.models import BemSegurado, Contrato, Subfatura
+from apolices.models import BemSegurado, Contrato, DocumentoDaSeguradora, Seguradora, Subfatura
 from clientes.historico import LinhaDoTempo
 from clientes.models import Cliente
 
@@ -22,3 +22,16 @@ class LinhaDoTempoDoBem(LinhaDoTempo):
     """Quem cadastrou o veículo ou o imóvel e quem mudou o quê."""
 
     fontes = [_do_bem]
+
+
+def _da_seguradora(seguradora: Seguradora) -> Iterable:
+    return chain(
+        Seguradora.history.filter(id=seguradora.pk),
+        DocumentoDaSeguradora.history.filter(seguradora_id=seguradora.pk),
+    )
+
+
+class LinhaDoTempoDaSeguradora(LinhaDoTempo):
+    """Alterações do cadastro da seguradora e dos documentos dela."""
+
+    fontes = [_da_seguradora]

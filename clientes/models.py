@@ -1,6 +1,10 @@
 import re
+from pathlib import Path
+from uuid import uuid4
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.validators import FileExtensionValidator
 from django.db import models, transaction
 from django.db.models import Q
 from django.urls import reverse
@@ -144,6 +148,66 @@ class ExclusaoProtegida(models.Model):
         self.delete()
 
 
+def _caminho_do_arquivo(anexado: "ArquivoAnexado", nome_original: str) -> str:
+    # Nome aleatório no disco: o nome original (que pode ter dados pessoais) fica só no banco.
+    extensao = Path(nome_original).suffix.lower()
+    return f"{anexado.pasta_no_disco()}/{uuid4().hex}{extensao}"
+
+
+def validar_tamanho_do_arquivo(arquivo) -> None:
+    limite = settings.TAMANHO_MAXIMO_ANEXO_MB
+    if arquivo.size > limite * 1024 * 1024:
+        raise ValidationError(f"O arquivo passa de {limite} MB.")
+
+
+class ArquivoAnexado(ExclusaoProtegida, Registro):
+    """Arquivo guardado fora da pasta pública e entregue só por uma tela com login.
+
+    Fica em MEDIA_ROOT, a pasta que o backup diário copia junto com o banco.
+    """
+
+    EXTENSOES = ["pdf", "jpg", "jpeg", "png", "doc", "docx", "xls", "xlsx"]
+
+    descricao = models.CharField(
+        "descrição",
+        max_length=200,
+        blank=True,
+        help_text="Se ficar em branco, vale o nome do arquivo.",
+    )
+    arquivo = models.FileField(
+        upload_to=_caminho_do_arquivo,
+        max_length=200,
+        validators=[FileExtensionValidator(EXTENSOES), validar_tamanho_do_arquivo],
+        help_text=f"PDF, imagem, Word ou Excel, até {settings.TAMANHO_MAXIMO_ANEXO_MB} MB.",
+    )
+    nome_original = models.CharField("nome do arquivo", max_length=255, editable=False)
+    enviado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        editable=False,
+        related_name="+",
+        verbose_name="enviado por",
+    )
+
+    class Meta:
+        abstract = True
+        ordering = ["-criado_em"]
+
+    def __str__(self) -> str:
+        return self.descricao or self.nome_original
+
+    def pasta_no_disco(self) -> str:
+        raise NotImplementedError
+
+    def excluir(self) -> None:
+        """Apaga o registro e, depois de gravada a exclusão, o arquivo do disco."""
+        arquivo = self.arquivo
+        with transaction.atomic():
+            super().excluir()
+            transaction.on_commit(lambda: arquivo.storage.delete(arquivo.name))
+
+
 class ClienteQuerySet(models.QuerySet):
     def pessoas_fisicas(self):
         return self.filter(tipo=Cliente.Tipo.PESSOA_FISICA)
@@ -206,7 +270,7 @@ class Cliente(ExclusaoProtegida, Endereco, MeiosDeContato, Registro):
     history = HistoricalRecords()
     objects = ClienteQuerySet.as_manager()
 
-    dependentes_proprios = ("unidades", "contatos", "pendencias")
+    dependentes_proprios = ("unidades", "contatos", "pendencias", "documentos")
 
     class Meta:
         ordering = ["nome"]
@@ -242,13 +306,15 @@ class Cliente(ExclusaoProtegida, Endereco, MeiosDeContato, Registro):
         return bloqueios
 
     def excluir(self) -> None:
-        """Exclui o cliente junto com as suas unidades, contatos e pendências."""
+        """Exclui o cliente junto com as suas unidades, contatos, pendências e documentos."""
         with transaction.atomic():
             bloqueios = self.bloqueios_para_excluir()
             if bloqueios:
                 raise ValidationError("Não é possível excluir: " + "; ".join(bloqueios) + ".")
             self.pendencias.all().delete()
             self.contatos.all().delete()
+            for documento in self.documentos.all():
+                documento.excluir()
             for unidade in self.unidades.all():
                 unidade.delete()
             self.delete()
@@ -374,3 +440,42 @@ class Contato(MarcacaoExclusiva, MeiosDeContato, Registro):
             raise ValidationError("Escolha ao menos uma unidade atendida por este contato.")
         if any(u.cliente_id != self.cliente_id for u in unidades):
             raise ValidationError("Só é possível escolher unidades desta empresa.")
+
+
+class DocumentoDoCliente(ArquivoAnexado):
+    """Contrato assinado, aditivo, cartão CNPJ e outros documentos do cliente."""
+
+    class Tipo(models.TextChoices):
+        CONTRATO = "CON", "Contrato assinado"
+        ADITIVO = "ADI", "Aditivo ou proposta"
+        EMPRESA = "EMP", "Documento da empresa (contrato social, cartão CNPJ)"
+        PESSOAL = "PES", "Documento pessoal"
+        OUTRO = "OUT", "Outro"
+
+    cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name="documentos")
+    tipo = models.CharField(max_length=3, choices=Tipo.choices)
+    contrato = models.ForeignKey(
+        "apolices.Contrato",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="documentos",
+        help_text="Opcional: o contrato a que o documento se refere.",
+    )
+
+    history = HistoricalRecords()
+
+    class Meta(ArquivoAnexado.Meta):
+        verbose_name = "documento do cliente"
+        verbose_name_plural = "documentos do cliente"
+
+    def get_absolute_url(self) -> str:
+        return f"{self.cliente.get_absolute_url()}#documentos"
+
+    def pasta_no_disco(self) -> str:
+        return f"clientes/{self.cliente_id}"
+
+    def clean(self):
+        super().clean()
+        if self.contrato_id and self.contrato.cliente_id != self.cliente_id:
+            raise ValidationError({"contrato": "O contrato precisa ser deste cliente."})

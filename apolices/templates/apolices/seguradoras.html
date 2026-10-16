@@ -6,22 +6,23 @@
   <a href="{% url 'apolices:nova_seguradora' %}" class="btn btn-primary">Nova seguradora</a>
 </div>
 <p class="small text-body-secondary">
-  A cor de cada seguradora aparece numa faixa nas listas de movimentações, contratos e boletos, para achar o portal certo sem precisar ler. Escolha a cor em "Editar".
+  A cor de cada seguradora aparece numa faixa nas listas de movimentações, contratos e boletos, para achar o portal certo sem precisar ler. Escolha a cor em "Editar". Clique no nome para ver os documentos da seguradora, como regras de produto e tabelas.
 </p>
 <div class="card shadow-sm"><div class="table-responsive">
   <table class="table table-hover align-middle mb-0">
-    <thead class="table-light"><tr><th>Nome</th><th>CNPJ</th><th>Atendimento</th><th>Situação</th><th><span class="visually-hidden">Ações</span></th></tr></thead>
+    <thead class="table-light"><tr><th>Nome</th><th>CNPJ</th><th>Atendimento</th><th>Documentos</th><th>Situação</th><th><span class="visually-hidden">Ações</span></th></tr></thead>
     <tbody>
     {% for seguradora in object_list %}
       <tr{% if seguradora.cor %} class="faixa-seguradora cor-{{ seguradora.cor }}"{% endif %}>
-        <td>{% include "apolices/_seguradora.html" %}</td>
+        <td><a href="{{ seguradora.get_absolute_url }}" class="link-body-emphasis">{% include "apolices/_seguradora.html" %}</a></td>
         <td class="text-nowrap">{{ seguradora.cnpj_formatado|default:"—" }}</td>
         <td>{{ seguradora.telefone|default:"" }}{% if seguradora.site %} <a href="{{ seguradora.site }}" target="_blank" rel="noopener noreferrer">site</a>{% endif %}</td>
+        <td>{% if seguradora.total_de_documentos %}<a href="{{ seguradora.get_absolute_url }}#documentos">{{ seguradora.total_de_documentos }}</a>{% else %}<span class="text-body-secondary">—</span>{% endif %}</td>
         <td>{% if seguradora.ativo %}<span class="badge text-bg-success">Ativa</span>{% else %}<span class="badge text-bg-secondary">Inativa</span>{% endif %}</td>
         <td class="text-end"><a href="{% url 'apolices:editar_seguradora' seguradora.pk %}" class="btn btn-sm btn-link">Editar</a></td>
       </tr>
     {% empty %}
-      <tr><td colspan="5" class="text-center text-body-secondary py-3">Nenhuma seguradora cadastrada.</td></tr>
+      <tr><td colspan="6" class="text-center text-body-secondary py-3">Nenhuma seguradora cadastrada.</td></tr>
     {% endfor %}
     </tbody>
   </table>
