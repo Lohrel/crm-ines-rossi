@@ -45,6 +45,8 @@ Cada etapa só começa quando a anterior está testada e em uso.
   - [x] 10c. Computador: menu numa linha a partir de 992 px, tons azul-acinzentados, página do cliente com atalhos, listas com menos ruído, tabelas que cabem na tela, páginas de erro em português e acessibilidade
   - [ ] 10d. Celular: listas em fichas e filtros recolhidos
 - [x] **11.** Documentos anexados: regras de produto, tabelas e formulários na página de cada seguradora, e contratos assinados e documentos na página de cada cliente (pessoa física ou empresa), com quem enviou e quando, entregues só com login e copiados pelo backup
+- [ ] **12.** Proteção contra perda de dados, a partir de testes de carga e de arquivos corrompidos
+  - [ ] 12b. Edição ao mesmo tempo: quem salva por último é avisado de que outra pessoa gravou o registro enquanto editava, em vez de apagar sem saber o que ela gravou; dois cliques em "Aprovar" no mesmo pedido não dão mais erro; e um anexo que sumiu do disco mostra um aviso em vez da página de erro
 
 As telas usam o Bootstrap com as cores, a fonte e o logo da corretora (etapa 10a). Problemas de uso encontrados nos testes são corrigidos na própria etapa.
 
