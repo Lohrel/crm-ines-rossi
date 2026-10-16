@@ -3,6 +3,7 @@ from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Prefetch
+from django.http import FileResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -15,12 +16,13 @@ from clientes.forms import (
     BuscaClienteForm,
     ConfirmacaoExclusaoForm,
     ContatoForm,
+    DocumentoDoClienteForm,
     EmpresaForm,
     PessoaFisicaForm,
     UnidadeForm,
 )
 from clientes.historico import LinhaDoTempo
-from clientes.models import Cliente, Contato, Unidade
+from clientes.models import Cliente, Contato, DocumentoDoCliente, Unidade
 
 
 class ClienteListView(ListView):
@@ -59,6 +61,9 @@ class ClienteDetailView(DetailView):
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
         contexto["historico"] = LinhaDoTempo(self.object).eventos()
+        contexto["documentos"] = self.object.documentos.select_related(
+            "enviado_por", "contrato__ramo", "contrato__seguradora"
+        )
         contexto["pendencias"] = self.object.pendencias.em_aberto().para_tabela()
         contratos = self.object.contratos.select_related("seguradora", "ramo")
         contratos = list(anotar_vidas(contratos.prefetch_related("unidades", "bens")))
@@ -309,6 +314,12 @@ class ClienteDeleteView(ExclusaoConfirmadaView):
 
     def get_aviso(self) -> str:
         avisos = [pendencias_que_saem_junto(self.object, "deste cliente")]
+        if quantos := self.object.documentos.count():
+            avisos.append(
+                "O documento anexado também será apagado do servidor."
+                if quantos == 1
+                else f"Os {quantos} documentos anexados também serão apagados do servidor."
+            )
         if self.object.eh_empresa:
             avisos.insert(0, "Serão excluídas também todas as unidades e contatos desta empresa.")
         return " ".join(aviso for aviso in avisos if aviso)
@@ -328,3 +339,64 @@ class UnidadeDeleteView(ExclusaoConfirmadaView):
 
     def get_success_url(self) -> str:
         return self.object.cliente.get_absolute_url()
+
+
+# ------------------------------------------------------------------
+# Arquivos anexados (documentos do cliente e da seguradora)
+# ------------------------------------------------------------------
+
+
+def entregar_arquivo(anexado) -> FileResponse:
+    """Entrega o arquivo só para quem está logado (o login é exigido pelo middleware)."""
+    resposta = FileResponse(
+        anexado.arquivo.open("rb"), as_attachment=True, filename=anexado.nome_original
+    )
+    resposta["Cache-Control"] = "private, no-store"
+    return resposta
+
+
+class ArquivoAnexadoCreateView(FormularioMixin, CreateView):
+    """Envio de um arquivo para um registro (o "dono"), com quem enviou."""
+
+    modelo_do_dono: type
+    mensagem_sucesso = "Arquivo anexado."
+    texto_do_botao = "Anexar"
+
+    def get_dono(self):
+        if not hasattr(self, "dono"):
+            self.dono = get_object_or_404(self.modelo_do_dono, pk=self.kwargs["dono_pk"])
+        return self.dono
+
+    def get_form_kwargs(self):
+        return {**super().get_form_kwargs(), "dono": self.get_dono(), "usuario": self.request.user}
+
+    def get_titulo(self) -> str:
+        return f"Anexar documento de {self.get_dono()}"
+
+    def get_url_cancelar(self) -> str:
+        return f"{self.get_dono().get_absolute_url()}#documentos"
+
+
+class ArquivoAnexadoDeleteView(ExclusaoConfirmadaView):
+    aviso = "O arquivo será apagado do servidor."
+
+    def get_texto_esperado(self) -> str:
+        return self.object.nome_original
+
+    def get_success_url(self) -> str:
+        return self.object.get_absolute_url()
+
+
+class DocumentoDoClienteCreateView(ArquivoAnexadoCreateView):
+    model = DocumentoDoCliente
+    modelo_do_dono = Cliente
+    form_class = DocumentoDoClienteForm
+
+
+def baixar_documento(request, pk: int):
+    return entregar_arquivo(get_object_or_404(DocumentoDoCliente, pk=pk))
+
+
+class DocumentoDoClienteDeleteView(ArquivoAnexadoDeleteView):
+    model = DocumentoDoCliente
+    permission_required = "clientes.delete_documentodocliente"

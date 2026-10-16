@@ -44,6 +44,7 @@ Cada etapa só começa quando a anterior está testada e em uso.
   - [x] 10b. Cor de cada seguradora, escolhida no cadastro: faixa nas listas e ponto antes do nome, para achar o portal certo sem ler
   - [x] 10c. Computador: menu numa linha a partir de 992 px, tons azul-acinzentados, página do cliente com atalhos, listas com menos ruído, tabelas que cabem na tela, páginas de erro em português e acessibilidade
   - [ ] 10d. Celular: listas em fichas e filtros recolhidos
+- [x] **11.** Documentos anexados: regras de produto, tabelas e formulários na página de cada seguradora, e contratos assinados e documentos na página de cada cliente (pessoa física ou empresa), com quem enviou e quando, entregues só com login e copiados pelo backup
 
 As telas usam o Bootstrap com as cores, a fonte e o logo da corretora (etapa 10a). Problemas de uso encontrados nos testes são corrigidos na própria etapa.
 

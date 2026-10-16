@@ -56,7 +56,7 @@ merge dos PRs.
    ou planilha com CNPJ precisa aceitar letras (veja `clientes/documentos.py`).
 8. **Anexos são sensíveis (LGPD).** DPS e documentos têm dados de saúde: ficam fora da pasta pública
    e só são entregues por uma tela com login (não existe `MEDIA_URL`, de propósito). Não crie campos
-   de doença ou CID.
+   de doença ou CID. Vale também para os documentos de clientes e seguradoras.
 9. **Número de vidas é sempre calculado** a partir dos planos em vigor (`beneficiarios/vidas.py`),
    nunca digitado.
 10. **Movimentação começa "Em análise".** Ela só é registrada depois de enviada à operadora, e a data
@@ -162,7 +162,12 @@ pytest -q
 - **10c**, acabamento no computador: branch `etapa-10c-computador`, esperando o Lohrel testar. O
   escopo foi escolhido por ele a partir de uma análise das telas (veja
   [docs/frontend.md](docs/frontend.md)). Se ele pedir ajustes, corrija nesse mesmo branch.
-- A instalação no servidor do escritório, com os 4 logins, ainda não foi confirmada.
+- O sistema está **em produção** no escritório (16/10/2026). Nenhuma atualização pode quebrar o
+  sistema ou perder dados: migração que mexe em dados existentes precisa de teste de migração
+  (veja `clientes/tests/test_migracoes.py`), e todo arquivo enviado fica em `MEDIA_ROOT`, a pasta
+  que o backup copia.
+- **11. Documentos anexados** (seguradoras e clientes): esperando o Lohrel testar. Os arquivos herdam
+  `ArquivoAnexado` (`clientes/models.py`); reaproveite essa base em anexos novos.
 - Próxima etapa:
   - **10d. Celular**, depois do merge da 10c: as listas viram fichas abaixo de 576 px e os filtros
     ficam recolhidos num botão (combinado com o Lohrel). Com ela e a aprovação do painel pela

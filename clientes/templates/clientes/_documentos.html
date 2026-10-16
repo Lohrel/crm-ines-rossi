@@ -1,0 +1,24 @@
+{# Documentos anexados (cliente ou seguradora). Recebe: documentos, url_novo, rota_baixar, explicacao. #}
+<div class="card shadow-sm mb-4" id="documentos">
+  <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span class="fw-semibold">Documentos</span>
+    <a href="{{ url_novo }}" class="btn btn-sm btn-primary">Anexar documento</a>
+  </div>
+  <ul class="list-group list-group-flush">
+  {% for documento in documentos %}
+    <li class="list-group-item">
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <a href="{% url rota_baixar documento.pk %}" class="fw-semibold">{{ documento }}</a>
+        <span class="badge text-bg-light border">{{ documento.get_tipo_display }}</span>
+        {% if documento.contrato %}<span class="small">{{ documento.contrato.ramo }} · {{ documento.contrato.nome_do_plano }}</span>{% endif %}
+        {% if documento.ramo %}<span class="small">{{ documento.ramo }}</span>{% endif %}
+      </div>
+      <div class="small text-body-secondary">
+        {% if documento.descricao %}{{ documento.nome_original }} · {% endif %}enviado em {{ documento.criado_em|date:"d/m/Y H:i" }}{% if documento.enviado_por %} por {{ documento.enviado_por }}{% endif %}
+      </div>
+    </li>
+  {% empty %}
+    <li class="list-group-item text-body-secondary">Nenhum documento anexado. {{ explicacao }}</li>
+  {% endfor %}
+  </ul>
+</div>

@@ -25,4 +25,15 @@ urlpatterns = [
     ),
     path("contatos/<int:pk>/editar/", views.ContatoUpdateView.as_view(), name="editar_contato"),
     path("contatos/<int:pk>/remover/", views.ContatoDeleteView.as_view(), name="remover_contato"),
+    path(
+        "<int:dono_pk>/documentos/novo/",
+        views.DocumentoDoClienteCreateView.as_view(),
+        name="novo_documento",
+    ),
+    path("documentos/<int:pk>/baixar/", views.baixar_documento, name="baixar_documento"),
+    path(
+        "documentos/<int:pk>/excluir/",
+        views.DocumentoDoClienteDeleteView.as_view(),
+        name="excluir_documento",
+    ),
 ]
