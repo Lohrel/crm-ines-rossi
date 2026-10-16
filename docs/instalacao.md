@@ -113,12 +113,14 @@ Backup que nunca foi restaurado não é garantia. Uma vez por mês, restaure o b
 
 ```bash
 # copie o arquivo para a pasta backups/ da máquina de teste e rode:
+docker compose stop web
 docker compose exec backup restaurar.sh diario/crm_AAAA-MM-DD_HHMM.dump.gpg
+docker compose start web
 ```
 
-O comando restaura o banco e, logo em seguida, os anexos do mesmo horário (copie os dois arquivos). Abra o sistema e confira se os dados estão lá e se um anexo abre.
+O comando restaura o banco e, logo em seguida, os anexos do mesmo horário (copie os dois arquivos). Ao iniciar, o sistema atualiza o banco restaurado para a versão atual (as migrações). Abra o sistema e confira se os dados estão lá e se um anexo abre.
 
-Antes de mexer em qualquer dado, o comando abre e confere os dois arquivos. Se um deles estiver cortado (ex.: cópia interrompida), estragado ou a senha estiver errada, ele para com um ERRO e **nada é alterado**: tente o backup do dia anterior. O banco é restaurado de uma vez só: se algo falhar no meio, ele fica como estava.
+Antes de mexer em qualquer dado, o comando abre e confere os dois arquivos. Se um deles estiver cortado (ex.: cópia interrompida), estragado ou a senha estiver errada, ele para com um ERRO e **nada é alterado**: tente o backup do dia anterior. O backup é restaurado num banco novo, ao lado do atual, e só no fim os dois trocam de nome: se algo falhar, o banco atual fica como estava. O banco de antes fica guardado como `crm_antes_da_restauracao` até a próxima restauração.
 
 > ⚠️ `restaurar.sh` **substitui** os dados do banco e os anexos. No servidor em uso, só rode em caso de perda de dados, com o sistema parado para ninguém gravar nada no meio:
 >

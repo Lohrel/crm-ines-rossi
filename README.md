@@ -47,7 +47,8 @@ Cada etapa só começa quando a anterior está testada e em uso.
 - [x] **11.** Documentos anexados: regras de produto, tabelas e formulários na página de cada seguradora, e contratos assinados e documentos na página de cada cliente (pessoa física ou empresa), com quem enviou e quando, entregues só com login e copiados pelo backup
 - [ ] **12.** Proteção contra perda de dados, a partir de testes de carga e de arquivos corrompidos
   - [x] 12a. Backup e restauração seguros: cada backup é conferido antes de entrar na pasta, e a restauração confere os arquivos antes de mexer nos dados e grava o banco de uma vez só (um backup cortado ou estragado não apaga mais o banco atual)
-  - [ ] 12b. Edição ao mesmo tempo: quem salva por último é avisado de que outra pessoa gravou o registro enquanto editava, em vez de apagar sem saber o que ela gravou; dois cliques em "Aprovar" no mesmo pedido não dão mais erro; e um anexo que sumiu do disco mostra um aviso em vez da página de erro
+  - [x] 12b. Edição ao mesmo tempo: quem salva por último é avisado de que outra pessoa gravou o registro enquanto editava, em vez de apagar sem saber o que ela gravou; dois cliques em "Aprovar" no mesmo pedido não dão mais erro; e um anexo que sumiu do disco mostra um aviso em vez da página de erro
+  - [ ] 12c. Restaurar um backup feito antes de uma etapa nova: o backup vai para um banco novo, ao lado do atual, e os dois trocam de nome no fim (antes, as tabelas novas impediam a restauração)
 
 As telas usam o Bootstrap com as cores, a fonte e o logo da corretora (etapa 10a). Problemas de uso encontrados nos testes são corrigidos na própria etapa.
 

@@ -75,9 +75,10 @@ def ambiente(tmp_path):
     subprocess.run(["gpgconf", "--kill", "gpg-agent"], env=env, check=False)  # noqa: S607
     shutil.rmtree(gnupg, ignore_errors=True)
     with _conectar(settings.DATABASES["default"]["NAME"]) as conexao:
-        conexao.execute(
-            sql.SQL("DROP DATABASE IF EXISTS {} WITH (FORCE)").format(sql.Identifier(BANCO))
-        )
+        for banco in (BANCO, f"{BANCO}_restaurando", f"{BANCO}_antes_da_restauracao"):
+            conexao.execute(
+                sql.SQL("DROP DATABASE IF EXISTS {} WITH (FORCE)").format(sql.Identifier(banco))
+            )
 
 
 def _rodar(script: str, env: dict, *argumentos: str) -> subprocess.CompletedProcess:
@@ -119,6 +120,29 @@ def test_backup_e_restauracao(ambiente):
     assert resultado.returncode == 0, resultado.stderr
     assert _quantos_clientes() == 5000
     assert contrato.read_bytes() == b"%PDF-1.4 contrato ficticio"
+
+
+def test_backup_de_antes_de_uma_etapa_nova(ambiente):
+    """Uma etapa nova criou uma tabela ligada às antigas depois do backup (ex.: os documentos
+    dos clientes). Restaurar por cima do banco atual esbarrava nela e misturava os dados."""
+    banco, _ = _fazer_backup(ambiente)
+    _consultar(
+        "CREATE TABLE documento (id serial PRIMARY KEY, cliente_id int REFERENCES cliente (id))"
+    )
+    _consultar("INSERT INTO documento (cliente_id) VALUES (1)")
+    _consultar("DELETE FROM cliente WHERE id > 10")
+    # Uma conexão aberta, como a do sistema no ar, não impede a troca.
+    with _conectar(BANCO):
+        resultado = _rodar("restaurar.sh", ambiente, f"diario/{banco.name}")
+
+    assert resultado.returncode == 0, resultado.stderr
+    assert _quantos_clientes() == 5000
+    assert _consultar("SELECT to_regclass('documento')") == [(None,)]
+    # O banco de antes fica guardado, com o que tinha na hora da restauração.
+    with _conectar(settings.DATABASES["default"]["NAME"]) as conexao:
+        nomes = [linha[0] for linha in conexao.execute("SELECT datname FROM pg_database")]
+    assert f"{BANCO}_antes_da_restauracao" in nomes
+    assert f"{BANCO}_restaurando" not in nomes
 
 
 @pytest.mark.parametrize("fracao", [0.5, 0.95])
