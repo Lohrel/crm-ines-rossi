@@ -1,3 +1,6 @@
+import logging
+
+from django import forms
 from django.contrib import messages
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.core.exceptions import ValidationError
@@ -6,6 +9,7 @@ from django.db.models import Prefetch
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
 from django.views.generic import CreateView, DeleteView, DetailView, FormView, ListView, UpdateView
@@ -23,6 +27,8 @@ from clientes.forms import (
 )
 from clientes.historico import LinhaDoTempo
 from clientes.models import Cliente, Contato, DocumentoDoCliente, Unidade
+
+logger = logging.getLogger(__name__)
 
 
 class ClienteListView(ListView):
@@ -89,6 +95,10 @@ def destino_seguro(request, padrao: str) -> str:
     return proximo if seguro else padrao
 
 
+# Campo oculto dos formulários de edição: quando o registro foi gravado pela última vez.
+CAMPO_DA_VERSAO = "versao_gravada"
+
+
 class FormularioMixin:
     """Título, mensagem de sucesso e página de retorno comuns aos formulários."""
 
@@ -115,6 +125,51 @@ class FormularioMixin:
         resposta = super().form_valid(form)
         messages.success(self.request, self.mensagem_sucesso)
         return resposta
+
+    # ------------------------------------------------------------------
+    # Duas pessoas editando o mesmo registro ao mesmo tempo
+    # ------------------------------------------------------------------
+
+    def get_form(self, form_class=None):
+        """Na edição, guarda num campo oculto quando o registro foi gravado pela última vez.
+
+        Se outra pessoa gravar o registro enquanto esta edita, o formulário não é gravado:
+        sem isso, a segunda pessoa apagaria sem saber o que a primeira acabou de gravar.
+        """
+        form = super().get_form(form_class)
+        if versao := self._versao_gravada():
+            form.fields[CAMPO_DA_VERSAO] = forms.CharField(widget=forms.HiddenInput, required=False)
+            form.initial[CAMPO_DA_VERSAO] = versao
+            setattr(form, f"clean_{CAMPO_DA_VERSAO}", lambda: self._conferir_versao(form))
+        return form
+
+    def _versao_gravada(self) -> str:
+        objeto = getattr(self, "object", None)
+        gravado_em = getattr(objeto, "atualizado_em", None) if objeto and objeto.pk else None
+        return gravado_em.isoformat() if gravado_em else ""
+
+    def _conferir_versao(self, form) -> str:
+        lida = form.cleaned_data.get(CAMPO_DA_VERSAO, "")
+        atual = self._versao_gravada()
+        # Vazio: a tela foi aberta antes desta conferência existir.
+        if lida and lida != atual:
+            form.add_error(None, self._aviso_de_edicao_simultanea())
+            # Se a pessoa salvar de novo depois de conferir, vale o que está na tela.
+            form.data = form.data.copy()
+            form.data[form.add_prefix(CAMPO_DA_VERSAO)] = atual
+        return lida
+
+    def _aviso_de_edicao_simultanea(self) -> str:
+        historico = getattr(self.object, "history", None)
+        ultima = historico.first() if historico is not None else None
+        usuario = ultima.history_user if ultima else None
+        quem = (usuario.get_full_name() or usuario.username) if usuario else "Outra pessoa"
+        hora = timezone.localtime(self.object.atualizado_em).strftime("%H:%M")
+        return (
+            f"{quem} gravou este registro às {hora}, enquanto você editava, e a sua alteração "
+            "ainda não foi gravada. Abra o registro em outra aba para ver o que mudou. Se salvar "
+            "de novo, o que está nesta tela substitui o que foi gravado."
+        )
 
 
 class PessoaFisicaCreateView(FormularioMixin, CreateView):
@@ -346,11 +401,20 @@ class UnidadeDeleteView(ExclusaoConfirmadaView):
 # ------------------------------------------------------------------
 
 
-def entregar_arquivo(anexado) -> FileResponse:
+def entregar_arquivo(request, anexado):
     """Entrega o arquivo só para quem está logado (o login é exigido pelo middleware)."""
-    resposta = FileResponse(
-        anexado.arquivo.open("rb"), as_attachment=True, filename=anexado.nome_original
-    )
+    try:
+        arquivo = anexado.arquivo.open("rb")
+    except FileNotFoundError:
+        # O registro existe, mas o arquivo sumiu do disco: o backup dos anexos o tem.
+        logger.error("Arquivo anexado não encontrado no disco: %s", anexado.arquivo.name)
+        messages.error(
+            request,
+            f"O arquivo “{anexado.nome_original}” não foi encontrado no servidor. Avise quem "
+            "cuida do sistema: ele pode ser recuperado do backup dos anexos.",
+        )
+        return redirect(anexado.get_absolute_url())
+    resposta = FileResponse(arquivo, as_attachment=True, filename=anexado.nome_original)
     resposta["Cache-Control"] = "private, no-store"
     return resposta
 
@@ -394,7 +458,7 @@ class DocumentoDoClienteCreateView(ArquivoAnexadoCreateView):
 
 
 def baixar_documento(request, pk: int):
-    return entregar_arquivo(get_object_or_404(DocumentoDoCliente, pk=pk))
+    return entregar_arquivo(request, get_object_or_404(DocumentoDoCliente, pk=pk))
 
 
 class DocumentoDoClienteDeleteView(ArquivoAnexadoDeleteView):

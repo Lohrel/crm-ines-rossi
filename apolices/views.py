@@ -214,7 +214,7 @@ class DocumentoDaSeguradoraCreateView(ArquivoAnexadoCreateView):
 
 
 def baixar_documento_da_seguradora(request, pk: int):
-    return entregar_arquivo(get_object_or_404(DocumentoDaSeguradora, pk=pk))
+    return entregar_arquivo(request, get_object_or_404(DocumentoDaSeguradora, pk=pk))
 
 
 class DocumentoDaSeguradoraDeleteView(ArquivoAnexadoDeleteView):

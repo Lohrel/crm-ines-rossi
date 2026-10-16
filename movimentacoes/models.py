@@ -273,6 +273,14 @@ class Movimentacao(Registro):
         for campo, valor in dados.items():
             setattr(self, campo, valor)
         with transaction.atomic():
+            # Duas pessoas mudando a etapa ao mesmo tempo (ex.: aprovando o mesmo pedido) vão
+            # em fila, e a segunda vê que o pedido já mudou.
+            gravada = type(self).objects.select_for_update().values_list("etapa", flat=True)
+            if self.pk and gravada.get(pk=self.pk) != self.etapa:
+                raise ValidationError(
+                    "Outra pessoa mudou a etapa deste pedido enquanto você editava. "
+                    "Abra o pedido de novo para ver como ele está."
+                )
             if nova == Etapa.REJEITADA and not self.motivo_rejeicao:
                 raise ValidationError("Informe o motivo da rejeição.")
             if nova == Etapa.APROVADA:

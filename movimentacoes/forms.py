@@ -249,7 +249,7 @@ class MudancaDeEtapaFormBase(BootstrapFormMixin, forms.ModelForm):
         pass
 
     def save(self, commit=True):
-        dados = {nome: self.cleaned_data[nome] for nome in self.fields}
+        dados = {nome: self.cleaned_data[nome] for nome in self.fields if nome in self._meta.fields}
         try:
             self.instance.mudar_etapa(self.etapa, **dados)
         except ValidationError as erro:
