@@ -12,15 +12,34 @@ mkdir -p "${DESTINO}/diario" "${DESTINO}/semanal" "${DESTINO}/mensal"
 ANEXOS="${ANEXOS_DIR:-/anexos}"
 base="crm_$(date +%Y-%m-%d_%H%M)"
 
+# Arquivo em andamento: se o backup falhar no meio, ele é apagado, para não ocupar o disco.
+parcial=""
+trap '[[ -z "${parcial}" ]] || rm -f "${parcial}"' EXIT
+
 criptografar() {
     gpg --batch --yes --symmetric --cipher-algo AES256 \
         --passphrase-fd 3 --output "$1" 3<<<"${BACKUP_PASSPHRASE}"
 }
 
-# Só vira backup "oficial" depois de completo.
+descriptografar() {
+    gpg --batch --quiet --decrypt --passphrase-fd 3 "$1" 3<<<"${BACKUP_PASSPHRASE}"
+}
+
+# Abre o arquivo criptografado inteiro (o gpg recusa um arquivo cortado ou alterado) e lê o
+# conteúdo, para nunca publicar um backup que não restaura.
+conferir_banco() {
+    descriptografar "$1" | { pg_restore --list > /dev/null && cat > /dev/null; }
+}
+
+conferir_anexos() {
+    descriptografar "$1" | tar --list > /dev/null
+}
+
+# Só vira backup "oficial" depois de completo e conferido.
 publicar() {
     local nome="$1"
-    mv "${DESTINO}/.${nome}.parcial" "${DESTINO}/diario/${nome}"
+    mv "${parcial}" "${DESTINO}/diario/${nome}"
+    parcial=""
     echo "Backup criado: diario/${nome}"
     if [[ "$(date +%u)" == "7" ]]; then
         cp "${DESTINO}/diario/${nome}" "${DESTINO}/semanal/${nome}"
@@ -31,15 +50,19 @@ publicar() {
 }
 
 banco="${base}.dump.gpg"
+parcial="${DESTINO}/.${banco}.parcial"
 pg_dump --format=custom --host="${POSTGRES_HOST}" --port="${POSTGRES_PORT:-5432}" \
         --username="${POSTGRES_USER}" "${POSTGRES_DB}" \
-    | criptografar "${DESTINO}/.${banco}.parcial"
+    | criptografar "${parcial}"
+conferir_banco "${parcial}"
 publicar "${banco}"
 
-# Anexos dos beneficiários (DPS, eSocial...): mesmo horário e mesma senha do banco.
+# Anexos (DPS, eSocial, documentos de clientes e seguradoras): mesma senha do banco.
 anexos="${base}_anexos.tar.gpg"
+parcial="${DESTINO}/.${anexos}.parcial"
 tar --create --numeric-owner --directory="${ANEXOS}" . \
-    | criptografar "${DESTINO}/.${anexos}.parcial"
+    | criptografar "${parcial}"
+conferir_anexos "${parcial}"
 publicar "${anexos}"
 
 manter_mais_recentes() {
