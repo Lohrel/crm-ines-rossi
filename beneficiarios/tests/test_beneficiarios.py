@@ -285,6 +285,17 @@ def test_quem_saiu_de_todos_os_planos_so_aparece_quando_pedido(logado, empresa, 
     assert "Ana Titular" in logado.get(url, {"inativos": "on"}).content.decode()
 
 
+def test_quem_ainda_nao_tem_plano_ou_entra_no_futuro_aparece_na_lista(
+    logado, empresa, titular, filial, saude
+):
+    # Recém-cadastrada, sem plano: não pode sumir da lista.
+    url = reverse("beneficiarios:lista", args=[empresa.pk])
+    assert "Ana Titular" in logado.get(url).content.decode()
+    outra = Beneficiario.objects.create(cliente=empresa, unidade=filial, nome="Bia Futura")
+    incluir(outra, saude, inclusao=HOJE + timedelta(days=10))
+    assert "Bia Futura" in logado.get(url).content.decode()
+
+
 # ------------------------------------------------------------------
 # Anexos
 # ------------------------------------------------------------------

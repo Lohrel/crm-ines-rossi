@@ -5,7 +5,7 @@ from urllib.parse import urlencode
 from django.contrib import messages
 from django.core import signing
 from django.db import transaction
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
@@ -41,7 +41,7 @@ from beneficiarios.importacao_de_vidas import (
 )
 from beneficiarios.models import Anexo, Beneficiario, Vinculo
 from beneficiarios.seguro_de_vida import TIPO_XLSX, PlanilhaDoSeguroDeVida, mes_sugerido
-from beneficiarios.vidas import VidasDoCliente, filtro_de_ativos
+from beneficiarios.vidas import VidasDoCliente
 from clientes.models import Cliente
 from clientes.views import ExclusaoConfirmadaView, FormularioMixin, entregar_arquivo
 
@@ -63,7 +63,13 @@ class BeneficiarioListView(ListView):
         pessoas = cliente.beneficiarios.all()
         filtros = self.busca.cleaned_data if self.busca.is_valid() else {}
         if not filtros.get("inativos"):
-            pessoas = pessoas.filter(filtro_de_ativos())
+            # Some só quem saiu de todos os planos. Quem acabou de ser cadastrado e ainda não
+            # tem plano, ou só tem plano com início no futuro, continua na lista.
+            pessoas = pessoas.filter(
+                Q(vinculos__isnull=True)
+                | Q(vinculos__data_exclusao__isnull=True)
+                | Q(vinculos__data_exclusao__gt=date.today())
+            )
         if contrato := filtros.get("contrato"):
             pessoas = pessoas.filter(vinculos__contrato=contrato)
         if unidade := filtros.get("unidade"):
