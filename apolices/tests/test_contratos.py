@@ -94,18 +94,33 @@ def test_dia_de_vencimento_fora_do_mes_e_barrado(empresa, seguradora, saude, dia
         contrato.full_clean()
 
 
-def test_contrato_empresarial_exige_pessoa_juridica(pessoa, seguradora, saude):
+@pytest.mark.parametrize("modalidade", ["EM", "PM", "SP"])
+def test_contrato_de_empresa_exige_pessoa_juridica(pessoa, seguradora, saude, modalidade):
     contrato = Contrato(
         cliente=pessoa,
         seguradora=seguradora,
         ramo=saude,
         numero="X",
-        modalidade="EM",
+        modalidade=modalidade,
         inicio_vigencia=date(2026, 1, 1),
         dia_vencimento=1,
     )
     with pytest.raises(ValidationError, match="pessoa jurídica"):
         contrato.full_clean()
+
+
+@pytest.mark.parametrize("cliente", ["pessoa", "empresa"])
+def test_coletivo_por_adesao_serve_para_pessoa_e_empresa(request, seguradora, saude, cliente):
+    contrato = Contrato(
+        cliente=request.getfixturevalue(cliente),
+        seguradora=seguradora,
+        ramo=saude,
+        numero="ADE-1",
+        modalidade=Contrato.Modalidade.ADESAO,
+        inicio_vigencia=date(2026, 1, 1),
+        dia_vencimento=1,
+    )
+    contrato.full_clean()
 
 
 def test_empresa_pode_ter_varios_contratos(contrato_empresa, empresa, seguradora, saude):

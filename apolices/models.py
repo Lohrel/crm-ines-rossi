@@ -127,8 +127,11 @@ class Contrato(Registro):
     """
 
     class Modalidade(models.TextChoices):
-        INDIVIDUAL = "IF", "Individual/familiar"
         EMPRESARIAL = "EM", "Empresarial"
+        PME = "PM", "PME"
+        SPG = "SP", "SPG"
+        ADESAO = "AD", "Coletivo por adesão"
+        INDIVIDUAL = "IF", "Individual/familiar"
 
     class Situacao(models.TextChoices):
         IMPLANTACAO = "IMP", "Em implantação"
@@ -137,13 +140,21 @@ class Contrato(Registro):
         CANCELADO = "CAN", "Cancelado"
 
     SITUACOES_VIGENTES = [Situacao.IMPLANTACAO, Situacao.ATIVO, Situacao.SUSPENSO]
+    # Planos de empresa: só para clientes pessoa jurídica. O coletivo por adesão (por meio de
+    # uma entidade de classe ou administradora) serve para empresa e para pessoa física.
+    MODALIDADES_DE_EMPRESA = [Modalidade.EMPRESARIAL, Modalidade.PME, Modalidade.SPG]
 
     cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT, related_name="contratos")
     seguradora = models.ForeignKey(Seguradora, on_delete=models.PROTECT, related_name="contratos")
     ramo = models.ForeignKey(Ramo, on_delete=models.PROTECT, related_name="contratos")
     numero = models.CharField("número da apólice/contrato", max_length=60)
     produto = models.CharField("produto/plano", max_length=150, blank=True)
-    modalidade = models.CharField(max_length=2, choices=Modalidade.choices)
+    modalidade = models.CharField(
+        max_length=2,
+        choices=Modalidade.choices,
+        help_text="PME e SPG são planos de empresa para grupos pequenos. O coletivo por adesão é "
+        "feito por meio de uma entidade de classe ou administradora.",
+    )
     situacao = models.CharField(
         "situação", max_length=3, choices=Situacao.choices, default=Situacao.ATIVO
     )
@@ -299,12 +310,13 @@ class Contrato(Registro):
     def clean(self) -> None:
         super().clean()
         if (
-            self.modalidade == self.Modalidade.EMPRESARIAL
+            self.modalidade in self.MODALIDADES_DE_EMPRESA
             and self.cliente_id
             and not self.cliente.eh_empresa
         ):
+            tipo = self.get_modalidade_display()
             raise ValidationError(
-                {"modalidade": "Contrato empresarial precisa ser de um cliente pessoa jurídica."}
+                {"modalidade": f"Contrato {tipo} precisa ser de um cliente pessoa jurídica."}
             )
         if self.taxa_por_mil is not None and not self.calcula_capital:
             raise ValidationError(
