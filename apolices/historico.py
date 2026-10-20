@@ -1,7 +1,14 @@
 from collections.abc import Iterable
 from itertools import chain
 
-from apolices.models import BemSegurado, Contrato, DocumentoDaSeguradora, Seguradora, Subfatura
+from apolices.models import (
+    BemSegurado,
+    Contrato,
+    DocumentoDaSeguradora,
+    Plano,
+    Seguradora,
+    Subfatura,
+)
 from clientes.historico import LinhaDoTempo
 from clientes.models import Cliente
 
@@ -10,6 +17,7 @@ def historico_de_contratos(cliente: Cliente) -> Iterable:
     return chain(
         Contrato.history.filter(cliente_id=cliente.pk),
         Subfatura.history.filter(contrato__cliente_id=cliente.pk),
+        Plano.history.filter(contrato__cliente_id=cliente.pk),
         BemSegurado.history.filter(contrato__cliente_id=cliente.pk),
     )
 

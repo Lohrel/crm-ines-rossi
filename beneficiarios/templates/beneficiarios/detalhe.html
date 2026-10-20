@@ -53,6 +53,7 @@
       {% for plano in planos %}
         <tr{% if plano.contrato.seguradora.cor %} class="faixa-seguradora cor-{{ plano.contrato.seguradora.cor }}"{% endif %}>
           <td>{{ plano.contrato.ramo }}<div class="small text-body-secondary">{% include "apolices/_seguradora.html" with seguradora=plano.contrato.seguradora %} {{ plano.contrato.numero }}{% if plano.contrato.produto %} · {{ plano.contrato.produto }}{% endif %}</div>
+            {% if plano.plano %}<div class="small">Plano <strong>{{ plano.plano }}</strong></div>{% elif plano.falta_o_plano and not plano.data_exclusao %}<div class="small text-warning-emphasis">Plano do contrato não informado (<a href="{% url 'beneficiarios:editar_plano' plano.pk %}" class="link-no-texto">escolher</a>)</div>{% endif %}
             {% if plano.contrato.calcula_capital %}
             <div class="small">
               {% if plano.contrato.usa_salario and object.eh_titular %}Salário {% if plano.salario is not None %}R$ {{ plano.salario|floatformat:"2g" }}{% else %}<span class="text-body-secondary">não informado</span> (<a href="{% url 'beneficiarios:editar_plano' plano.pk %}" class="link-no-texto">preencher</a>){% endif %} · {% endif %}
@@ -103,7 +104,7 @@
   <ul class="list-group list-group-flush">
   {% for mov in movimentacoes %}
     <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2">
-      <span><a href="{{ mov.get_absolute_url }}">{{ mov.get_tipo_display }} em {{ mov.contrato.ramo }}{% if mov.eh_alteracao %} ({{ mov.contrato_anterior.nome_do_plano }} para {{ mov.contrato.nome_do_plano }}){% endif %}</a>
+      <span><a href="{{ mov.get_absolute_url }}">{{ mov.get_tipo_display }} em {{ mov.contrato.ramo }}{% if mov.eh_alteracao %} ({{ mov.nome_do_plano_anterior }} para {{ mov.nome_do_plano }}){% endif %}</a>
         <span class="small text-body-secondary">· vigência {{ mov.vigencia|date:"d/m/Y" }}</span></span>
       {% include "movimentacoes/_etapa.html" %}
     </li>

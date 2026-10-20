@@ -15,6 +15,7 @@
         <td>{% include "apolices/_seguradora.html" with seguradora=contrato.seguradora %}<div class="small text-body-secondary">{{ contrato.numero }}</div></td>
         <td>
           {{ contrato.ramo }}<div class="small text-body-secondary">{{ contrato.produto }}</div>
+          {% with planos=contrato.planos_ativos %}{% if planos %}<div class="d-flex flex-wrap gap-1 mt-1">{% for plano in planos %}<span class="badge selo-plano">{{ plano.nome }}</span>{% endfor %}</div>{% endif %}{% endwith %}
           {% with veiculos=contrato.veiculos_com_placa %}{% if veiculos %}
           <div class="d-flex flex-wrap align-items-center gap-1 mt-1">
             {% for veiculo in veiculos|slice:":3" %}<a href="{{ veiculo.get_absolute_url }}" class="placa" title="{{ veiculo.descricao }}">{{ veiculo.placa_formatada }}</a>{% endfor %}
@@ -41,6 +42,7 @@
         <td class="text-end acoes-empilhadas">
           {% if contrato.corretora_envia_boleto %}<a href="{% url 'boletos:lista' %}?contrato={{ contrato.pk }}&situacao=todos" class="btn btn-sm btn-link">Boletos</a>{% endif %}
           {% if contrato.calcula_capital %}<a href="{% url 'beneficiarios:seguro_de_vida' contrato.pk %}" class="btn btn-sm btn-link">Planilha de vidas</a>{% endif %}
+          {% if not contrato.ramo.bem_segurado %}<a href="{% url 'apolices:planos' contrato.pk %}" class="btn btn-sm btn-link">Planos</a>{% endif %}
           <a href="{% url 'pendencias:lista' %}?contrato={{ contrato.pk }}" class="btn btn-sm btn-link">Pendências</a>
           <a href="{% url 'apolices:editar_contrato' contrato.pk %}" class="btn btn-sm btn-link">Editar</a>
         </td>

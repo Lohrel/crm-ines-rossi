@@ -308,7 +308,11 @@ def test_linhas_com_problema_ficam_de_fora(empresa, usuario, ana, pleno):
     )
     assert situacoes(resultados) == [
         (PROBLEMA, "Dependente sem cadastro: cadastre pela página do titular e importe de novo."),
-        (PROBLEMA, "Plano MASTER não encontrado: confira o Produto/plano dos contratos."),
+        (
+            PROBLEMA,
+            "Plano MASTER não encontrado: confira o Produto/plano dos contratos e os planos "
+            "cadastrados neles.",
+        ),
         (PROBLEMA, "DATA DIGITAÇÃO inválida: 31/02/2026."),
         (PROBLEMA, "Falta a DATA DIGITAÇÃO."),
         (PULAR, "STATUS Rejeitado: só Pendente e Processado são importados."),

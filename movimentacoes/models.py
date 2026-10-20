@@ -15,7 +15,7 @@ from django.db.models import Q
 from django.urls import reverse
 from simple_history.models import HistoricalRecords
 
-from apolices.models import Contrato
+from apolices.models import Contrato, Plano
 from beneficiarios.models import Beneficiario, Vinculo
 from clientes.models import Contato, Registro
 
@@ -93,6 +93,24 @@ class Movimentacao(Registro):
         related_name="alteracoes_de_saida",
         verbose_name="plano anterior",
         help_text="Só na alteração de plano: o plano de onde a pessoa sai.",
+    )
+    plano = models.ForeignKey(
+        Plano,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="movimentacoes",
+        verbose_name="plano do contrato",
+        help_text="Só nos contratos com mais de um plano (ex.: TNPQ ou TNP4).",
+    )
+    plano_anterior = models.ForeignKey(
+        Plano,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="+",
+        verbose_name="plano anterior do contrato",
+        help_text="Só na alteração: o plano de onde a pessoa sai, se o contrato tem planos.",
     )
     solicitante = models.ForeignKey(
         Contato,
@@ -184,6 +202,22 @@ class Movimentacao(Registro):
         return self.tipo in (self.Tipo.INCLUSAO, self.Tipo.ALTERACAO)
 
     @property
+    def nome_do_plano(self) -> str:
+        """O plano do pedido: o do contrato (ex.: TNPQ) ou, sem ele, o nome do contrato."""
+        return self.plano.nome if self.plano_id else self.contrato.nome_do_plano
+
+    @property
+    def nome_do_plano_anterior(self) -> str:
+        if self.plano_anterior_id:
+            return self.plano_anterior.nome
+        return self.contrato_anterior.nome_do_plano if self.contrato_anterior_id else ""
+
+    @property
+    def no_mesmo_contrato(self) -> bool:
+        """Alteração entre dois planos do mesmo contrato (ex.: de TNPQ para TNP4)."""
+        return self.eh_alteracao and self.contrato_anterior_id == self.contrato_id
+
+    @property
     def plano_de_saida_id(self) -> int | None:
         """Plano de onde a pessoa sai: o da exclusão ou o anterior, na alteração."""
         if self.eh_alteracao:
@@ -215,6 +249,8 @@ class Movimentacao(Registro):
         pessoa = self.beneficiario
         if self.contrato.cliente_id != pessoa.cliente_id:
             raise ValidationError({"contrato": "O plano deve ser do mesmo cliente da pessoa."})
+        if self.plano_id and self.plano.contrato_id != self.contrato_id:
+            raise ValidationError({"contrato": "O plano escolhido é de outro contrato."})
         if self.solicitante_id and self.solicitante.cliente_id != pessoa.cliente_id:
             raise ValidationError({"solicitante": "O solicitante deve ser desta empresa."})
         if self._state.adding:
@@ -226,7 +262,11 @@ class Movimentacao(Registro):
         anterior = self.contrato_anterior
         if anterior is None:
             raise ValidationError({"contrato_anterior": "Informe o plano de onde a pessoa sai."})
-        if anterior.pk == self.contrato_id:
+        if not self.plano_anterior_id:
+            # O plano de onde a pessoa sai é o que ela tem hoje no contrato.
+            atual = self.beneficiario.vinculos.filter(contrato=anterior, data_exclusao__isnull=True)
+            self.plano_anterior_id = atual.values_list("plano", flat=True).first()
+        if anterior.pk == self.contrato_id and self.plano_id == self.plano_anterior_id:
             raise ValidationError({"contrato": "Escolha um plano diferente do atual."})
         if anterior.cliente_id != self.beneficiario.cliente_id:
             raise ValidationError(
@@ -243,7 +283,11 @@ class Movimentacao(Registro):
         saida = self.plano_de_saida_id
         campo_da_saida = "contrato_anterior" if self.eh_alteracao else "contrato"
         ativos = pessoa.vinculos.filter(data_exclusao__isnull=True)
-        if self.entra_no_plano and ativos.filter(contrato=self.contrato_id).exists():
+        if (
+            self.entra_no_plano
+            and not self.no_mesmo_contrato
+            and ativos.filter(contrato=self.contrato_id).exists()
+        ):
             raise ValidationError({"contrato": "Esta pessoa já está neste plano."})
         if saida and not ativos.filter(contrato=saida).exists():
             raise ValidationError({campo_da_saida: "Esta pessoa não está neste plano."})
@@ -304,6 +348,7 @@ class Movimentacao(Registro):
         vinculo = Vinculo(
             beneficiario=pessoa,
             contrato=self.contrato,
+            plano=self.plano,
             data_inclusao=inicio,
             carteirinha=carteirinha,
             salario=salario if self.contrato.usa_salario else None,
@@ -336,13 +381,18 @@ class Movimentacao(Registro):
         """Sai do plano anterior e entra no novo na mesma data; os dependentes vão junto.
 
         A carteirinha continua a mesma; se a operadora emitir outra, corrige-se no plano.
-        No seguro de vida, o salário também passa para o novo plano.
+        No seguro de vida, o salário também passa para o novo plano. Na troca dentro do
+        mesmo contrato (ex.: de TNPQ para TNP4), só vão junto os dependentes que estavam
+        no mesmo plano do titular.
         """
         pessoa = self.beneficiario
         anterior = pessoa.vinculos.filter(
             contrato=self.contrato_anterior, data_exclusao__isnull=True
         ).first()
-        if anterior is None:
+        ja_mudou = (
+            anterior is not None and self.no_mesmo_contrato and anterior.plano_id == self.plano_id
+        )
+        if anterior is None or ja_mudou:
             # Já mudou (ex.: junto com o titular): só liga o pedido ao novo plano.
             vinculo = pessoa.vinculos.filter(
                 contrato=self.contrato, data_exclusao__isnull=True
@@ -352,7 +402,7 @@ class Movimentacao(Registro):
             return vinculo
         novos = []
         # O titular vem primeiro, para os dependentes já o encontrarem no novo plano.
-        for saiu in anterior.encerrar(self.vigencia):
+        for saiu in anterior.encerrar(self.vigencia, so_do_mesmo_plano=self.no_mesmo_contrato):
             quem = saiu.beneficiario
             ja_no_novo = quem.vinculos.filter(contrato=self.contrato, data_exclusao__isnull=True)
             if quem != pessoa and ja_no_novo.exists():
@@ -383,6 +433,8 @@ class Movimentacao(Registro):
             beneficiario=self.beneficiario,
             contrato=self.contrato,
             contrato_anterior=self.contrato_anterior,
+            plano=self.plano,
+            plano_anterior=self.plano_anterior,
             solicitante=self.solicitante,
             recebida_em=hoje,
             enviada_em=hoje,

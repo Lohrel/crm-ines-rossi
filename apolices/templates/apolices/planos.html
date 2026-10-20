@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block titulo %}Planos do contrato {{ contrato }}{% endblock %}
+{% block conteudo %}
+{% with cliente=contrato.cliente %}
+<nav aria-label="Caminho"><ol class="breadcrumb">
+  <li class="breadcrumb-item"><a href="{{ cliente.get_absolute_url }}">{{ cliente }}</a></li>
+  <li class="breadcrumb-item active">Planos do contrato</li>
+</ol></nav>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-1">Planos do contrato</h1>
+    <div class="text-body-secondary">{% include "apolices/_seguradora.html" with seguradora=contrato.seguradora %} {{ contrato.numero }}{% if contrato.produto %} · {{ contrato.produto }}{% endif %} · {{ contrato.ramo }}</div>
+  </div>
+  <a href="{% url 'apolices:editar_contrato' contrato.pk %}" class="btn btn-outline-primary">Editar contrato</a>
+</div>
+
+<details class="mb-3 small text-body-secondary">
+  <summary>Como funcionam os planos do contrato</summary>
+  <p class="mt-2 mb-1">Use quando a mesma apólice tem mais de um plano (ex.: TNPQ e TNP4). Cadastre os planos aqui e cada pessoa do contrato fica num deles: ao incluir alguém, escolhe-se o plano, e a planilha do mês sai com o plano de cada pessoa.</p>
+  <p class="mb-1">Um contrato sem planos cadastrados continua como antes: é um plano só, com o nome em "Produto/plano".</p>
+  <p class="mb-0">Para trocar uma pessoa de plano dentro do contrato, use a movimentação "Alteração de plano" na página dela. Um plano que deixou de ser oferecido não é excluído: em "Editar", desmarque "Oferecido".</p>
+</details>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-header fw-semibold">Planos</div>
+  {% if planos %}
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead class="table-light"><tr><th>Plano</th><th>Vidas</th><th><span class="visually-hidden">Ações</span></th></tr></thead>
+      <tbody>
+      {% for plano in planos %}
+        <tr>
+          <td>{{ plano.nome }}{% if not plano.ativo %} <span class="badge text-bg-secondary">Não oferecido</span>{% endif %}</td>
+          <td>{{ plano.vidas }}</td>
+          <td class="text-end"><a href="{% url 'apolices:editar_plano' plano.pk %}" class="btn btn-sm btn-link">Editar</a></td>
+        </tr>
+      {% endfor %}
+      {% if vidas_sem_plano %}
+        <tr class="text-warning-emphasis"><td>Plano não informado</td><td>{{ vidas_sem_plano }}</td><td></td></tr>
+      {% endif %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body text-body-secondary">Nenhum plano cadastrado: o contrato é um plano só{% if contrato.produto %} ({{ contrato.produto }}){% endif %}.</div>
+  {% endif %}
+  <div class="card-footer">
+    <form method="post" action="{% url 'apolices:novo_plano' contrato.pk %}" class="row g-2 align-items-end" novalidate>
+      {% csrf_token %}
+      <div class="col-sm-6 col-md-4">
+        <label for="id_nome" class="form-label">Novo plano</label>
+        <input type="text" name="nome" id="id_nome" maxlength="60" required class="form-control" placeholder="Ex.: TNPQ">
+      </div>
+      <div class="col-sm-auto"><button type="submit" class="btn btn-outline-primary">Cadastrar plano</button></div>
+    </form>
+  </div>
+</div>
+
+{% if sem_plano and contrato.tem_planos %}
+<div class="card shadow-sm mb-4 border-warning">
+  <div class="card-header fw-semibold">{{ sem_plano|length }} pessoa{{ sem_plano|length|pluralize }} sem o plano informado</div>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead class="table-light"><tr><th>Pessoa</th><th style="min-width: 10rem">Plano</th></tr></thead>
+        <tbody>
+        {% for vinculo in sem_plano %}
+          <tr>
+            <td>
+              {% if vinculo.beneficiario.eh_titular %}<a href="{{ vinculo.beneficiario.get_absolute_url }}">{{ vinculo.beneficiario.nome }}</a>
+                {% if vinculo.beneficiario.unidade %}<div class="small text-body-secondary">{{ vinculo.beneficiario.unidade }}</div>{% endif %}
+              {% else %}<span class="ps-3"><a href="{{ vinculo.beneficiario.get_absolute_url }}">{{ vinculo.beneficiario.nome }}</a></span>
+                <div class="small text-body-secondary ps-3">Dependente de {{ vinculo.beneficiario.titular.nome }}</div>
+              {% endif %}
+            </td>
+            <td>
+              <select name="plano_{{ vinculo.pk }}" class="form-select form-select-sm" aria-label="Plano de {{ vinculo.beneficiario.nome }}">
+                <option value="">Escolher depois</option>
+                {% if not vinculo.beneficiario.eh_titular %}<option value="titular"{% if not vinculo.sugerido %} selected{% endif %}>O mesmo do titular</option>{% endif %}
+                {% for plano in contrato.planos_ativos %}<option value="{{ plano.pk }}"{% if plano.pk == vinculo.sugerido %} selected{% endif %}>{{ plano.nome }}</option>{% endfor %}
+              </select>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="card-footer d-flex flex-wrap align-items-center gap-2">
+      <button type="submit" class="btn btn-primary">Gravar os planos escolhidos</button>
+      <span class="small text-body-secondary">Os dependentes já vêm com o plano do titular marcado.</span>
+    </div>
+  </form>
+</div>
+{% endif %}
+{% endwith %}
+{% endblock %}

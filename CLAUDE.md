@@ -168,6 +168,9 @@ pytest -q
   que o backup copia.
 - **11. Documentos anexados** (seguradoras e clientes): esperando o Lohrel testar. Os arquivos herdam
   `ArquivoAnexado` (`clientes/models.py`); reaproveite essa base em anexos novos.
+- **13. Tipos de contrato e vários planos**: 13a (PME, SPG e coletivo por adesão, PR #28) e 13b
+  (vários planos no mesmo contrato), esperando o Lohrel testar. As correções da LGPD propostas
+  antes passam a ser a etapa 14.
 - Próxima etapa:
   - **10d. Celular**, depois do merge da 10c: as listas viram fichas abaixo de 576 px e os filtros
     ficam recolhidos num botão (combinado com o Lohrel). Com ela e a aprovação do painel pela
@@ -177,7 +180,11 @@ pytest -q
 
 - Uma pessoa costuma estar em mais de um plano (ex.: saúde e dental), e o dependente pode estar em um
   ou nos dois planos do titular.
-- Cada plano de uma operadora é um contrato próprio, com o nome do plano em "Produto/plano".
+- Cada plano de uma operadora costuma ser um contrato próprio, com o nome do plano em
+  "Produto/plano". Quando a mesma apólice tem vários planos (ex.: TNPQ e TNP4 na Bradesco), eles
+  são cadastrados no contrato (`Plano`, etapa 13b) e cada pessoa fica num deles (`Vinculo.plano`).
+  Contrato sem planos cadastrados funciona como antes. O dependente pode ficar num plano diferente
+  do titular, e a troca entre planos do mesmo contrato é uma movimentação de alteração de plano.
 - O RH manda as movimentações do mês até o dia de fechamento do contrato (ex.: dia 25), e a vigência
   começa no dia 1º do mês seguinte. Pedidos com carência ficam em análise até a carteirinha ser
   enviada. Pedido rejeitado (rasura, prazo da entrevista médica) vira uma nova inclusão.

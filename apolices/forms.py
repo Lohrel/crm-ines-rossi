@@ -8,6 +8,7 @@ from apolices.models import (
     BemSegurado,
     Contrato,
     DocumentoDaSeguradora,
+    Plano,
     Ramo,
     Seguradora,
     limpar_placa,
@@ -21,6 +22,55 @@ from clientes.forms import (
 )
 from clientes.models import Cliente
 from clientes.widgets import CampoData, EscolhaDeCor
+
+
+def rotulo_do_contrato(contrato: Contrato) -> str:
+    texto = f"{contrato.ramo} · {contrato.seguradora} {contrato.numero}"
+    return f"{texto} ({contrato.produto})" if contrato.produto else texto
+
+
+class PlanoDoContratoField(forms.ChoiceField):
+    """O contrato e, se ele tiver planos cadastrados, o plano, numa lista só.
+
+    Os planos de um contrato aparecem agrupados debaixo dele (ex.: TNPQ e TNP4). O valor
+    limpo é o par (contrato, plano), com o plano None nos contratos sem planos cadastrados.
+    Nas listas de contratos, use prefetch_related("planos").
+    """
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("label", "Plano")
+        # Criado depois do BootstrapFormMixin aplicar as classes nos campos do formulário.
+        kwargs.setdefault("widget", forms.Select(attrs={"class": "form-select"}))
+        super().__init__(*args, **kwargs)
+        self.opcoes: dict[str, tuple[Contrato, Plano | None]] = {}
+
+    @staticmethod
+    def valor(contrato: Contrato, plano: Plano | None = None) -> str:
+        # O contrato sem planos usa o próprio número, como a lista de contratos usava antes.
+        return f"p{plano.pk}" if plano else str(contrato.pk)
+
+    def definir(self, contratos, fora=()) -> None:
+        """Monta a lista. `fora` são os pares (contrato_id, plano_id) que ficam de fora."""
+        fora = set(fora)
+        self.opcoes = {}
+        escolhas = [("", "Escolha o plano")]
+        for contrato in contratos:
+            if contrato.tem_planos:
+                grupo = []
+                for plano in contrato.planos_ativos:
+                    if (contrato.pk, plano.pk) not in fora:
+                        self.opcoes[self.valor(contrato, plano)] = (contrato, plano)
+                        grupo.append((self.valor(contrato, plano), plano.nome))
+                if grupo:
+                    escolhas.append((rotulo_do_contrato(contrato), grupo))
+            elif (contrato.pk, None) not in fora:
+                self.opcoes[self.valor(contrato)] = (contrato, None)
+                escolhas.append((self.valor(contrato), rotulo_do_contrato(contrato)))
+        self.choices = escolhas
+
+    def clean(self, value):
+        valor = super().clean(value)
+        return self.opcoes.get(valor) if valor else None
 
 
 class SeguradoraForm(BootstrapFormMixin, forms.ModelForm):
@@ -114,6 +164,29 @@ class ContratoForm(BootstrapFormMixin, forms.ModelForm):
             except forms.ValidationError as erro:
                 self.add_error(None, erro)
         return dados
+
+
+class PlanoForm(BootstrapFormMixin, forms.ModelForm):
+    """Nome de um plano do contrato (ex.: TNPQ) e se ele ainda é oferecido."""
+
+    class Meta:
+        model = Plano
+        fields = ["nome", "ativo"]
+
+    def __init__(self, *args, contrato: Contrato | None = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if contrato is not None:
+            self.instance.contrato = contrato
+        if not self.instance.pk:
+            del self.fields["ativo"]
+
+    def clean_nome(self):
+        nome = " ".join(self.cleaned_data["nome"].split())
+        # O contrato não está no formulário: a regra do nome repetido é conferida aqui.
+        repetidos = Plano.objects.filter(contrato=self.instance.contrato, nome__iexact=nome)
+        if repetidos.exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError("Este contrato já tem um plano com este nome.")
+        return nome
 
 
 class FiltroContratosForm(BootstrapFormMixin, forms.Form):

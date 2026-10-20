@@ -1,9 +1,11 @@
 from datetime import date, timedelta
 
 from django.contrib import messages
-from django.db.models import Count, Q
+from django.db import transaction
+from django.db.models import Count, F, Q
+from django.db.models.functions import Coalesce
 from django.http import Http404
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
@@ -12,6 +14,7 @@ from apolices.forms import (
     DocumentoDaSeguradoraForm,
     FiltroContratosForm,
     ImovelForm,
+    PlanoForm,
     SeguradoraForm,
     VeiculoForm,
 )
@@ -21,10 +24,12 @@ from apolices.models import (
     BemSegurado,
     Contrato,
     DocumentoDaSeguradora,
+    Plano,
     Seguradora,
     TipoDeBem,
     limpar_placa,
 )
+from beneficiarios.models import Vinculo
 from beneficiarios.vidas import anotar_vidas
 from boletos.models import Boleto
 from clientes.forms import SecaoDoFormulario
@@ -49,7 +54,7 @@ class ContratoListView(ListView):
         self.filtro = FiltroContratosForm(self.request.GET or None)
         contratos = anotar_vidas(
             Contrato.objects.select_related("cliente", "seguradora", "ramo").prefetch_related(
-                "bens"
+                "bens", "planos"
             )
         )
         if not self.filtro.is_valid():
@@ -65,6 +70,7 @@ class ContratoListView(ListView):
                 Q(numero__icontains=termo)
                 | Q(produto__icontains=termo)
                 | Q(cliente__nome__icontains=termo)
+                | Q(pk__in=Plano.objects.filter(nome__icontains=termo).values("contrato"))
             )
             # A placa é guardada sem o traço e em maiúsculas; ela sempre tem números.
             placa = limpar_placa(termo)
@@ -159,6 +165,133 @@ class ContratoUpdateView(SecoesDoContratoMixin, FormularioMixin, UpdateView):
 
     def get_titulo(self) -> str:
         return f"Editar contrato {self.object}"
+
+    def get_url_cancelar(self) -> str:
+        return self.object.get_absolute_url()
+
+
+class ContratoPlanosView(DetailView):
+    """Os planos de um contrato (ex.: TNPQ e TNP4), as vidas de cada um e o plano de quem
+    ainda não tem um escolhido."""
+
+    template_name = "apolices/planos.html"
+    context_object_name = "contrato"
+
+    def get_queryset(self):
+        return (
+            Contrato.objects.de_pessoas()
+            .select_related("cliente", "seguradora", "ramo")
+            .prefetch_related("planos")
+        )
+
+    def sem_plano(self):
+        """Quem está no contrato hoje (ou entra depois) e ainda não tem o plano escolhido."""
+        return (
+            Vinculo.objects.filter(contrato=self.object, plano__isnull=True)
+            .filter(Q(data_exclusao__isnull=True) | Q(data_exclusao__gt=date.today()))
+            .select_related("beneficiario__titular", "beneficiario__unidade")
+            .order_by(
+                # Cada família junta: o titular e, logo abaixo, os dependentes.
+                Coalesce("beneficiario__titular__nome", "beneficiario__nome"),
+                F("beneficiario__titular").asc(nulls_first=True),
+                "beneficiario__nome",
+            )
+        )
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        contrato = self.object
+        vidas = dict(
+            Vinculo.objects.ativos()
+            .filter(contrato=contrato)
+            .values_list("plano")
+            .annotate(total=Count("pk"))
+            .order_by()
+        )
+        planos = list(contrato.planos.all())
+        for plano in planos:
+            plano.vidas = vidas.get(plano.pk, 0)
+        sem_plano = list(self.sem_plano())
+        # O dependente começa com o plano do titular marcado.
+        do_titular = dict(
+            Vinculo.objects.filter(
+                contrato=contrato,
+                plano__isnull=False,
+                data_exclusao__isnull=True,
+                beneficiario__in=[v.beneficiario.titular_id for v in sem_plano],
+            ).values_list("beneficiario", "plano")
+        )
+        for vinculo in sem_plano:
+            vinculo.sugerido = do_titular.get(vinculo.beneficiario.titular_id)
+        contexto.update(
+            planos=planos,
+            vidas_sem_plano=vidas.get(None, 0),
+            sem_plano=sem_plano,
+            form=PlanoForm(contrato=contrato),
+        )
+        return contexto
+
+    def post(self, request, *args, **kwargs):
+        """Grava o plano escolhido para cada pessoa que ainda não tinha um."""
+        self.object = self.get_object()
+        ativos = {str(plano.pk): plano for plano in self.object.planos_ativos}
+        escolhidos = 0
+        with transaction.atomic():
+            vinculos = list(self.sem_plano().select_for_update(of=("self",)))
+            # Os titulares primeiro, para o dependente marcado "o mesmo do titular" achar o
+            # plano que acabou de ser escolhido para ele.
+            vinculos.sort(key=lambda vinculo: not vinculo.beneficiario.eh_titular)
+            for vinculo in vinculos:
+                escolha = request.POST.get(f"plano_{vinculo.pk}", "")
+                if escolha == "titular" and not vinculo.beneficiario.eh_titular:
+                    do_titular = Vinculo.objects.filter(
+                        contrato=self.object,
+                        beneficiario=vinculo.beneficiario.titular_id,
+                        data_exclusao__isnull=True,
+                    ).values_list("plano", flat=True)
+                    escolha = str(do_titular.first() or "")
+                plano = ativos.get(escolha)
+                if plano:
+                    vinculo.plano = plano
+                    vinculo.save(update_fields=["plano", "atualizado_em"])
+                    escolhidos += 1
+        if escolhidos:
+            texto = "1 pessoa" if escolhidos == 1 else f"{escolhidos} pessoas"
+            messages.success(request, f"Plano gravado para {texto}.")
+        else:
+            messages.info(request, "Nenhum plano foi escolhido.")
+        return redirect("apolices:planos", self.object.pk)
+
+
+class PlanoCreateView(FormularioMixin, CreateView):
+    model = Plano
+    form_class = PlanoForm
+    mensagem_sucesso = "Plano cadastrado."
+
+    def get_contrato(self) -> Contrato:
+        if not hasattr(self, "contrato"):
+            self.contrato = get_object_or_404(
+                Contrato.objects.de_pessoas(), pk=self.kwargs["contrato_pk"]
+            )
+        return self.contrato
+
+    def get_form_kwargs(self):
+        return {**super().get_form_kwargs(), "contrato": self.get_contrato()}
+
+    def get_titulo(self) -> str:
+        return f"Novo plano no contrato {self.get_contrato()}"
+
+    def get_url_cancelar(self) -> str:
+        return reverse("apolices:planos", args=[self.get_contrato().pk])
+
+
+class PlanoUpdateView(FormularioMixin, UpdateView):
+    model = Plano
+    form_class = PlanoForm
+    mensagem_sucesso = "Plano atualizado."
+
+    def get_titulo(self) -> str:
+        return f"Editar o plano {self.object} do contrato {self.object.contrato}"
 
     def get_url_cancelar(self) -> str:
         return self.object.get_absolute_url()

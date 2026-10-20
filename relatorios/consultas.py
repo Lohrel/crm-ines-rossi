@@ -23,6 +23,7 @@ def vidas_ativas(dados: dict):
         "beneficiario__titular__unidade",
         "contrato__ramo",
         "contrato__seguradora",
+        "plano",
     )
     if cliente := dados.get("cliente"):
         vinculos = vinculos.filter(beneficiario__cliente=cliente)
@@ -65,7 +66,9 @@ def resumo_das_vidas(vinculos) -> dict:
         titulares=Count("beneficiario", distinct=True, filter=Q(dependente=0)),
     )
     por_contrato = (
-        vinculos.order_by("contrato__cliente__nome", "contrato__ramo__nome", "contrato__numero")
+        vinculos.order_by(
+            "contrato__cliente__nome", "contrato__ramo__nome", "contrato__numero", "plano__nome"
+        )
         .values(
             "contrato",
             "contrato__cliente__nome",
@@ -73,6 +76,8 @@ def resumo_das_vidas(vinculos) -> dict:
             "contrato__seguradora__nome",
             "contrato__numero",
             "contrato__produto",
+            # Nos contratos com vários planos, uma linha por plano.
+            "plano__nome",
         )
         .annotate(vidas=Count("pk"))
     )
@@ -92,6 +97,8 @@ def movimentacoes_do_periodo(dados: dict):
         "contrato__ramo",
         "contrato__seguradora",
         "contrato_anterior",
+        "plano",
+        "plano_anterior",
     ).filter(**{f"{campo}__range": (dados["de"], dados["ate"])})
     if dados["tipo"] != "todos":
         movimentacoes = movimentacoes.filter(tipo=dados["tipo"])

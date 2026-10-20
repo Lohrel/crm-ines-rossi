@@ -78,6 +78,8 @@ class MovimentacaoListView(ListView):
             "contrato__ramo",
             "contrato__seguradora",
             "contrato_anterior",
+            "plano",
+            "plano_anterior",
             "solicitante",
         )
         dados = self.filtro.cleaned_data if self.filtro.is_valid() else {}
@@ -118,6 +120,8 @@ class MovimentacaoDetailView(DetailView):
             "contrato__seguradora",
             "contrato_anterior__ramo",
             "contrato_anterior__seguradora",
+            "plano",
+            "plano_anterior",
             "origem",
         )
 

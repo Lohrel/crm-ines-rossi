@@ -51,6 +51,7 @@ Cada etapa só começa quando a anterior está testada e em uso.
   - [ ] 12c. Restaurar um backup feito antes de uma etapa nova (o backup vai para um banco novo, ao lado do atual, e os dois trocam de nome no fim) e o guia de backups, com a cópia automática para o HD externo no Windows
 - [ ] **13.** Tipos de contrato e vários planos no mesmo contrato
   - [ ] 13a. Tipos de contrato: PME, SPG e coletivo por adesão, além de empresarial e individual/familiar
+  - [ ] 13b. Vários planos no mesmo contrato (ex.: TNPQ e TNP4): cada pessoa fica num deles, a troca entre eles é uma alteração de plano, a planilha do mês e os relatórios mostram o plano de cada pessoa, e uma tela escolhe o plano de quem já estava no contrato
 
 As telas usam o Bootstrap com as cores, a fonte e o logo da corretora (etapa 10a). Problemas de uso encontrados nos testes são corrigidos na própria etapa.
 

@@ -10,6 +10,9 @@ urlpatterns = [
         "cliente/<int:cliente_pk>/novo/", views.ContratoCreateView.as_view(), name="novo_contrato"
     ),
     path("<int:pk>/editar/", views.ContratoUpdateView.as_view(), name="editar_contrato"),
+    path("<int:pk>/planos/", views.ContratoPlanosView.as_view(), name="planos"),
+    path("<int:contrato_pk>/planos/novo/", views.PlanoCreateView.as_view(), name="novo_plano"),
+    path("planos/<int:pk>/editar/", views.PlanoUpdateView.as_view(), name="editar_plano"),
     path("<int:contrato_pk>/bens/novo/", views.BemSeguradoCreateView.as_view(), name="novo_bem"),
     path("bens/<int:pk>/", views.BemSeguradoDetailView.as_view(), name="bem"),
     path("bens/<int:pk>/editar/", views.BemSeguradoUpdateView.as_view(), name="editar_bem"),

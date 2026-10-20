@@ -11,7 +11,7 @@ from django.db.models import Q
 from django.urls import reverse
 from simple_history.models import HistoricalRecords
 
-from apolices.models import Contrato
+from apolices.models import Contrato, Plano
 from clientes.documentos import CPF
 from clientes.models import Cliente, ExclusaoProtegida, MeiosDeContato, Registro, Unidade
 from clientes.validators import validar_cpf
@@ -168,6 +168,15 @@ class Vinculo(Registro):
         Beneficiario, on_delete=models.CASCADE, related_name="vinculos"
     )
     contrato = models.ForeignKey(Contrato, on_delete=models.PROTECT, related_name="vinculos")
+    plano = models.ForeignKey(
+        Plano,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="vinculos",
+        verbose_name="plano do contrato",
+        help_text="Só nos contratos com mais de um plano (ex.: TNPQ ou TNP4).",
+    )
     carteirinha = models.CharField("número da carteirinha", max_length=60, blank=True)
     data_inclusao = models.DateField("data de inclusão")
     data_exclusao = models.DateField(
@@ -209,10 +218,21 @@ class Vinculo(Registro):
         ]
 
     def __str__(self) -> str:
-        return f"{self.contrato.ramo} · {self.contrato}"
+        texto = f"{self.contrato.ramo} · {self.contrato}"
+        return f"{texto} · {self.plano}" if self.plano_id else texto
 
     def get_absolute_url(self) -> str:
         return self.beneficiario.get_absolute_url()
+
+    @property
+    def nome_do_plano(self) -> str:
+        """O plano da pessoa dentro do contrato; sem ele, o nome do contrato (ex.: PLENO)."""
+        return self.plano.nome if self.plano_id else self.contrato.nome_do_plano
+
+    @property
+    def falta_o_plano(self) -> bool:
+        """Contrato com planos cadastrados em que ainda não se escolheu o plano da pessoa."""
+        return self.plano_id is None and self.contrato.tem_planos
 
     @property
     def ativo(self) -> bool:
@@ -237,6 +257,8 @@ class Vinculo(Registro):
         pessoa = self.beneficiario
         if self.contrato.cliente_id != pessoa.cliente_id:
             raise ValidationError({"contrato": "O contrato deve ser do mesmo cliente."})
+        if self.plano_id and self.plano.contrato_id != self.contrato_id:
+            raise ValidationError({"contrato": "O plano escolhido é de outro contrato."})
         unidade = pessoa.unidade_efetiva
         cobertas = list(self.contrato.unidades.all())
         if unidade and cobertas and unidade not in cobertas:
@@ -252,18 +274,23 @@ class Vinculo(Registro):
                     {"contrato": "O titular não está neste plano na data de inclusão."}
                 )
 
-    def encerrar(self, data: date) -> list["Vinculo"]:
-        """Registra a exclusão do plano. Do titular, leva junto os dependentes do mesmo plano."""
+    def encerrar(self, data: date, so_do_mesmo_plano: bool = False) -> list["Vinculo"]:
+        """Registra a exclusão do plano. Do titular, leva junto os dependentes do contrato.
+
+        Com `so_do_mesmo_plano` (troca de plano dentro do contrato), só os dependentes que
+        estão no mesmo plano do titular; os que estão em outro plano ficam onde estão.
+        """
         encerrados = [self]
         with transaction.atomic():
             if self.beneficiario.eh_titular:
-                encerrados += list(
-                    Vinculo.objects.filter(
-                        beneficiario__titular=self.beneficiario,
-                        contrato=self.contrato,
-                        data_exclusao__isnull=True,
-                    )
+                dependentes = Vinculo.objects.filter(
+                    beneficiario__titular=self.beneficiario,
+                    contrato=self.contrato,
+                    data_exclusao__isnull=True,
                 )
+                if so_do_mesmo_plano:
+                    dependentes = dependentes.filter(plano=self.plano_id)
+                encerrados += list(dependentes)
             for vinculo in encerrados:
                 vinculo.data_exclusao = max(data, vinculo.data_inclusao)
                 vinculo.save(update_fields=["data_exclusao", "atualizado_em"])
