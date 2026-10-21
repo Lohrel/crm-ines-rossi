@@ -45,10 +45,11 @@ Cada etapa só começa quando a anterior está testada e em uso.
   - [x] 10c. Computador: menu numa linha a partir de 992 px, tons azul-acinzentados, página do cliente com atalhos, listas com menos ruído, tabelas que cabem na tela, páginas de erro em português e acessibilidade
   - [ ] 10d. Celular: listas em fichas e filtros recolhidos
 - [x] **11.** Documentos anexados: regras de produto, tabelas e formulários na página de cada seguradora, e contratos assinados e documentos na página de cada cliente (pessoa física ou empresa), com quem enviou e quando, entregues só com login e copiados pelo backup
-- [ ] **12.** Proteção contra perda de dados, a partir de testes de carga e de arquivos corrompidos
+- [x] **12.** Proteção contra perda de dados, a partir de testes de carga e de arquivos corrompidos
   - [x] 12a. Backup e restauração seguros: cada backup é conferido antes de entrar na pasta, e a restauração confere os arquivos antes de mexer nos dados e grava o banco de uma vez só (um backup cortado ou estragado não apaga mais o banco atual)
   - [x] 12b. Edição ao mesmo tempo: quem salva por último é avisado de que outra pessoa gravou o registro enquanto editava, em vez de apagar sem saber o que ela gravou; dois cliques em "Aprovar" no mesmo pedido não dão mais erro; e um anexo que sumiu do disco mostra um aviso em vez da página de erro
-  - [ ] 12c. Restaurar um backup feito antes de uma etapa nova (o backup vai para um banco novo, ao lado do atual, e os dois trocam de nome no fim) e o guia de backups, com a cópia automática para o HD externo no Windows
+  - [x] 12c. Restaurar um backup feito antes de uma etapa nova (o backup vai para um banco novo, ao lado do atual, e os dois trocam de nome no fim) e o guia de backups, com a cópia automática para o HD externo no Windows
+  - [x] 12d. CPF ou plano repetido: cadastrar uma pessoa com um CPF que já está no cliente, ou incluir alguém de novo num plano em que já está, mostra um aviso na tela em vez da página de erro; e a lista de beneficiários passa a mostrar quem ainda não tem plano ou só entra no futuro (antes, a pessoa sumia logo depois de cadastrada)
 - [ ] **13.** Tipos de contrato e vários planos no mesmo contrato
   - [ ] 13a. Tipos de contrato: PME, SPG e coletivo por adesão, além de empresarial e individual/familiar
 

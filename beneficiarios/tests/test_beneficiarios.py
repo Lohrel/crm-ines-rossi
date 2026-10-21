@@ -190,6 +190,55 @@ def test_dependente_so_ve_planos_do_titular(logado, titular, conjuge, saude, den
     assert "S-1" in pagina and "D-1" not in pagina
 
 
+def test_titular_com_cpf_ja_cadastrado_mostra_aviso(logado, empresa, filial, titular):
+    resposta = logado.post(
+        reverse("beneficiarios:novo_titular", args=[empresa.pk]),
+        {"nome": "Ana de novo", "cpf": CPF_1, "unidade": filial.pk},
+    )
+    assert resposta.status_code == 200
+    assert "já está cadastrado neste cliente, em Ana Titular" in resposta.content.decode()
+    assert not Beneficiario.objects.filter(nome="Ana de novo").exists()
+
+
+def test_dependente_com_cpf_ja_cadastrado_mostra_aviso(logado, titular):
+    resposta = logado.post(
+        reverse("beneficiarios:novo_dependente", args=[titular.pk]),
+        {"nome": "Outra", "parentesco": "FI", "cpf": CPF_1},
+    )
+    assert resposta.status_code == 200
+    assert "já está cadastrado neste cliente" in resposta.content.decode()
+
+
+def test_editar_a_pessoa_mantendo_o_proprio_cpf(logado, titular, filial):
+    resposta = logado.post(
+        reverse("beneficiarios:editar", args=[titular.pk]),
+        {"nome": "Ana Renomeada", "cpf": CPF_1, "unidade": filial.pk},
+    )
+    assert resposta.status_code == 302
+
+
+def test_incluir_de_novo_no_mesmo_plano_mostra_aviso(logado, titular, saude):
+    incluir(titular, saude)
+    resposta = logado.post(
+        reverse("beneficiarios:novo_plano", args=[titular.pk]),
+        {"contrato": saude.pk, "data_inclusao": HOJE.isoformat()},
+    )
+    assert resposta.status_code == 200
+    assert "Ana Titular já está neste plano" in resposta.content.decode()
+    assert titular.vinculos.count() == 1
+
+
+def test_reabrir_plano_antigo_quando_ja_ha_outro_aberto_mostra_aviso(logado, titular, saude):
+    antigo = incluir(titular, saude, inclusao=ONTEM - timedelta(days=30), exclusao=ONTEM)
+    incluir(titular, saude)
+    resposta = logado.post(
+        reverse("beneficiarios:editar_plano", args=[antigo.pk]),
+        {"data_inclusao": antigo.data_inclusao.isoformat(), "data_exclusao": ""},
+    )
+    assert resposta.status_code == 200
+    assert "já está neste plano" in resposta.content.decode()
+
+
 def test_excluir_do_plano_pela_tela(logado, titular, conjuge, saude):
     plano = incluir(titular, saude)
     incluir(conjuge, saude)
@@ -234,6 +283,17 @@ def test_quem_saiu_de_todos_os_planos_so_aparece_quando_pedido(logado, empresa, 
     url = reverse("beneficiarios:lista", args=[empresa.pk])
     assert "Ana Titular" not in logado.get(url).content.decode()
     assert "Ana Titular" in logado.get(url, {"inativos": "on"}).content.decode()
+
+
+def test_quem_ainda_nao_tem_plano_ou_entra_no_futuro_aparece_na_lista(
+    logado, empresa, titular, filial, saude
+):
+    # Recém-cadastrada, sem plano: não pode sumir da lista.
+    url = reverse("beneficiarios:lista", args=[empresa.pk])
+    assert "Ana Titular" in logado.get(url).content.decode()
+    outra = Beneficiario.objects.create(cliente=empresa, unidade=filial, nome="Bia Futura")
+    incluir(outra, saude, inclusao=HOJE + timedelta(days=10))
+    assert "Bia Futura" in logado.get(url).content.decode()
 
 
 # ------------------------------------------------------------------

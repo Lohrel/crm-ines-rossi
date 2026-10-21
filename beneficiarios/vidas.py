@@ -8,7 +8,7 @@ total de pessoas do grupo.
 from dataclasses import dataclass, field
 from datetime import date
 
-from django.db.models import Count, OuterRef, Q, Subquery
+from django.db.models import Count, OuterRef, Subquery
 from django.db.models.functions import Coalesce
 
 from beneficiarios.models import Vinculo
@@ -75,11 +75,3 @@ class VidasDoCliente:
 
     def da_unidade(self, unidade_pk: int) -> int:
         return self.pessoas_por_unidade.get(unidade_pk, 0)
-
-
-def filtro_de_ativos(em: date | None = None) -> Q:
-    """Mesmo critério de `VinculoQuerySet.ativos`, para usar a partir do beneficiário."""
-    em = em or date.today()
-    return Q(vinculos__data_inclusao__lte=em) & (
-        Q(vinculos__data_exclusao__isnull=True) | Q(vinculos__data_exclusao__gt=em)
-    )
