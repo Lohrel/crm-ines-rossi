@@ -308,7 +308,11 @@ def test_linhas_com_problema_ficam_de_fora(empresa, usuario, ana, pleno):
     )
     assert situacoes(resultados) == [
         (PROBLEMA, "Dependente sem cadastro: cadastre pela página do titular e importe de novo."),
-        (PROBLEMA, "Plano MASTER não encontrado: confira o Produto/plano dos contratos."),
+        (
+            PROBLEMA,
+            "Plano MASTER não encontrado: confira o Produto/plano dos contratos e os planos "
+            "cadastrados neles.",
+        ),
         (PROBLEMA, "DATA DIGITAÇÃO inválida: 31/02/2026."),
         (PROBLEMA, "Falta a DATA DIGITAÇÃO."),
         (PULAR, "STATUS Rejeitado: só Pendente e Processado são importados."),
@@ -346,8 +350,11 @@ def test_aba_dental_sem_a_coluna_plano(empresa, usuario, seguradora, matriz, fil
     assert resultado.mensagem == "Inclusão em ODONTO MAX, concluída: no plano desde 01/10/2026."
 
 
-def test_mesmo_nome_de_plano_em_dois_contratos(empresa, usuario, seguradora, matriz, ana, pleno):
-    plano(empresa, seguradora, "U-900", "PLENO", [matriz])
+def test_mesmo_nome_de_plano_em_dois_contratos(
+    empresa, usuario, seguradora, matriz, filial, ana, pleno
+):
+    # Os dois cobrem a filial da Ana: não há como saber qual é.
+    plano(empresa, seguradora, "U-900", "PLENO", [matriz, filial])
     [resultado] = importar(empresa, usuario, aba_unimed(na_unimed("Ana Titular", 4521)))
     assert resultado.mensagem == (
         "Há mais de um plano PLENO neste cliente: informe o número do contrato (U-100, U-900)."

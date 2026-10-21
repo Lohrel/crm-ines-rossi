@@ -72,7 +72,7 @@ class ClienteDetailView(DetailView):
         )
         contexto["pendencias"] = self.object.pendencias.em_aberto().para_tabela()
         contratos = self.object.contratos.select_related("seguradora", "ramo")
-        contratos = list(anotar_vidas(contratos.prefetch_related("unidades", "bens")))
+        contratos = list(anotar_vidas(contratos.prefetch_related("unidades", "bens", "planos")))
         contexto["contratos"] = contratos
         # Auto e imóvel: os veículos e imóveis de cada apólice, para consulta.
         contexto["contratos_com_bens"] = [

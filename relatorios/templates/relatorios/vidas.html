@@ -32,7 +32,7 @@
       {% for linha in resumo.por_contrato %}
         <tr>
           <td>{{ linha.contrato__cliente__nome }}</td>
-          <td>{{ linha.contrato__ramo__nome }} · {{ linha.contrato__seguradora__nome }} {{ linha.contrato__numero }}{% if linha.contrato__produto %} ({{ linha.contrato__produto }}){% endif %}</td>
+          <td>{{ linha.contrato__ramo__nome }} · {{ linha.contrato__seguradora__nome }} {{ linha.contrato__numero }}{% if linha.contrato__produto %} ({{ linha.contrato__produto }}){% endif %}{% if linha.plano__nome %} · <strong>{{ linha.plano__nome }}</strong>{% endif %}</td>
           <td class="text-end">{{ linha.vidas }}</td>
         </tr>
       {% endfor %}
@@ -56,7 +56,7 @@
             <div class="small text-body-secondary">{% if pessoa.eh_titular %}Titular{% if pessoa.matricula %} · matr. {{ pessoa.matricula }}{% endif %}{% else %}{{ pessoa.get_parentesco_display }}{% endif %}{% if pessoa.cpf %} · <span class="text-nowrap">CPF {{ pessoa.cpf_formatado }}</span>{% endif %}</div>
           </td>
           <td>{{ pessoa.cliente }}{% if pessoa.unidade_efetiva %}<div class="small text-body-secondary">{{ pessoa.unidade_efetiva }}</div>{% endif %}</td>
-          <td>{{ vinculo.contrato.ramo }}<div class="small text-body-secondary">{% include "apolices/_seguradora.html" with seguradora=vinculo.contrato.seguradora %} {{ vinculo.contrato.numero }}{% if vinculo.contrato.produto %} · {{ vinculo.contrato.produto }}{% endif %}</div></td>
+          <td>{{ vinculo.contrato.ramo }}<div class="small text-body-secondary">{% include "apolices/_seguradora.html" with seguradora=vinculo.contrato.seguradora %} {{ vinculo.contrato.numero }}{% if vinculo.contrato.produto %} · {{ vinculo.contrato.produto }}{% endif %}</div>{% if vinculo.plano %}<div class="small">Plano {{ vinculo.plano }}</div>{% endif %}</td>
           <td class="text-nowrap">{{ vinculo.data_inclusao|date:"d/m/Y" }}</td>
           <td class="small">{{ vinculo.carteirinha|default:"—" }}</td>
         </tr>

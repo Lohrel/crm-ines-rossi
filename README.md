@@ -52,6 +52,7 @@ Cada etapa só começa quando a anterior está testada e em uso.
   - [x] 12d. CPF ou plano repetido: cadastrar uma pessoa com um CPF que já está no cliente, ou incluir alguém de novo num plano em que já está, mostra um aviso na tela em vez da página de erro; e a lista de beneficiários passa a mostrar quem ainda não tem plano ou só entra no futuro (antes, a pessoa sumia logo depois de cadastrada)
 - [ ] **13.** Tipos de contrato e vários planos no mesmo contrato
   - [ ] 13a. Tipos de contrato: PME, SPG e coletivo por adesão, além de empresarial e individual/familiar
+  - [ ] 13b. Vários planos no mesmo contrato (ex.: TNPQ e TNP4): cada pessoa fica num deles, a troca entre eles é uma alteração de plano, a planilha do mês e os relatórios mostram o plano de cada pessoa, e uma tela escolhe o plano de quem já estava no contrato
 
 As telas usam o Bootstrap com as cores, a fonte e o logo da corretora (etapa 10a). Problemas de uso encontrados nos testes são corrigidos na própria etapa.
 

@@ -135,7 +135,7 @@ class VidasView(RelatorioView):
             str(contrato.ramo),
             str(contrato.seguradora),
             contrato.numero,
-            contrato.produto,
+            vinculo.plano.nome if vinculo.plano_id else contrato.produto,
             vinculo.data_inclusao,
             vinculo.carteirinha,
         ]
@@ -199,9 +199,9 @@ class MovimentacoesView(RelatorioView):
     def linha(self, mov) -> list:
         pessoa = mov.beneficiario
         contrato = mov.contrato
-        plano = contrato.nome_do_plano
+        plano = mov.nome_do_plano
         if mov.eh_alteracao:
-            plano = f"{mov.contrato_anterior.nome_do_plano} para {contrato.nome_do_plano}"
+            plano = f"{mov.nome_do_plano_anterior} para {mov.nome_do_plano}"
         return [
             pessoa.nome,
             "Titular" if pessoa.eh_titular else pessoa.get_parentesco_display(),

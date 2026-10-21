@@ -7,6 +7,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Q
+from django.db.models.functions import Lower
 from django.urls import reverse
 from simple_history.models import HistoricalRecords
 
@@ -338,6 +339,58 @@ class Contrato(Registro):
 
     def subfaturas_por_unidade(self) -> dict[int, "Subfatura"]:
         return {subfatura.unidade_id: subfatura for subfatura in self.subfaturas.all()}
+
+    @property
+    def planos_ativos(self) -> list["Plano"]:
+        """Os planos oferecidos hoje (nas listas, use prefetch_related("planos"))."""
+        return [plano for plano in self.planos.all() if plano.ativo]
+
+    @property
+    def tem_planos(self) -> bool:
+        """Com planos cadastrados, cada pessoa escolhe um deles ao entrar no contrato."""
+        return bool(self.planos_ativos)
+
+
+class Plano(Registro):
+    """Plano dentro de um contrato (ex.: TNPQ e TNP4 na mesma apólice).
+
+    Cada pessoa do contrato fica num dos planos. Um contrato sem planos cadastrados
+    continua como antes: é um plano só, com o nome em "Produto/plano".
+    """
+
+    contrato = models.ForeignKey(Contrato, on_delete=models.CASCADE, related_name="planos")
+    nome = models.CharField(max_length=60, help_text="Como o escritório chama o plano (ex.: TNPQ).")
+    ativo = models.BooleanField(
+        "oferecido",
+        default=True,
+        help_text="Desmarque quando o plano deixar de ser oferecido: ele sai das opções de "
+        "inclusão, e quem já está nele continua.",
+    )
+
+    history = HistoricalRecords()
+
+    class Meta:
+        verbose_name = "plano do contrato"
+        verbose_name_plural = "planos do contrato"
+        ordering = ["contrato", "nome"]
+        constraints = [
+            models.UniqueConstraint(
+                Lower("nome"),
+                "contrato",
+                name="plano_nome_unico_no_contrato",
+                violation_error_message="Este contrato já tem um plano com este nome.",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return self.nome
+
+    def get_absolute_url(self) -> str:
+        return reverse("apolices:planos", args=[self.contrato_id])
+
+    def clean(self) -> None:
+        super().clean()
+        self.nome = " ".join(self.nome.split())
 
 
 class Subfatura(Registro):

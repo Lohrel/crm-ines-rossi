@@ -75,14 +75,14 @@
           <td><a href="{{ titular.get_absolute_url }}" class="fw-semibold">{{ titular.nome }}</a></td>
           <td class="text-nowrap">{{ titular.cpf_formatado|default:"—" }}</td>
           {% if cliente.eh_empresa %}<td>{{ titular.unidade|default:"—" }}</td>{% endif %}
-          <td>{% for plano in titular.planos %}<span class="badge selo-plano me-1">{{ plano.contrato.ramo }}</span>{% empty %}<span class="text-body-secondary small">Nenhum</span>{% endfor %}</td>
+          <td>{% for plano in titular.planos %}<span class="badge selo-plano me-1">{{ plano.contrato.ramo }}{% if plano.plano %} · {{ plano.plano }}{% endif %}</span>{% empty %}<span class="text-body-secondary small">Nenhum</span>{% endfor %}</td>
         </tr>
         {% for dependente in titular.dependentes.all %}
         <tr>
           <td class="ps-4"><span class="text-body-secondary">↳</span> <a href="{{ dependente.get_absolute_url }}">{{ dependente.nome }}</a> <span class="small text-body-secondary">{{ dependente.get_parentesco_display }}</span></td>
           <td class="text-nowrap">{{ dependente.cpf_formatado|default:"—" }}</td>
           {% if cliente.eh_empresa %}<td></td>{% endif %}
-          <td>{% for plano in dependente.planos %}<span class="badge selo-plano me-1">{{ plano.contrato.ramo }}</span>{% empty %}<span class="text-body-secondary small">Nenhum</span>{% endfor %}</td>
+          <td>{% for plano in dependente.planos %}<span class="badge selo-plano me-1">{{ plano.contrato.ramo }}{% if plano.plano %} · {{ plano.plano }}{% endif %}</span>{% empty %}<span class="text-body-secondary small">Nenhum</span>{% endfor %}</td>
         </tr>
         {% endfor %}
       {% empty %}

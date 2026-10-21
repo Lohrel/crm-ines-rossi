@@ -83,7 +83,7 @@ class BeneficiarioListView(ListView):
         ) | cliente.beneficiarios.titulares().filter(dependentes__in=encontrados)
         planos = Prefetch(
             "vinculos",
-            queryset=Vinculo.objects.ativos().select_related("contrato__ramo"),
+            queryset=Vinculo.objects.ativos().select_related("contrato__ramo", "plano"),
             to_attr="planos",
         )
         return (
@@ -125,27 +125,34 @@ class BeneficiarioDetailView(DetailView):
         contexto = super().get_context_data(**kwargs)
         pessoa = self.object
         contexto["planos"] = planos = list(
-            pessoa.vinculos.select_related("contrato__seguradora", "contrato__ramo")
+            pessoa.vinculos.select_related(
+                "contrato__seguradora", "contrato__ramo", "plano"
+            ).prefetch_related("contrato__planos")
         )
-        # "Alterar plano" só aparece quando há outro plano vigente do mesmo ramo.
+        # "Alterar plano" só aparece quando há outro plano vigente do mesmo ramo (para o
+        # titular) ou outro plano dentro do mesmo contrato (para qualquer pessoa).
         vigentes = Contrato.objects.vigentes().filter(cliente=pessoa.cliente)
         vigentes = list(vigentes.values_list("pk", "ramo_id"))
         for plano in planos:
-            plano.pode_alterar = (
-                pessoa.eh_titular
-                and plano.data_exclusao is None
-                and any(r == plano.contrato.ramo_id and c != plano.contrato_id for c, r in vigentes)
+            outro_contrato = pessoa.eh_titular and any(
+                r == plano.contrato.ramo_id and c != plano.contrato_id for c, r in vigentes
+            )
+            outro_do_contrato = plano.contrato.vigente and any(
+                p.pk != plano.plano_id for p in plano.contrato.planos_ativos
+            )
+            plano.pode_alterar = plano.data_exclusao is None and (
+                outro_contrato or outro_do_contrato
             )
         contexto["dependentes"] = pessoa.dependentes.prefetch_related(
             Prefetch(
                 "vinculos",
-                queryset=Vinculo.objects.ativos().select_related("contrato__ramo"),
+                queryset=Vinculo.objects.ativos().select_related("contrato__ramo", "plano"),
                 to_attr="planos",
             )
         )
         contexto["anexos"] = pessoa.anexos.select_related("enviado_por")
         contexto["movimentacoes"] = pessoa.movimentacoes.select_related(
-            "contrato__ramo", "contrato_anterior"
+            "contrato__ramo", "contrato_anterior", "plano", "plano_anterior"
         ).order_by("-recebida_em")
         contexto["historico"] = LinhaDoTempoDoBeneficiario(pessoa).eventos()
         return contexto

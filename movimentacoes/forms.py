@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.forms import modelform_factory
 
+from apolices.forms import PlanoDoContratoField, rotulo_do_contrato
 from apolices.models import Contrato
 from beneficiarios.models import Beneficiario
 from clientes.forms import BootstrapFormMixin, EnvioDePlanilhaForm, MesField
@@ -19,9 +20,7 @@ ENTRADAS = [Movimentacao.Tipo.INCLUSAO, Movimentacao.Tipo.ALTERACAO]
 VIGENCIA_DA_ALTERACAO = "Início no novo plano"
 
 
-def rotulo_do_plano(contrato: Contrato) -> str:
-    texto = f"{contrato.ramo} · {contrato.seguradora} {contrato.numero}"
-    return f"{texto} ({contrato.produto})" if contrato.produto else texto
+rotulo_do_plano = rotulo_do_contrato
 
 
 class MovimentacaoForm(BootstrapFormMixin, forms.ModelForm):
@@ -59,12 +58,22 @@ class MovimentacaoForm(BootstrapFormMixin, forms.ModelForm):
         self.instance.beneficiario = beneficiario
         self.instance.cliente = beneficiario.cliente
         self.instance.registrada_por = usuario
-        self.fields["contrato"].queryset = self._planos_possiveis(tipo, beneficiario)
-        self.fields["contrato"].label_from_instance = rotulo_do_plano
+        contratos = self._planos_possiveis(tipo, beneficiario)
+        if tipo == Movimentacao.Tipo.EXCLUSAO:
+            # Sai do contrato inteiro, qualquer que seja o plano dentro dele.
+            self.fields["contrato"].queryset = contratos
+            self.fields["contrato"].label_from_instance = rotulo_do_plano
+        else:
+            self.fields["contrato"] = PlanoDoContratoField()
         if tipo == Movimentacao.Tipo.ALTERACAO:
-            self._preparar_alteracao(beneficiario)
+            self._preparar_alteracao(beneficiario, contratos)
         else:
             del self.fields["contrato_anterior"]
+            if tipo == Movimentacao.Tipo.INCLUSAO:
+                self.fields["contrato"].definir(contratos)
+                # Vindo de um botão com o contrato (?contrato=), só vale se ele não tem planos.
+                if str(self.initial.get("contrato")) not in self.fields["contrato"].opcoes:
+                    self.initial.pop("contrato", None)
         self.fields["solicitante"].queryset = beneficiario.cliente.contatos.all()
         self.fields["vigencia"].required = False
         # Só se registra o pedido depois de enviado à operadora.
@@ -80,11 +89,15 @@ class MovimentacaoForm(BootstrapFormMixin, forms.ModelForm):
     @staticmethod
     def _planos_possiveis(tipo: str, pessoa: Beneficiario):
         contratos = Contrato.objects.de_pessoas().filter(cliente=pessoa.cliente)
-        contratos = contratos.select_related("ramo", "seguradora")
+        contratos = contratos.select_related("ramo", "seguradora").prefetch_related("planos")
         no_plano = pessoa.vinculos.filter(data_exclusao__isnull=True).values("contrato")
         if tipo == Movimentacao.Tipo.EXCLUSAO:
             return contratos.filter(pk__in=no_plano)
-        contratos = contratos.vigentes().exclude(pk__in=no_plano)
+        contratos = contratos.vigentes()
+        if tipo == Movimentacao.Tipo.ALTERACAO:
+            # Pode ser outro contrato do ramo ou outro plano do mesmo contrato.
+            return contratos
+        contratos = contratos.exclude(pk__in=no_plano)
         if not pessoa.eh_titular:
             # Planos em que o titular está ou está entrando.
             titular = pessoa.titular
@@ -93,33 +106,43 @@ class MovimentacaoForm(BootstrapFormMixin, forms.ModelForm):
             contratos = contratos.filter(Q(pk__in=do_titular) | Q(pk__in=pedidos))
         return contratos
 
-    def _preparar_alteracao(self, pessoa: Beneficiario) -> None:
-        """Sai de um dos planos atuais e entra noutro do mesmo ramo."""
+    def _preparar_alteracao(self, pessoa: Beneficiario, contratos) -> None:
+        """Sai de um dos planos atuais e entra noutro do mesmo ramo (ou do mesmo contrato)."""
+        atuais = pessoa.vinculos.filter(data_exclusao__isnull=True)
         anterior = self.fields["contrato_anterior"]
         anterior.required = True
         anterior.label = "Plano atual (sai dele)"
         anterior.help_text = ""
         anterior.empty_label = "Escolha o plano atual"
-        anterior.label_from_instance = rotulo_do_plano
-        anterior.queryset = Contrato.objects.filter(
-            pk__in=pessoa.vinculos.filter(data_exclusao__isnull=True).values("contrato")
-        ).select_related("ramo", "seguradora")
+        # Nos contratos com planos, o rótulo diz em qual deles a pessoa está.
+        planos_atuais = {v.contrato_id: v.plano for v in atuais.select_related("plano")}
+        anterior.queryset = Contrato.objects.filter(pk__in=atuais.values("contrato"))
+        anterior.queryset = anterior.queryset.select_related("ramo", "seguradora")
+        anterior.label_from_instance = lambda c: " · ".join(
+            filter(None, [rotulo_do_plano(c), str(planos_atuais.get(c.pk) or "")])
+        )
         novo = self.fields["contrato"]
         novo.label = "Novo plano"
-        novo.queryset = novo.queryset.filter(ramo__in=anterior.queryset.values("ramo"))
         vigencia = self.fields["vigencia"]
         vigencia.label = VIGENCIA_DA_ALTERACAO
         vigencia.help_text = f"O plano atual termina nesta data. {vigencia.help_text}"
+        ramos = anterior.queryset.values("ramo")
+        if not pessoa.eh_titular:
+            # O dependente só troca de plano dentro do mesmo contrato; entre contratos,
+            # ele vai junto com o titular.
+            contratos = contratos.filter(pk__in=anterior.queryset)
         # Vindo do botão "Alterar plano" de um dos planos, ele fica fixo.
         escolhido = anterior.queryset.filter(pk=self.initial.get("contrato_anterior")).first()
         if escolhido:
             anterior.disabled = True
             anterior.empty_label = None
             anterior.queryset = anterior.queryset.filter(pk=escolhido.pk)
-            novo.queryset = novo.queryset.filter(ramo=escolhido.ramo)
-            opcoes = list(novo.queryset[:2])
-            if len(opcoes) == 1:
-                self.initial.setdefault("contrato", opcoes[0].pk)
+            ramos = [escolhido.ramo_id]
+        # Não se troca para o plano em que a pessoa já está.
+        fora = [(v.contrato_id, v.plano_id) for v in atuais]
+        novo.definir(contratos.filter(ramo__in=ramos), fora)
+        if escolhido and len(novo.opcoes) == 1:
+            self.initial.setdefault("contrato", next(iter(novo.opcoes)))
 
     @staticmethod
     def _dependentes_possiveis(tipo: str, pessoa: Beneficiario):
@@ -132,6 +155,10 @@ class MovimentacaoForm(BootstrapFormMixin, forms.ModelForm):
 
     def clean(self):
         dados = super().clean()
+        escolha = dados.get("contrato")
+        if isinstance(escolha, tuple):
+            contrato, self.instance.plano = escolha
+            dados["contrato"] = contrato
         contrato = dados.get("contrato")
         for dependente in dados.get("dependentes") or []:
             pedido = Movimentacao(
@@ -139,6 +166,7 @@ class MovimentacaoForm(BootstrapFormMixin, forms.ModelForm):
                 cliente=dependente.cliente,
                 beneficiario=dependente,
                 contrato=contrato,
+                plano=self.instance.plano,
             )
             try:
                 pedido.clean()
@@ -156,6 +184,7 @@ class MovimentacaoForm(BootstrapFormMixin, forms.ModelForm):
                     cliente=movimentacao.cliente,
                     beneficiario=dependente,
                     contrato=movimentacao.contrato,
+                    plano=movimentacao.plano,
                     solicitante=movimentacao.solicitante,
                     recebida_em=movimentacao.recebida_em,
                     enviada_em=movimentacao.enviada_em,

@@ -1,1 +1,1 @@
-{{ contrato.ramo }} · {% include "apolices/_seguradora.html" with seguradora=contrato.seguradora %} {{ contrato.numero }}{% if contrato.produto %} ({{ contrato.produto }}){% endif %}
+{{ contrato.ramo }} · {% include "apolices/_seguradora.html" with seguradora=contrato.seguradora %} {{ contrato.numero }}{% if contrato.produto %} ({{ contrato.produto }}){% endif %}{% if plano %} · <strong>{{ plano }}</strong>{% endif %}

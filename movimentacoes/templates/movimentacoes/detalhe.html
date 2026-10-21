@@ -44,10 +44,10 @@
   <dl class="row mb-0">
     <dt class="col-sm-3">Cliente</dt><dd class="col-sm-9">{{ mov.cliente }}{% if mov.beneficiario.unidade_efetiva %} · {{ mov.beneficiario.unidade_efetiva }}{% endif %}</dd>
     {% if mov.eh_alteracao %}
-    <dt class="col-sm-3">Plano anterior</dt><dd class="col-sm-9">{% include "movimentacoes/_plano.html" with contrato=mov.contrato_anterior %}</dd>
-    <dt class="col-sm-3">Novo plano</dt><dd class="col-sm-9">{% include "movimentacoes/_plano.html" with contrato=mov.contrato %}</dd>
+    <dt class="col-sm-3">Plano anterior</dt><dd class="col-sm-9">{% include "movimentacoes/_plano.html" with contrato=mov.contrato_anterior plano=mov.plano_anterior %}</dd>
+    <dt class="col-sm-3">Novo plano</dt><dd class="col-sm-9">{% include "movimentacoes/_plano.html" with contrato=mov.contrato plano=mov.plano %}</dd>
     {% else %}
-    <dt class="col-sm-3">Plano</dt><dd class="col-sm-9">{% include "movimentacoes/_plano.html" with contrato=mov.contrato %}</dd>
+    <dt class="col-sm-3">Plano</dt><dd class="col-sm-9">{% include "movimentacoes/_plano.html" with contrato=mov.contrato plano=mov.plano %}</dd>
     {% endif %}
     <dt class="col-sm-3">Solicitante</dt><dd class="col-sm-9">{{ mov.solicitante|default:"—" }}</dd>
     <dt class="col-sm-3">Recebida em</dt><dd class="col-sm-9">{{ mov.recebida_em|date:"d/m/Y" }}</dd>

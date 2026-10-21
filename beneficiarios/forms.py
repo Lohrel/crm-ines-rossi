@@ -3,7 +3,8 @@ from datetime import date
 from django import forms
 from django.utils.text import capfirst
 
-from apolices.models import Contrato, Subfatura
+from apolices.forms import PlanoDoContratoField
+from apolices.models import Contrato, Plano, Subfatura
 from beneficiarios.importacao_de_vidas import ler_planilha
 from beneficiarios.models import Anexo, Beneficiario, Vinculo
 from clientes.documentos import CPF
@@ -83,19 +84,22 @@ class DependenteForm(BeneficiarioFormBase):
 
 
 class VinculoForm(BootstrapFormMixin, forms.ModelForm):
-    """Inclusão num plano. Para o titular, permite incluir junto os dependentes escolhidos."""
+    """Inclusão num plano. Para o titular, permite incluir junto os dependentes escolhidos.
+
+    Nos contratos com planos cadastrados (ex.: TNPQ e TNP4), escolhe-se o plano da pessoa.
+    """
 
     dependentes = forms.ModelMultipleChoiceField(
         label="Incluir também os dependentes",
         queryset=Beneficiario.objects.none(),
         required=False,
         widget=forms.CheckboxSelectMultiple,
-        help_text="Marque só os dependentes que entram neste plano.",
+        help_text="Marque só os dependentes que entram neste plano. Eles entram no mesmo plano.",
     )
 
     class Meta:
         model = Vinculo
-        fields = ["contrato", "carteirinha", "data_inclusao", "data_exclusao", "salario"]
+        fields = ["contrato", "plano", "carteirinha", "data_inclusao", "data_exclusao", "salario"]
         widgets = {"data_inclusao": DATA, "data_exclusao": DATA}
 
     def __init__(self, *args, beneficiario: Beneficiario | None = None, **kwargs):
@@ -103,50 +107,71 @@ class VinculoForm(BootstrapFormMixin, forms.ModelForm):
         if beneficiario is not None:
             self.instance.beneficiario = beneficiario
         pessoa = self.instance.beneficiario
-        self.fields["contrato"].queryset = self._contratos_possiveis(pessoa)
-        self.fields["contrato"].label_from_instance = lambda c: (
-            f"{c.ramo} · {c.seguradora} {c.numero}" + (f" ({c.produto})" if c.produto else "")
-        )
         if self.instance.pk:
-            del self.fields["dependentes"]
-            self.fields["contrato"].disabled = True
+            self._preparar_edicao()
             usam_salario = self.instance.contrato.usa_salario
         else:
+            contratos = list(self._contratos_possiveis(pessoa))
+            self.fields["contrato"] = PlanoDoContratoField()
+            self.fields["contrato"].definir(contratos)
+            self.initial.setdefault("contrato", self._plano_do_titular(pessoa, contratos))
+            del self.fields["plano"]
             del self.fields["data_exclusao"]
             self.initial.setdefault("data_inclusao", date.today())
             if pessoa.eh_titular and pessoa.dependentes.exists():
                 self.fields["dependentes"].queryset = pessoa.dependentes.all()
             else:
                 del self.fields["dependentes"]
-            usam_salario = (
-                self.fields["contrato"].queryset.filter(capital_multiplo__isnull=False).exists()
-            )
+            usam_salario = any(contrato.usa_salario for contrato in contratos)
         # O salário só aparece para o titular, quando há seguro de vida com capital pelo salário.
         if not (usam_salario and pessoa.eh_titular):
             del self.fields["salario"]
 
+    def _preparar_edicao(self) -> None:
+        del self.fields["dependentes"]
+        contrato = self.instance.contrato
+        self.fields["contrato"].queryset = Contrato.objects.filter(pk=contrato.pk)
+        self.fields["contrato"].disabled = True
+        # O plano dentro do contrato pode ser corrigido aqui; a troca pedida à operadora
+        # é uma movimentação de alteração de plano.
+        planos = Plano.objects.filter(contrato=contrato)
+        if not planos.exists():
+            del self.fields["plano"]
+            return
+        self.fields["plano"].queryset = planos.filter(ativo=True) | planos.filter(
+            pk=self.instance.plano_id
+        )
+        self.fields["plano"].label = "Plano"
+        self.fields["plano"].empty_label = "Ainda não informado"
+        self.fields["plano"].help_text = (
+            "Para corrigir o cadastro. A troca de plano pedida à operadora é feita pela "
+            "movimentação de alteração de plano."
+        )
+
     @staticmethod
     def _contratos_possiveis(pessoa: Beneficiario):
         contratos = Contrato.objects.de_pessoas().filter(cliente=pessoa.cliente)
-        contratos = contratos.select_related("ramo", "seguradora")
+        contratos = contratos.select_related("ramo", "seguradora").prefetch_related("planos")
         if not pessoa.eh_titular:
             contratos = contratos.filter(vinculos__in=pessoa.titular.vinculos.ativos()).distinct()
         return contratos
 
-    def save(self, commit=True):
-        vinculo = super().save(commit)
-        if commit:
-            for dependente in self.cleaned_data.get("dependentes") or []:
-                # Mesmo cliente e unidade do titular: as regras já valem pelo plano dele.
-                Vinculo.objects.create(
-                    beneficiario=dependente,
-                    contrato=vinculo.contrato,
-                    data_inclusao=vinculo.data_inclusao,
-                )
-        return vinculo
+    @staticmethod
+    def _plano_do_titular(pessoa: Beneficiario, contratos: list[Contrato]) -> str | None:
+        """O dependente começa com o plano do titular marcado (se ele estiver num só)."""
+        if pessoa.eh_titular:
+            return None
+        planos = list(pessoa.titular.vinculos.ativos().filter(contrato__in=contratos))
+        if len(planos) != 1:
+            return None
+        return PlanoDoContratoField.valor(planos[0].contrato, planos[0].plano)
 
     def clean(self):
         dados = super().clean()
+        escolha = dados.get("contrato")
+        if isinstance(escolha, tuple):
+            contrato, self.instance.plano = escolha
+            dados["contrato"] = contrato
         contrato = dados.get("contrato")
         if contrato and not contrato.usa_salario and dados.get("salario") is not None:
             # Salário digitado para um plano que não é seguro de vida: não é guardado.
@@ -166,6 +191,19 @@ class VinculoForm(BootstrapFormMixin, forms.ModelForm):
                     "edite o plano na página da pessoa.",
                 )
         return dados
+
+    def save(self, commit=True):
+        vinculo = super().save(commit)
+        if commit:
+            for dependente in self.cleaned_data.get("dependentes") or []:
+                # Mesmo cliente e unidade do titular: as regras já valem pelo plano dele.
+                Vinculo.objects.create(
+                    beneficiario=dependente,
+                    contrato=vinculo.contrato,
+                    plano=vinculo.plano,
+                    data_inclusao=vinculo.data_inclusao,
+                )
+        return vinculo
 
 
 class EncerrarVinculoForm(BootstrapFormMixin, forms.Form):

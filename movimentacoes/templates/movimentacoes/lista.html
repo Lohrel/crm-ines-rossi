@@ -53,7 +53,7 @@
           </td>
           <td>
             <div class="d-flex flex-wrap align-items-center column-gap-2">{% include "movimentacoes/_tipo.html" %}<span>{{ mov.contrato.ramo }}</span></div>
-            <div class="small text-body-secondary">{% include "apolices/_seguradora.html" with seguradora=mov.contrato.seguradora %}{% if mov.eh_alteracao %} · {{ mov.contrato_anterior.nome_do_plano }} para {{ mov.contrato.nome_do_plano }}{% elif mov.contrato.produto %} · {{ mov.contrato.produto }}{% endif %}</div>
+            <div class="small text-body-secondary">{% include "apolices/_seguradora.html" with seguradora=mov.contrato.seguradora %}{% if mov.eh_alteracao %} · {{ mov.nome_do_plano_anterior }} para {{ mov.nome_do_plano }}{% elif mov.plano or mov.contrato.produto %} · {{ mov.nome_do_plano }}{% endif %}</div>
           </td>
           <td class="text-nowrap">{{ mov.enviada_em|date:"d/m/Y"|default:"—" }}</td>
           <td class="text-nowrap">

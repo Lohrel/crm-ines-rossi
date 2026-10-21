@@ -2,7 +2,8 @@
 
 Uma planilha por empresa e por mês. Cada ramo tem uma aba (ex.: SAÚDE, DENTAL)
 que junta os planos dele: na Unimed, cada plano (PLENO, FLEX...) é um contrato,
-e a coluna PLANO diz em qual a pessoa entrou. As alterações de plano ficam na
+e numa apólice com vários planos (ex.: TNPQ e TNP4) cada plano é um plano do
+contrato. A coluna PLANO diz em qual a pessoa entrou. As alterações de plano ficam na
 aba ALTERAÇÕES DE PLANO. O mês é o da digitação no portal (envio à operadora):
 a planilha de setembro traz o que foi digitado em setembro, em qualquer etapa,
 e o que foi digitado antes e continua pendente, como o escritório fazia à mão.
@@ -90,8 +91,8 @@ def observacao(movimentacao: Movimentacao) -> str:
     if movimentacao.motivo_rejeicao:
         partes.insert(0, f"Rejeitada: {movimentacao.get_motivo_rejeicao_display()}.")
     if movimentacao.eh_alteracao:
-        anterior, novo = movimentacao.contrato_anterior, movimentacao.contrato
-        partes.insert(0, f"{anterior.nome_do_plano} para {novo.nome_do_plano}.")
+        anterior, novo = movimentacao.nome_do_plano_anterior, movimentacao.nome_do_plano
+        partes.insert(0, f"{anterior} para {novo}.")
     return " ".join(parte for parte in partes if parte)
 
 
@@ -138,6 +139,8 @@ class PlanilhaDoMes:
                 "solicitante",
                 "contrato",
                 "contrato_anterior",
+                "plano",
+                "plano_anterior",
                 "beneficiario__unidade",
                 "beneficiario__titular__unidade",
             )
@@ -154,11 +157,13 @@ class PlanilhaDoMes:
                 Q(pk__in=com_inclusao) | Q(situacao__in=Contrato.SITUACOES_VIGENTES),
             )
             .select_related("ramo", "seguradora")
+            .prefetch_related("planos")
             .order_by("ramo__nome", "seguradora__nome", "produto", "numero")
         )
 
     def abas(self) -> list[Aba]:
-        grupos = abas_por_ramo(self.contratos())
+        contratos = self.contratos()
+        grupos = abas_por_ramo(contratos)
         aba_do_plano = {plano.pk: titulo for titulo, planos in grupos.items() for plano in planos}
         linhas = defaultdict(list)
         for mov in self.digitadas(Movimentacao.Tipo.INCLUSAO):
@@ -173,7 +178,10 @@ class PlanilhaDoMes:
             self._linha(mov, COLUNAS_DA_ALTERACAO)
             for mov in self.digitadas(Movimentacao.Tipo.ALTERACAO)
         ]
-        if alteracoes or any(len(planos) > 1 for planos in grupos.values()):
+        varios_planos = any(len(planos) > 1 for planos in grupos.values()) or any(
+            len(contrato.planos_ativos) > 1 for contrato in contratos
+        )
+        if alteracoes or varios_planos:
             cabecalho = f"Alterações de plano · {self.cliente} · {self.mes}"
             colunas = self._colunas(COLUNAS_DA_ALTERACAO)
             abas.append(Aba(ALTERACOES, cabecalho, colunas, alteracoes))
@@ -191,7 +199,7 @@ class PlanilhaDoMes:
             "CARTEIRINHA": mov.carteirinha,
             "DATA DIGITAÇÃO": mov.digitada_em,
             "INICIO": mov.vigencia,
-            "PLANO": mov.contrato.nome_do_plano,
+            "PLANO": mov.nome_do_plano,
             "OBSERVAÇÃO": observacao(mov),
             FILIAL.titulo: str(mov.beneficiario.unidade_efetiva or ""),
         }
