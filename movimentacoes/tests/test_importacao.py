@@ -350,8 +350,11 @@ def test_aba_dental_sem_a_coluna_plano(empresa, usuario, seguradora, matriz, fil
     assert resultado.mensagem == "Inclusão em ODONTO MAX, concluída: no plano desde 01/10/2026."
 
 
-def test_mesmo_nome_de_plano_em_dois_contratos(empresa, usuario, seguradora, matriz, ana, pleno):
-    plano(empresa, seguradora, "U-900", "PLENO", [matriz])
+def test_mesmo_nome_de_plano_em_dois_contratos(
+    empresa, usuario, seguradora, matriz, filial, ana, pleno
+):
+    # Os dois cobrem a filial da Ana: não há como saber qual é.
+    plano(empresa, seguradora, "U-900", "PLENO", [matriz, filial])
     [resultado] = importar(empresa, usuario, aba_unimed(na_unimed("Ana Titular", 4521)))
     assert resultado.mensagem == (
         "Há mais de um plano PLENO neste cliente: informe o número do contrato (U-100, U-900)."

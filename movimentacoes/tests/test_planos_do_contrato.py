@@ -14,7 +14,7 @@ from beneficiarios.forms import VinculoForm
 from beneficiarios.models import Vinculo
 from beneficiarios.tests.fixtures import incluir
 from movimentacoes.forms import MovimentacaoForm
-from movimentacoes.importacao import ATUALIZAR, IMPORTAR, PROBLEMA
+from movimentacoes.importacao import ATUALIZAR, IMPORTAR, PROBLEMA, PULAR
 from movimentacoes.models import Etapa, Movimentacao
 from movimentacoes.planilha import PlanilhaDoMes
 from movimentacoes.tests.test_alteracao_de_plano import plano as contrato_com_produto
@@ -352,6 +352,46 @@ def test_importar_troca_de_plano_dentro_do_contrato(
     ]
     mov = Movimentacao.objects.get()
     assert (mov.contrato_anterior, mov.plano_anterior, mov.plano) == (apolice, tnpq, tnp4)
+
+
+def test_importar_o_mesmo_plano_em_duas_apolices_do_grupo(
+    empresa, usuario, ana_4521, seguradora, matriz, filial, apolice, tnpq
+):
+    """Uma apólice por empresa do grupo, as duas com TNPQ: vale a que cobre a filial da pessoa."""
+    apolice.unidades.set([filial])
+    outra = contrato_com_produto(empresa, seguradora, "B-901", "TNPQ / TNP4", [matriz])
+    Plano.objects.create(contrato=outra, nome="TNPQ")
+    linha = na_unimed("Ana Titular", 4521, plano="TNPQ")
+    assert situacoes(importar(empresa, usuario, aba_unimed(linha))) == [
+        (IMPORTAR, "Inclusão em TNPQ, em análise.")
+    ]
+    assert Movimentacao.objects.get().plano == tnpq
+
+
+def test_reimportar_quem_esta_num_plano_que_deixou_de_ser_oferecido(
+    empresa, usuario, ana_4521, seguradora, matriz, filial, apolice, tnpq
+):
+    """O plano da pessoa vale mais que o plano oferecido de outra apólice com o mesmo nome."""
+    no_plano(ana_4521, tnpq)
+    tnpq.ativo = False
+    tnpq.save()
+    outra = contrato_com_produto(empresa, seguradora, "B-901", "", [matriz, filial])
+    Plano.objects.create(contrato=outra, nome="TNPQ")
+    linha = na_unimed("Ana Titular", 4521, "Processado", "123", plano="TNPQ")
+    assert situacoes(importar(empresa, usuario, aba_unimed(linha))) == [
+        (PULAR, "Já está no plano TNPQ.")
+    ]
+    assert not Movimentacao.objects.exists()
+
+
+def test_reimportar_quem_ja_esta_no_contrato_sem_dizer_o_plano(
+    empresa, usuario, ana_4521, apolice, tnpq, tnp4
+):
+    """A planilha baixada antes dos planos (PLANO com o nome do contrato) volta sem problema."""
+    no_plano(ana_4521, tnpq)
+    linha = na_unimed("Ana Titular", 4521, "Processado", "123", plano="TNPQ / TNP4")
+    [(situacao, mensagem)] = situacoes(importar(empresa, usuario, aba_unimed(linha)))
+    assert (situacao, mensagem) == (PULAR, "Já está no plano TNPQ.")
 
 
 @pytest.fixture

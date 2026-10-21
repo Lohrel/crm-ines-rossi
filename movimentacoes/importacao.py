@@ -222,7 +222,7 @@ class Importacao:
             Contrato.objects.de_pessoas()
             .filter(cliente=cliente)
             .select_related("ramo", "seguradora")
-            .prefetch_related("planos")
+            .prefetch_related("planos", "unidades")
         )
         self.contatos = (
             list(Contato.objects.filter(cliente=cliente).prefetch_related("unidades"))
@@ -288,9 +288,13 @@ class Importacao:
         if digitada_em is None:
             raise ValidationError("Falta a DATA DIGITAÇÃO.")
         vigencia = self._data(linha, "vigencia", "INICIO")
-        contrato, plano = self._plano(linha)
+        candidatos, ambiguo = self._plano(linha)
         solicitante = self._solicitante(linha)
         pessoa = self._pessoa(linha, solicitante)
+        contrato, plano = self._escolher_pela_pessoa(candidatos, pessoa, ambiguo)
+        falta_o_plano = ""
+        if plano is None:
+            plano, falta_o_plano = self._unico_plano_do_contrato(contrato)
         carteirinha, observacao = self._carteirinha_e_observacao(linha)
         if plano and not linha.alteracao and (anotado := self._anotar_plano(pessoa, plano)):
             return anotado
@@ -311,6 +315,9 @@ class Importacao:
         registrado = self._ja_registrado(pedido)
         if registrado:
             return self._atualizar(registrado, etapa, pedido.carteirinha)
+        if falta_o_plano:
+            # Só agora: quem já está no contrato ou já tem o pedido não precisa do plano.
+            raise ValidationError(falta_o_plano)
         if not contrato.vigente:
             situacao = contrato.get_situacao_display().lower()
             raise ValidationError(f"O contrato do plano {pedido.nome_do_plano} está {situacao}.")
@@ -385,23 +392,22 @@ class Importacao:
             return "", f"{observacao} {lembrete}".strip()
         return carteirinha, observacao
 
-    def _plano(self, linha: Linha) -> tuple[Contrato, Plano | None]:
-        """Pelo PLANO (um plano do contrato, o produto ou o número do contrato); sem ele, o
-        único plano da aba."""
+    def _plano(self, linha: Linha) -> tuple[list[tuple[Contrato, Plano | None]], str]:
+        """Os planos possíveis da linha, pelo PLANO (um plano do contrato, o produto ou o número
+        do contrato) ou, sem ele, pela aba; e o aviso para quando sobrar mais de um."""
         nome = chave(linha["plano"])
         if nome:
             pelo_plano = self._pelo_nome_do_plano(linha, nome)
             if pelo_plano:
-                return pelo_plano
+                return pelo_plano, (
+                    f"Há mais de um plano {linha['plano']} neste cliente, em contratos diferentes "
+                    f"({', '.join(c.numero for c, _ in pelo_plano)})."
+                )
             achados = [c for c in self.contratos if nome in (chave(c.produto), chave(c.numero))]
             if len(achados) > 1:
                 achados = self._da_aba(linha, achados) or achados
-            if len(achados) > 1:
-                achados = [c for c in achados if c.vigente] or achados
-            if len(achados) == 1:
-                return achados[0], self._unico_plano_do_contrato(achados[0])
             if achados:
-                raise ValidationError(
+                return [(c, None) for c in achados], (
                     f"Há mais de um plano {linha['plano']} neste cliente: informe o número do "
                     f"contrato ({', '.join(c.numero for c in achados)})."
                 )
@@ -410,13 +416,9 @@ class Importacao:
                 "e os planos cadastrados neles."
             )
         da_aba = self._da_aba(linha, self.contratos)
-        if len(da_aba) > 1:
-            da_aba = [c for c in da_aba if c.vigente] or da_aba
-        if len(da_aba) == 1:
-            return da_aba[0], self._unico_plano_do_contrato(da_aba[0])
         if da_aba:
             planos = ", ".join(_rotulo(c) for c in da_aba)
-            raise ValidationError(
+            return [(c, None) for c in da_aba], (
                 f'Informe o PLANO: a aba "{linha.aba}" tem mais de um plano deste cliente '
                 f"({planos})."
             )
@@ -425,32 +427,56 @@ class Importacao:
             f'ou da seguradora da aba "{linha.aba}".'
         )
 
-    def _pelo_nome_do_plano(self, linha: Linha, nome: str) -> tuple[Contrato, Plano] | None:
-        """O plano cadastrado num contrato com este nome (ex.: TNPQ)."""
+    def _pelo_nome_do_plano(self, linha: Linha, nome: str) -> list[tuple[Contrato, Plano]]:
+        """Os planos cadastrados nos contratos com este nome (ex.: TNPQ)."""
         achados = [(c, p) for c in self.contratos for p in c.planos.all() if chave(p.nome) == nome]
         if len(achados) > 1:
             da_aba = self._da_aba(linha, [c for c, _ in achados])
             achados = [(c, p) for c, p in achados if c in da_aba] or achados
-        if len(achados) > 1:
-            achados = [(c, p) for c, p in achados if c.vigente and p.ativo] or achados
-        if len(achados) > 1:
-            raise ValidationError(
-                f"Há mais de um plano {linha['plano']} neste cliente, em contratos diferentes "
-                f"({', '.join(c.numero for c, _ in achados)})."
-            )
-        return achados[0] if achados else None
+        return achados
 
     @staticmethod
-    def _unico_plano_do_contrato(contrato: Contrato) -> Plano | None:
-        """No contrato com planos cadastrados, a linha precisa dizer qual (se houver mais de um)."""
+    def _escolher_pela_pessoa(
+        candidatos: list[tuple[Contrato, Plano | None]], pessoa: Beneficiario, ambiguo: str
+    ) -> tuple[Contrato, Plano | None]:
+        """Com o mesmo plano em mais de um contrato (ex.: uma apólice por empresa do grupo),
+        fica, nesta ordem: o plano em que a pessoa já está; o contrato em que ela já está (ou
+        tem pedido em aberto); o que cobre a filial dela; o contrato vigente e o plano oferecido.
+        """
+        if len(candidatos) > 1 and pessoa.pk:
+            no_plano = set(
+                pessoa.vinculos.filter(data_exclusao__isnull=True).values_list("contrato", "plano")
+            )
+            no_contrato = {contrato for contrato, _ in no_plano} | set(
+                pessoa.movimentacoes.em_aberto().values_list("contrato", flat=True)
+            )
+            candidatos = (
+                [(c, p) for c, p in candidatos if p and (c.pk, p.pk) in no_plano]
+                or [(c, p) for c, p in candidatos if c.pk in no_contrato]
+                or candidatos
+            )
+        unidade = pessoa.unidade_efetiva
+        if len(candidatos) > 1 and unidade:
+            cobrem = [(c, p) for c, p in candidatos if unidade in c.unidades.all()]
+            candidatos = cobrem or candidatos
+        if len(candidatos) > 1:
+            em_uso = [(c, p) for c, p in candidatos if c.vigente and (p is None or p.ativo)]
+            candidatos = em_uso or candidatos
+        if len(candidatos) > 1:
+            raise ValidationError(ambiguo)
+        return candidatos[0]
+
+    @staticmethod
+    def _unico_plano_do_contrato(contrato: Contrato) -> tuple[Plano | None, str]:
+        """Sem o plano na linha: o único plano do contrato ou, se há mais de um, o aviso."""
         planos = contrato.planos_ativos
         if len(planos) > 1:
             nomes = ", ".join(plano.nome for plano in planos)
-            raise ValidationError(
+            return None, (
                 f"O contrato {contrato.numero} tem mais de um plano: informe na coluna PLANO "
                 f"qual deles ({nomes})."
             )
-        return planos[0] if planos else None
+        return (planos[0] if planos else None), ""
 
     def _anotar_plano(self, pessoa: Beneficiario, plano: Plano) -> tuple[str, str] | None:
         """Quem já está no contrato sem o plano informado fica com o plano da planilha."""
