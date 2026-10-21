@@ -33,7 +33,17 @@ class BeneficiarioFormBase(BootstrapFormMixin, forms.ModelForm):
 
     def clean_cpf(self):
         # Vazio vira NULL, para não colidir com outros beneficiários sem CPF.
-        return self.cleaned_data["cpf"] or None
+        cpf = self.cleaned_data["cpf"] or None
+        # O cliente não é campo do formulário, e por isso o Django não confere sozinho o CPF
+        # repetido no mesmo cliente: sem esta conferência, o banco recusava e a tela dava erro.
+        if cpf and self.instance.cliente_id:
+            repetido = Beneficiario.objects.filter(cliente=self.instance.cliente_id, cpf=cpf)
+            if outro := repetido.exclude(pk=self.instance.pk).first():
+                raise forms.ValidationError(
+                    f"Este CPF já está cadastrado neste cliente, em {outro}. Para incluir a "
+                    "pessoa num plano, abra o cadastro dela na lista de beneficiários."
+                )
+        return cpf
 
 
 class TitularForm(BeneficiarioFormBase):
@@ -169,6 +179,17 @@ class VinculoForm(BootstrapFormMixin, forms.ModelForm):
         for dependente in dados.get("dependentes") or []:
             if dependente.vinculos.filter(contrato=contrato, data_exclusao__isnull=True).exists():
                 self.add_error("dependentes", f"{dependente} já está neste plano.")
+        # A pessoa não é campo do formulário, e por isso o Django não confere sozinho se ela já
+        # está no plano: sem esta conferência, o banco recusava e a tela dava erro.
+        pessoa = self.instance.beneficiario
+        if contrato and dados.get("data_exclusao") is None:
+            no_plano = pessoa.vinculos.filter(contrato=contrato, data_exclusao__isnull=True)
+            if no_plano.exclude(pk=self.instance.pk).exists():
+                self.add_error(
+                    None,
+                    f"{pessoa} já está neste plano. Para mudar a carteirinha ou as datas, "
+                    "edite o plano na página da pessoa.",
+                )
         return dados
 
     def save(self, commit=True):
