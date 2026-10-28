@@ -2,10 +2,12 @@
 {% if form.non_field_errors %}
   <div class="alert alert-danger">{% for erro in form.non_field_errors %}<div>{{ erro }}</div>{% endfor %}</div>
 {% endif %}
-<div class="row g-3">
-  {% for campo in form.visible_fields %}
+{% for bloco in form.blocos %}
+{% if bloco.titulo %}<h2 class="h6 subtitulo-do-formulario">{{ bloco.titulo }}</h2>{% endif %}
+<div class="row g-3{% if not forloop.last %} mb-3{% endif %}">
+  {% for item in bloco.campos %}{% with campo=item.campo %}
     {% if campo.widget_type == "checkbox" %}
-      <div class="col-12">
+      <div class="{{ item.coluna }}">
         <div class="form-check">
           {{ campo }}
           <label class="form-check-label" for="{{ campo.id_for_label }}">{{ campo.label|capfirst }}</label>
@@ -13,7 +15,7 @@
         </div>
       </div>
     {% elif campo.widget_type == "checkboxselectmultiple" %}
-      <div class="col-12">
+      <div class="{{ item.coluna }}">
         <div class="form-label">{{ campo.label|capfirst }}</div>
         {% for opcao in campo %}
           <div class="form-check">
@@ -27,7 +29,7 @@
         {% if campo.help_text %}<div class="form-text">{{ campo.help_text }}</div>{% endif %}
       </div>
     {% elif campo.widget_type == "escolhadecor" %}
-      <div class="col-12">
+      <div class="{{ item.coluna }}">
         <div class="form-label">{{ campo.label|capfirst }}</div>
         <div class="d-flex flex-wrap gap-2">
           {% for opcao in campo %}
@@ -41,7 +43,7 @@
         {% if campo.help_text %}<div class="form-text">{{ campo.help_text }}</div>{% endif %}
       </div>
     {% else %}
-      <div class="{% if campo.widget_type == 'textarea' %}col-12{% else %}col-md-6{% endif %}">
+      <div class="{{ item.coluna }}">
         <label class="form-label" for="{{ campo.id_for_label }}">
           {{ campo.label|capfirst }}{% if campo.field.required %} <span class="text-danger">*</span>{% endif %}
         </label>
@@ -50,5 +52,6 @@
         {% if campo.help_text %}<div class="form-text">{{ campo.help_text }}</div>{% endif %}
       </div>
     {% endif %}
-  {% endfor %}
+  {% endwith %}{% endfor %}
 </div>
+{% endfor %}
