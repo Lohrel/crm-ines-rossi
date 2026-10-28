@@ -170,6 +170,48 @@ class ContratoUpdateView(SecoesDoContratoMixin, FormularioMixin, UpdateView):
         return self.object.get_absolute_url()
 
 
+class ContratoDeleteView(ExclusaoConfirmadaView):
+    """Exclui um contrato cadastrado por engano; com pessoas ou movimentações, não deixa."""
+
+    model = Contrato
+    permission_required = "apolices.delete_contrato"
+    dica_bloqueio = (
+        "Pessoas, movimentações e boletos são o histórico da carteira e não são apagados com o "
+        "contrato. Se o contrato deixou de valer, edite e mude a situação para Cancelado. "
+        "Se as pessoas também foram cadastradas por teste, exclua cada uma na página dela. "
+        "Numa pendência, basta editar e tirar o contrato."
+    )
+
+    def get_queryset(self):
+        return Contrato.objects.select_related("cliente", "seguradora")
+
+    def get_aviso(self) -> str:
+        avisos = []
+        for relacao, um, varios in [
+            ("planos", "O plano cadastrado será excluído", "Os {} planos serão excluídos"),
+            ("subfaturas", "A subfatura (SUB) será excluída", "As {} subfaturas serão excluídas"),
+            (
+                "bens",
+                "O veículo ou imóvel será excluído",
+                "Os {} veículos e imóveis serão excluídos",
+            ),
+        ]:
+            if quantos := getattr(self.object, relacao).count():
+                frase = um if quantos == 1 else varios.format(quantos)
+                avisos.append(f"{frase} junto com o contrato.")
+        if quantos := self.object.documentos.count():
+            avisos.append(
+                "O documento anexado ao cliente continua lá, sem a ligação com o contrato."
+                if quantos == 1
+                else f"Os {quantos} documentos anexados ao cliente continuam lá, "
+                "sem a ligação com o contrato."
+            )
+        return " ".join(avisos)
+
+    def get_success_url(self) -> str:
+        return f"{self.object.cliente.get_absolute_url()}#contratos"
+
+
 class ContratoPlanosView(DetailView):
     """Os planos de um contrato (ex.: TNPQ e TNP4), as vidas de cada um e o plano de quem
     ainda não tem um escolhido."""

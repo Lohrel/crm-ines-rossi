@@ -137,10 +137,13 @@ class ExclusaoProtegida(models.Model):
                 continue
             quantidade = getattr(self, relacao.get_accessor_name()).count()
             if quantidade:
-                modelo = relacao.related_model._meta
-                nome = modelo.verbose_name if quantidade == 1 else modelo.verbose_name_plural
-                bloqueios.append(f"{quantidade} {nome} ligado(s) a {self}")
+                bloqueios.append(self.descrever_bloqueio(relacao, quantidade))
         return bloqueios
+
+    def descrever_bloqueio(self, relacao, quantidade: int) -> str:
+        modelo = relacao.related_model._meta
+        nome = modelo.verbose_name if quantidade == 1 else modelo.verbose_name_plural
+        return f"{quantidade} {nome} ligado(s) a {self}"
 
     def excluir(self) -> None:
         if bloqueios := self.bloqueios_para_excluir():

@@ -5,8 +5,8 @@ from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
-from django.db import models
-from django.db.models import Q
+from django.db import models, transaction
+from django.db.models import ProtectedError, Q
 from django.db.models.functions import Lower
 from django.urls import reverse
 from simple_history.models import HistoricalRecords
@@ -120,12 +120,16 @@ class ContratoQuerySet(models.QuerySet):
         return self.filter(Q(capital_multiplo__isnull=False) | Q(capital_maximo__isnull=False))
 
 
-class Contrato(Registro):
+class Contrato(ExclusaoProtegida, Registro):
     """Apólice ou contrato de um cliente com uma seguradora.
 
     Uma empresa pode ter vários contratos; cada um indica quais unidades
     (matriz/filiais) ele cobre.
     """
+
+    # Saem junto: a configuração do próprio contrato e os bens da apólice. Os documentos do
+    # cliente ficam, só perdem a ligação. Pessoas, movimentações, boletos e pendências impedem.
+    dependentes_proprios = ("planos", "subfaturas", "bens", "documentos")
 
     class Modalidade(models.TextChoices):
         EMPRESARIAL = "EM", "Empresarial"
@@ -249,6 +253,24 @@ class Contrato(Registro):
 
     def get_absolute_url(self) -> str:
         return self.cliente.get_absolute_url()
+
+    def descrever_bloqueio(self, relacao, quantidade: int) -> str:
+        # O vínculo da pessoa se chama "plano", o que confundiria com os planos do contrato.
+        if relacao.name == "vinculos":
+            if quantidade == 1:
+                return "1 inclusão de pessoa neste contrato (conta também quem já saiu)"
+            return f"{quantidade} inclusões de pessoas neste contrato (conta também quem já saiu)"
+        return super().descrever_bloqueio(relacao, quantidade)
+
+    def excluir(self) -> None:
+        try:
+            with transaction.atomic():
+                super().excluir()
+        except ProtectedError as erro:
+            # Alguém ligou um registro ao contrato (ou a um plano dele) depois da conferência.
+            raise ValidationError(
+                "Não é possível excluir: há registros ligados a este contrato ou aos planos dele."
+            ) from erro
 
     def vencimento_em(self, ano: int, mes: int) -> date:
         """Vencimento da fatura no mês; em meses mais curtos, o último dia do mês."""

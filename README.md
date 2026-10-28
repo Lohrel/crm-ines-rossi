@@ -50,9 +50,12 @@ Cada etapa só começa quando a anterior está testada e em uso.
   - [x] 12b. Edição ao mesmo tempo: quem salva por último é avisado de que outra pessoa gravou o registro enquanto editava, em vez de apagar sem saber o que ela gravou; dois cliques em "Aprovar" no mesmo pedido não dão mais erro; e um anexo que sumiu do disco mostra um aviso em vez da página de erro
   - [x] 12c. Restaurar um backup feito antes de uma etapa nova (o backup vai para um banco novo, ao lado do atual, e os dois trocam de nome no fim) e o guia de backups, com a cópia automática para o HD externo no Windows
   - [x] 12d. CPF ou plano repetido: cadastrar uma pessoa com um CPF que já está no cliente, ou incluir alguém de novo num plano em que já está, mostra um aviso na tela em vez da página de erro; e a lista de beneficiários passa a mostrar quem ainda não tem plano ou só entra no futuro (antes, a pessoa sumia logo depois de cadastrada)
-- [ ] **13.** Tipos de contrato e vários planos no mesmo contrato
-  - [ ] 13a. Tipos de contrato: PME, SPG e coletivo por adesão, além de empresarial e individual/familiar
-  - [ ] 13b. Vários planos no mesmo contrato (ex.: TNPQ e TNP4): cada pessoa fica num deles, a troca entre eles é uma alteração de plano, a planilha do mês e os relatórios mostram o plano de cada pessoa, e uma tela escolhe o plano de quem já estava no contrato
+- [x] **13.** Tipos de contrato e vários planos no mesmo contrato
+  - [x] 13a. Tipos de contrato: PME, SPG e coletivo por adesão, além de empresarial e individual/familiar
+  - [x] 13b. Vários planos no mesmo contrato (ex.: TNPQ e TNP4): cada pessoa fica num deles, a troca entre eles é uma alteração de plano, a planilha do mês e os relatórios mostram o plano de cada pessoa, e uma tela escolhe o plano de quem já estava no contrato
+- [ ] **15.** Ajustes nos cadastros
+  - [x] 15a. Telefone, WhatsApp e e-mail num grupo próprio nos cadastros e em linhas separadas na página da empresa
+  - [ ] 15b. Excluir contrato cadastrado por engano, com a confirmação digitada; pessoas, movimentações, boletos e pendências ligadas impedem a exclusão
 
 As telas usam o Bootstrap com as cores, a fonte e o logo da corretora (etapa 10a). Problemas de uso encontrados nos testes são corrigidos na própria etapa.
 

@@ -169,8 +169,12 @@ pytest -q
 - **11. Documentos anexados** (seguradoras e clientes): esperando o Lohrel testar. Os arquivos herdam
   `ArquivoAnexado` (`clientes/models.py`); reaproveite essa base em anexos novos.
 - **13. Tipos de contrato e vários planos**: 13a (PME, SPG e coletivo por adesão, PR #28) e 13b
-  (vários planos no mesmo contrato), esperando o Lohrel testar. As correções da LGPD propostas
-  antes passam a ser a etapa 14.
+  (vários planos no mesmo contrato, PR #29) estão no `main`. As correções da LGPD propostas antes
+  passam a ser a etapa 14 (número reservado).
+- **15. Ajustes nos cadastros**: 15a (telefone e e-mail num grupo próprio, PR #30) está no `main`.
+  **15b**, excluir contrato: branch `etapa-15b-excluir-contratos`, esperando o Lohrel testar. Saem
+  junto os planos, as subfaturas e os veículos ou imóveis do contrato; os documentos do cliente
+  ficam. Pessoas, movimentações, boletos e pendências ligadas impedem a exclusão.
 - Próxima etapa:
   - **10d. Celular**, depois do merge da 10c: as listas viram fichas abaixo de 576 px e os filtros
     ficam recolhidos num botão (combinado com o Lohrel). Com ela e a aprovação do painel pela

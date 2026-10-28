@@ -318,6 +318,10 @@ class ExclusaoConfirmadaView(PermissionRequiredMixin, SingleObjectMixin, FormVie
     form_class = ConfirmacaoExclusaoForm
     raise_exception = True
     aviso = ""
+    dica_bloqueio = (
+        "Remova ou transfira esses registros antes. "
+        'Se o objetivo é só parar de usar, edite e desmarque "Ativo".'
+    )
 
     def dispatch(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -342,6 +346,7 @@ class ExclusaoConfirmadaView(PermissionRequiredMixin, SingleObjectMixin, FormVie
         contexto["texto_esperado"] = self.get_texto_esperado()
         contexto["url_cancelar"] = self.get_url_cancelar()
         contexto["aviso"] = self.get_aviso()
+        contexto["dica_bloqueio"] = self.dica_bloqueio
         return contexto
 
     def form_valid(self, form):

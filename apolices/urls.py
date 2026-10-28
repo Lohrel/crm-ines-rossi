@@ -10,6 +10,7 @@ urlpatterns = [
         "cliente/<int:cliente_pk>/novo/", views.ContratoCreateView.as_view(), name="novo_contrato"
     ),
     path("<int:pk>/editar/", views.ContratoUpdateView.as_view(), name="editar_contrato"),
+    path("<int:pk>/excluir/", views.ContratoDeleteView.as_view(), name="excluir_contrato"),
     path("<int:pk>/planos/", views.ContratoPlanosView.as_view(), name="planos"),
     path("<int:contrato_pk>/planos/novo/", views.PlanoCreateView.as_view(), name="novo_plano"),
     path("planos/<int:pk>/editar/", views.PlanoUpdateView.as_view(), name="editar_plano"),

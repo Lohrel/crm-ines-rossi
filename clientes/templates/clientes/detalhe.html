@@ -180,7 +180,7 @@
   {% endif %}
 </div>
 
-{% if perms.clientes.delete_cliente or perms.clientes.delete_unidade and cliente.eh_empresa or perms.clientes.delete_documentodocliente and documentos %}
+{% if perms.clientes.delete_cliente or perms.clientes.delete_unidade and cliente.eh_empresa or perms.clientes.delete_documentodocliente and documentos or perms.apolices.delete_contrato and contratos %}
 {# Exclusões ficam no fim da página, longe dos botões do dia a dia, para evitar cliques por engano. #}
 <div class="d-flex justify-content-end">
   <details class="border border-danger-subtle rounded p-3 text-end">
@@ -190,6 +190,11 @@
       {% if perms.clientes.delete_documentodocliente %}
         {% for documento in documentos %}
           <a href="{% url 'clientes:excluir_documento' documento.pk %}" class="btn btn-sm btn-outline-danger">Excluir documento {{ documento.nome_original }}</a>
+        {% endfor %}
+      {% endif %}
+      {% if perms.apolices.delete_contrato %}
+        {% for contrato in contratos %}
+          <a href="{% url 'apolices:excluir_contrato' contrato.pk %}" class="btn btn-sm btn-outline-danger">Excluir contrato {{ contrato }}</a>
         {% endfor %}
       {% endif %}
       {% if perms.clientes.delete_unidade and cliente.eh_empresa %}
