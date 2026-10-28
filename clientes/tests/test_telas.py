@@ -297,3 +297,18 @@ def test_formulario_sem_subtitulos_continua_numa_grade_so(logado, empresa):
     html = resposta.content.decode()
     assert "subtitulo-do-formulario" not in html
     assert html.count('class="row g-3') == 1
+
+
+def test_pagina_da_empresa_mostra_telefone_e_email_da_unidade_em_linhas_separadas(
+    logado, empresa, matriz
+):
+    matriz.telefone = "(11) 3333-4444"
+    matriz.whatsapp = "(11) 98888-7777"
+    matriz.email = "rh@exemplo.com.br"
+    matriz.save()
+
+    conteudo = logado.get(empresa.get_absolute_url()).content.decode()
+    assert '<dt class="col-sm-3">Telefone</dt><dd class="col-sm-9">(11) 3333-4444</dd>' in conteudo
+    assert '<dt class="col-sm-3">WhatsApp</dt><dd class="col-sm-9">(11) 98888-7777</dd>' in conteudo
+    assert '<a href="mailto:rh@exemplo.com.br">rh@exemplo.com.br</a>' in conteudo
+    assert "Contato da unidade" not in conteudo
