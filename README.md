@@ -54,7 +54,7 @@ Cada etapa só começa quando a anterior está testada e em uso.
   - [x] 13a. Tipos de contrato: PME, SPG e coletivo por adesão, além de empresarial e individual/familiar
   - [x] 13b. Vários planos no mesmo contrato (ex.: TNPQ e TNP4): cada pessoa fica num deles, a troca entre eles é uma alteração de plano, a planilha do mês e os relatórios mostram o plano de cada pessoa, e uma tela escolhe o plano de quem já estava no contrato
 - [ ] **15.** Ajustes nos cadastros
-  - [x] 15a. Telefone, WhatsApp e e-mail num grupo próprio nos cadastros e em linhas separadas na página da empresa
+  - [x] 15a. Telefone e e-mail das unidades: na página da empresa, telefone, WhatsApp e e-mail de cada unidade em linhas separadas (antes ficavam juntos numa linha só), com o e-mail clicável; e nos cadastros de empresa, unidade (filial), pessoa física e contato, telefone e e-mail num grupo próprio, separado do endereço
   - [ ] 15b. Excluir contrato cadastrado por engano, com a confirmação digitada; pessoas, movimentações, boletos e pendências ligadas impedem a exclusão
 
 As telas usam o Bootstrap com as cores, a fonte e o logo da corretora (etapa 10a). Problemas de uso encontrados nos testes são corrigidos na própria etapa.

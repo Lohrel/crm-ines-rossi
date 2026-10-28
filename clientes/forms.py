@@ -1,4 +1,5 @@
 import re
+from dataclasses import dataclass, field
 from datetime import date, datetime
 
 from django import forms
@@ -12,6 +13,26 @@ from clientes.widgets import CampoData
 
 CAMPOS_ENDERECO = ["cep", "logradouro", "numero", "complemento", "bairro", "cidade", "uf"]
 CAMPOS_CONTATO = ["telefone", "whatsapp", "email"]
+
+# Telefone e e-mail num grupo próprio, separado do endereço: os telefones são curtos e ficam
+# juntos, e o e-mail não cabe ao lado deles, então vai sozinho na linha de baixo. Cada parte
+# do endereço tem a largura do que costuma ser digitado nela.
+SUBTITULOS_CONTATO_E_ENDERECO = {
+    **dict.fromkeys(CAMPOS_CONTATO, "Telefone e e-mail"),
+    **dict.fromkeys(CAMPOS_ENDERECO, "Endereço"),
+}
+COLUNAS_CONTATO_E_ENDERECO = {
+    "telefone": "col-sm-6 col-lg-4",
+    "whatsapp": "col-sm-6 col-lg-4",
+    "email": "col-lg-8",
+    "cep": "col-sm-4 col-lg-3",
+    "logradouro": "col-sm-8 col-lg-9",
+    "numero": "col-sm-4 col-lg-3",
+    "complemento": "col-sm-8 col-lg-4",
+    "bairro": "col-lg-5",
+    "cidade": "col-sm-8 col-lg-9",
+    "uf": "col-sm-4 col-lg-3",
+}
 
 
 class DocumentoField(forms.CharField):
@@ -102,12 +123,58 @@ class SecaoDoFormulario:
     def visible_fields(self):
         return [campo for campo in self.form.visible_fields() if campo.name in self.campos]
 
+    def blocos(self):
+        return blocos_de_campos(self.form, self.visible_fields())
+
+
+@dataclass
+class CampoNaGrade:
+    campo: forms.BoundField
+    coluna: str
+
+
+@dataclass
+class BlocoDeCampos:
+    titulo: str
+    campos: list[CampoNaGrade] = field(default_factory=list)
+
+
+# Campos que ocupam a linha toda, porque têm um desenho próprio no clientes/_campos.html.
+WIDGETS_DE_LINHA_INTEIRA = {"checkbox", "checkboxselectmultiple", "escolhadecor", "textarea"}
+
+
+def blocos_de_campos(form: forms.BaseForm, campos: list[forms.BoundField]) -> list[BlocoDeCampos]:
+    """Agrupa os campos pelos subtítulos do formulário, com a largura de cada um na grade.
+
+    Campos seguidos com o mesmo subtítulo (ou sem subtítulo) ficam no mesmo bloco.
+    """
+    subtitulos = getattr(form, "subtitulos", {})
+    colunas = getattr(form, "colunas", {})
+    blocos: list[BlocoDeCampos] = []
+    for campo in campos:
+        titulo = subtitulos.get(campo.name, "")
+        if not blocos or blocos[-1].titulo != titulo:
+            blocos.append(BlocoDeCampos(titulo))
+        if campo.widget_type in WIDGETS_DE_LINHA_INTEIRA:
+            coluna = "col-12"
+        else:
+            coluna = colunas.get(campo.name, "col-md-6")
+        blocos[-1].campos.append(CampoNaGrade(campo, coluna))
+    return blocos
+
 
 class BootstrapFormMixin:
     """Aplica as classes visuais do Bootstrap a todos os campos do formulário."""
 
     # Opção vazia das listas de escolha, no lugar do "---------" do Django.
     OPCAO_VAZIA = "Escolha"
+    # Como o clientes/_campos.html arruma os campos: subtítulo de grupos de campos e largura de
+    # cada um (classes da grade do Bootstrap; o padrão é meia linha).
+    subtitulos: dict[str, str] = {}
+    colunas: dict[str, str] = {}
+
+    def blocos(self) -> list[BlocoDeCampos]:
+        return blocos_de_campos(self, self.visible_fields())
 
     def __init__(self, *args, **kwargs):
         # Rótulos sem os dois pontos no fim ("Buscar", e não "Buscar:"), como nos cadastros.
@@ -243,6 +310,9 @@ class MarcacaoExclusivaFormMixin:
 class PessoaFisicaForm(BootstrapFormMixin, forms.ModelForm):
     cpf = DocumentoField(CPF)
 
+    subtitulos = SUBTITULOS_CONTATO_E_ENDERECO
+    colunas = COLUNAS_CONTATO_E_ENDERECO
+
     class Meta:
         model = Cliente
         fields = [
@@ -286,6 +356,9 @@ class EmpresaForm(BootstrapFormMixin, forms.ModelForm):
 class UnidadeForm(MarcacaoExclusivaFormMixin, BootstrapFormMixin, forms.ModelForm):
     cnpj = DocumentoField(CNPJ)
 
+    subtitulos = SUBTITULOS_CONTATO_E_ENDERECO
+    colunas = COLUNAS_CONTATO_E_ENDERECO
+
     class Meta:
         model = Unidade
         fields = [
@@ -307,6 +380,9 @@ class UnidadeForm(MarcacaoExclusivaFormMixin, BootstrapFormMixin, forms.ModelFor
 
 
 class ContatoForm(MarcacaoExclusivaFormMixin, BootstrapFormMixin, forms.ModelForm):
+    subtitulos = SUBTITULOS_CONTATO_E_ENDERECO
+    colunas = COLUNAS_CONTATO_E_ENDERECO
+
     class Meta:
         model = Contato
         fields = ["nome", "cargo", *CAMPOS_CONTATO, "unidades", "principal"]

@@ -119,9 +119,9 @@
         <dt class="col-sm-3">CNPJ</dt><dd class="col-sm-9">{{ unidade.cnpj_formatado }}</dd>
         <dt class="col-sm-3">Razão social</dt><dd class="col-sm-9">{{ unidade.razao_social }}</dd>
         <dt class="col-sm-3">Endereço</dt><dd class="col-sm-9">{{ unidade.endereco_resumido|default:"—" }}</dd>
-        {% if unidade.telefone or unidade.email %}
-        <dt class="col-sm-3">Contato da unidade</dt><dd class="col-sm-9">{{ unidade.telefone }} {{ unidade.email }}</dd>
-        {% endif %}
+        {% if unidade.telefone %}<dt class="col-sm-3">Telefone</dt><dd class="col-sm-9">{{ unidade.telefone }}</dd>{% endif %}
+        {% if unidade.whatsapp %}<dt class="col-sm-3">WhatsApp</dt><dd class="col-sm-9">{{ unidade.whatsapp }}</dd>{% endif %}
+        {% if unidade.email %}<dt class="col-sm-3">E-mail</dt><dd class="col-sm-9 text-break"><a href="mailto:{{ unidade.email }}">{{ unidade.email }}</a></dd>{% endif %}
       </dl>
       <h2 class="h6">Contatos desta unidade</h2>
       {% for contato in unidade.contatos.all %}
