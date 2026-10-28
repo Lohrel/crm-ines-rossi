@@ -171,6 +171,10 @@ pytest -q
 - **13. Tipos de contrato e vários planos**: 13a (PME, SPG e coletivo por adesão, PR #28) e 13b
   (vários planos no mesmo contrato), esperando o Lohrel testar. As correções da LGPD propostas
   antes passam a ser a etapa 14.
+- **15. Telefone e e-mail nos cadastros**: branch `etapa-15-telefone-e-email`, esperando o Lohrel
+  testar. Telefone, WhatsApp e e-mail ficam num grupo próprio, separado do endereço (empresa,
+  unidade, pessoa física e contato). Sem migração. O número 14 está reservado para as correções da
+  LGPD.
 - Próxima etapa:
   - **10d. Celular**, depois do merge da 10c: as listas viram fichas abaixo de 576 px e os filtros
     ficam recolhidos num botão (combinado com o Lohrel). Com ela e a aprovação do painel pela

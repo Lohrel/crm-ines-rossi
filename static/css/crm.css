@@ -206,6 +206,16 @@ main .form-label {
 .invalid-feedback {
   font-size: 0.8125rem;
 }
+/* Subtítulo de um grupo de campos dentro do cartão (ex.: "Telefone e e-mail", "Endereço"),
+   com uma linha fina acima para separar do grupo anterior. */
+.subtitulo-do-formulario {
+  margin: 1.5rem 0 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--crm-borda);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--crm-marinho);
+}
 .form-control::placeholder {
   color: #6c7084;
   opacity: 1;

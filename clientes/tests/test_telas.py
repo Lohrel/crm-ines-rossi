@@ -276,3 +276,24 @@ def test_historico_com_uma_alteracao_a_mais(logado, pessoa):
         pessoa.save()
     pagina = logado.get(pessoa.get_absolute_url()).content.decode()
     assert "Ver a outra alteração" in pagina
+
+
+def test_telefone_e_email_ficam_num_grupo_separado_do_endereco(logado):
+    resposta = logado.get(reverse("clientes:nova_empresa"))
+
+    html = resposta.content.decode()
+    contato = html.index(">Telefone e e-mail</h2>")
+    endereco = html.index(">Endereço</h2>")
+    assert contato < html.index('name="unidade-telefone"') < html.index('name="unidade-email"')
+    assert html.index('name="unidade-email"') < endereco < html.index('name="unidade-cep"')
+    # Os dois telefones dividem a linha; o e-mail não cabe ao lado deles e desce.
+    assert 'class="col-sm-6 col-lg-4"' in html
+    assert 'class="col-lg-8"' in html
+
+
+def test_formulario_sem_subtitulos_continua_numa_grade_so(logado, empresa):
+    resposta = logado.get(reverse("clientes:editar", args=[empresa.pk]))
+
+    html = resposta.content.decode()
+    assert "subtitulo-do-formulario" not in html
+    assert html.count('class="row g-3') == 1
