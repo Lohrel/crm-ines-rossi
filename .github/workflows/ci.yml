@@ -62,8 +62,21 @@ jobs:
           DJANGO_ALLOWED_HOSTS: crm.local
         run: python manage.py check --deploy --fail-level WARNING
 
+      # Os testes do backup usam o pg_dump e o pg_restore da mesma versão do banco (16), como a
+      # imagem do backup no servidor (postgres:16). O ubuntu-latest passou a trazer um cliente
+      # mais novo, cujo backup tem "SET transaction_timeout", que o PostgreSQL 16 não aceita.
+      - name: Usar o cliente do PostgreSQL 16
+        run: |
+          if [ ! -x /usr/lib/postgresql/16/bin/pg_dump ]; then
+            sudo apt-get update -q
+            sudo apt-get install -y -q postgresql-client-16
+          fi
+          echo /usr/lib/postgresql/16/bin >> "$GITHUB_PATH"
+
       - name: Rodar testes
-        run: pytest
+        run: |
+          pg_dump --version
+          pytest
 
   docker:
     name: Imagens Docker
