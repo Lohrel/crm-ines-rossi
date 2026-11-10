@@ -575,6 +575,76 @@ a.item-calendario:hover {
   }
 }
 
+/* Busca rápida no menu (etapa 16): campo com lupa sobre o marinho, branco ao receber o cursor.
+   Entre 992 e 1199 px só a lupa aparece (os itens do menu ocupam a linha) e o campo abre por
+   cima dos itens ao receber o cursor; a partir de 1200 px o campo fica sempre à vista e também cresce com o cursor. No menu
+   recolhido, ocupa a linha. */
+.navbar-crm .busca-rapida .form-control {
+  padding-left: 2rem;
+  background: rgba(255, 255, 255, 0.12) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23fff'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398l3.85 3.85a1 1 0 0 0 1.415-1.414zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0'/%3E%3C/svg%3E") no-repeat 0.65rem center / 0.85rem;
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #fff;
+}
+.navbar-crm .busca-rapida .form-control::placeholder {
+  color: rgba(255, 255, 255, 0.75);
+}
+.navbar-crm .busca-rapida .form-control:focus {
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%236c757d'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398l3.85 3.85a1 1 0 0 0 1.415-1.414zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0'/%3E%3C/svg%3E");
+  border-color: #fff;
+  color: #212529;
+  box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.35);
+}
+.navbar-crm .busca-rapida .form-control:focus::placeholder {
+  color: #6c757d;
+}
+@media (min-width: 992px) {
+  .navbar-crm .busca-rapida {
+    position: relative;
+    flex: none;
+    width: 2.25rem;
+    height: 2rem;
+    margin-inline: 0.25rem 0.6rem;
+  }
+  .navbar-crm .busca-rapida .form-control {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 2.25rem;
+    height: 2rem;
+    cursor: pointer;
+    transition: width 0.15s ease-in-out;
+  }
+  .navbar-crm .busca-rapida .form-control:not(:focus)::placeholder {
+    color: transparent;
+  }
+  .navbar-crm .busca-rapida .form-control:focus {
+    z-index: 2;
+    width: 17rem;
+    cursor: text;
+  }
+}
+@media (min-width: 1200px) {
+  .navbar-crm .busca-rapida {
+    width: 10.5rem;
+  }
+  .navbar-crm .busca-rapida .form-control {
+    width: 10.5rem;
+    cursor: text;
+  }
+  .navbar-crm .busca-rapida .form-control:focus {
+    width: 16rem;
+  }
+  .navbar-crm .busca-rapida .form-control:not(:focus)::placeholder {
+    color: rgba(255, 255, 255, 0.75);
+  }
+}
+@media (max-width: 991.98px) {
+  .navbar-crm .busca-rapida {
+    padding: 0.5rem 0.75rem 0;
+  }
+}
+
 /* Tela de entrada escura, como a frente do cartão de visita, com a curva vermelha
    sobre a faixa marinho no pé da página. */
 .pagina-login {
