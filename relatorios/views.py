@@ -8,9 +8,14 @@ from apolices.models import Contrato
 from boletos.models import somar_meses
 from clientes.models import Unidade
 from movimentacoes.forms import rotulo_do_plano
-from relatorios import consultas, excel
+from relatorios import consultas, excel, indicadores
 from relatorios.excel import Coluna
-from relatorios.forms import FiltroApolicesForm, FiltroMovimentacoesForm, FiltroVidasForm
+from relatorios.forms import (
+    FiltroApolicesForm,
+    FiltroIndicadoresForm,
+    FiltroMovimentacoesForm,
+    FiltroVidasForm,
+)
 
 
 class IndiceView(TemplateView):
@@ -300,3 +305,96 @@ class ApolicesView(RelatorioView):
             contrato.valor_mensal,
             None if contrato.ramo.bem_segurado else contrato.vidas,
         ]
+
+
+class IndicadoresView(TemplateView):
+    """Prazos, rejeições e volume de cada mês, para a equipe ver como o trabalho anda."""
+
+    template_name = "relatorios/indicadores.html"
+    titulo = "Indicadores"
+    meses_no_padrao = 6
+    colunas = [
+        Coluna("Mês", 10),
+        Coluna("Movimentações recebidas", 16),
+        Coluna("Dias até o envio (média)", 16),
+        Coluna("Com prazo de fechamento", 16),
+        Coluna("Enviadas até o fechamento", 16),
+        Coluna("Já decididas", 14),
+        Coluna("Rejeitadas", 12),
+        Coluna("Dias até a carteirinha (média)", 18),
+        Coluna("Pendências com prazo no mês", 18),
+        Coluna("Concluídas no prazo", 14),
+        Coluna("Concluídas com atraso", 14),
+        Coluna("Vencidas em aberto", 14),
+        Coluna("Boletos com vencimento no mês", 18),
+        Coluna("Enviados até o vencimento", 16),
+        Coluna("Enviados depois", 14),
+        Coluna("Vencidos sem envio", 14),
+        Coluna("Clientes cadastrados", 14),
+        Coluna("Pessoas cadastradas", 14),
+        Coluna("Contratos cadastrados", 14),
+        Coluna("Vidas ativas no fim do mês", 16),
+    ]
+
+    def padrao(self) -> dict:
+        ate = date.today().replace(day=1)
+        de = somar_meses(ate, 1 - self.meses_no_padrao)
+        return {"de": f"{de:%m/%Y}", "ate": f"{ate:%m/%Y}"}
+
+    def get(self, request, *args, **kwargs):
+        self.filtro = FiltroIndicadoresForm(request.GET or self.padrao())
+        self.resultado = None
+        if self.filtro.is_valid():
+            dados = self.filtro.cleaned_data
+            self.resultado = indicadores.calcular(dados["de"], dados["ate"])
+            if request.GET.get("formato") == "excel":
+                conteudo = excel.gerar(
+                    f"{self.titulo} · {self.descricao_do_filtro()}",
+                    self.titulo,
+                    self.colunas,
+                    [
+                        *(
+                            self.linha(f"{mes.mes:%m/%Y}", mes.numeros, mes.vidas)
+                            for mes in self.resultado.meses
+                        ),
+                        self.linha("Total", self.resultado.total, None),
+                    ],
+                )
+                return excel.baixar(conteudo, f"indicadores-{date.today():%Y-%m-%d}.xlsx")
+        return super().get(request, *args, **kwargs)
+
+    def descricao_do_filtro(self) -> str:
+        dados = self.filtro.cleaned_data
+        return f"{dados['de']:%m/%Y} a {dados['ate']:%m/%Y}"
+
+    @staticmethod
+    def linha(rotulo: str, numeros, vidas) -> list:
+        return [
+            rotulo,
+            numeros.movimentacoes,
+            numeros.media_ate_o_envio,
+            numeros.com_fechamento,
+            numeros.ate_o_fechamento,
+            numeros.decididas,
+            numeros.rejeitadas,
+            numeros.media_ate_a_carteirinha,
+            numeros.pendencias,
+            numeros.pendencias_no_prazo,
+            numeros.pendencias_com_atraso,
+            numeros.pendencias_vencidas,
+            numeros.boletos,
+            numeros.boletos_ate_o_vencimento,
+            numeros.boletos_depois,
+            numeros.boletos_vencidos,
+            numeros.clientes_novos,
+            numeros.pessoas_novas,
+            numeros.contratos_novos,
+            vidas,
+        ]
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        contexto.update(filtro=self.filtro, titulo=self.titulo, indicadores=self.resultado)
+        if self.resultado is not None:
+            contexto["descricao_do_filtro"] = self.descricao_do_filtro()
+        return contexto
