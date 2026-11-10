@@ -81,7 +81,8 @@ def test_arquivos_citados_no_layout_existem():
 
 def test_fontes_citadas_no_css_existem_com_a_licenca():
     css = pathlib.Path(finders.find("css/crm.css")).read_text()
-    enderecos = re.findall(r'url\("([^"]+)"\)', css)
+    # As imagens embutidas no próprio CSS (data:, como a lupa da busca) não são arquivos.
+    enderecos = [e for e in re.findall(r'url\("([^"]+)"\)', css) if not e.startswith("data:")]
     assert len(enderecos) == 3
     for endereco in enderecos:
         assert finders.find(posixpath.normpath(posixpath.join("css", endereco))), endereco
