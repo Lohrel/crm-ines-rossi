@@ -16,7 +16,18 @@
       </div>
     {% elif campo.widget_type == "checkboxselectmultiple" %}
       <div class="{{ item.coluna }}">
-        <div class="form-label">{{ campo.label|capfirst }}</div>
+        {% with muitas=campo|length|add:0 %}
+        <div class="form-label{% if muitas > 10 %} d-flex flex-wrap align-items-baseline gap-2{% endif %}">
+          {{ campo.label|capfirst }}
+          {% if muitas > 10 %}
+          <span class="small">
+            <button type="button" class="btn btn-link btn-sm p-0" data-marcar-todas="opcoes-{{ campo.html_name }}" data-valor="1">Marcar todas</button>
+            ·
+            <button type="button" class="btn btn-link btn-sm p-0" data-marcar-todas="opcoes-{{ campo.html_name }}" data-valor="0">Desmarcar todas</button>
+          </span>
+          {% endif %}
+        </div>
+        <div id="opcoes-{{ campo.html_name }}"{% if muitas > 10 %} class="opcoes-em-colunas"{% endif %}>
         {% for opcao in campo %}
           <div class="form-check">
             {{ opcao.tag }}
@@ -25,6 +36,8 @@
         {% empty %}
           <div class="text-body-secondary small">Nenhuma opção cadastrada.</div>
         {% endfor %}
+        </div>
+        {% endwith %}
         {% for erro in campo.errors %}<div class="invalid-feedback d-block">{{ erro }}</div>{% endfor %}
         {% if campo.help_text %}<div class="form-text">{{ campo.help_text }}</div>{% endif %}
       </div>

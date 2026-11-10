@@ -207,6 +207,14 @@ pytest -q
   cobre a unidade da pessoa (antes, o erro só aparecia na aprovação; a importação da planilha não
   mudou), e os formulários de cadastro (`clientes/formulario.html`) não enviam duas vezes num
   clique duplo (`static/js/envio-unico.js`).
+- **21. Empresas com muitas filiais**: branch `etapa-21-muitas-filiais`, esperando o Lohrel
+  testar (pedido dele: empresas com mais de 40 filiais enchiam a tela de texto). Na página da
+  empresa, cada unidade é uma linha com o nome que abre os dados ao clicar (pedido dele;
+  `clientes/_unidades.html`, com `<details>`); acima de `LIMITE_SEM_FILTRO_DE_UNIDADES` (5, em
+  `clientes/views.py`), um campo filtra a lista (`static/js/listas-longas.js`). As unidades de contatos e contratos passam pelo
+  `clientes/_unidades_resumidas.html`. Caixas de marcar com mais de 10 opções ficam em colunas,
+  com "Marcar todas" (`clientes/_campos.html`). Sem migração. Comentário de template com várias
+  linhas usa `{% comment %}`: o `{# #}` só vale numa linha e aparecia na página.
 - Próxima etapa:
   - **10d. Celular**, depois do merge da 10c: as listas viram fichas abaixo de 576 px e os filtros
     ficam recolhidos num botão (combinado com o Lohrel). Com ela e a aprovação do painel pela

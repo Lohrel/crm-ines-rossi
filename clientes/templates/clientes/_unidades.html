@@ -1,0 +1,52 @@
+{% comment %}
+Unidades da empresa (etapa 21): uma linha por unidade, com o nome; os dados abrem ao clicar.
+Com muitas unidades, um campo filtra a lista. Empresa com uma unidade só já vem com ela aberta.
+{% endcomment %}
+<div class="card shadow-sm mb-4">
+  <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span class="fw-semibold">Unidades <span class="text-body-secondary fw-normal">({{ total_de_unidades }})</span></span>
+    {% if muitas_unidades %}
+    <input type="search" class="form-control form-control-sm filtro-de-linhas" data-filtra="#lista-de-unidades"
+           placeholder="Filtrar por nome, CNPJ, cidade ou contato" aria-label="Filtrar unidades" autocomplete="off">
+    {% endif %}
+  </div>
+  <div class="list-group list-group-flush" id="lista-de-unidades">
+  {% for unidade in cliente.unidades.all %}
+    <details class="list-group-item unidade-recolhida" data-item-filtro{% if total_de_unidades == 1 %} open{% endif %}>
+      <summary class="d-flex flex-wrap align-items-center gap-2">
+        <span class="fw-semibold">{{ unidade }}</span>
+        {% if unidade.matriz %}<span class="badge text-bg-primary">Matriz</span>{% endif %}
+        {% if not unidade.ativo %}<span class="badge text-bg-secondary">Inativa</span>{% endif %}
+        <span class="badge text-bg-light border">{{ unidade.vidas }} vida{{ unidade.vidas|pluralize }}</span>
+        <span class="small text-body-secondary ms-auto">{{ unidade.cnpj_formatado }}{% if unidade.cidade %} · {{ unidade.cidade }}{% if unidade.uf %}/{{ unidade.uf }}{% endif %}{% endif %}</span>
+      </summary>
+      <div class="pt-3">
+        <dl class="row mb-3">
+          <dt class="col-sm-3">CNPJ</dt><dd class="col-sm-9">{{ unidade.cnpj_formatado }}</dd>
+          <dt class="col-sm-3">Razão social</dt><dd class="col-sm-9">{{ unidade.razao_social }}</dd>
+          <dt class="col-sm-3">Endereço</dt><dd class="col-sm-9">{{ unidade.endereco_resumido|default:"—" }}</dd>
+          {% if unidade.telefone %}<dt class="col-sm-3">Telefone</dt><dd class="col-sm-9">{{ unidade.telefone }}</dd>{% endif %}
+          {% if unidade.whatsapp %}<dt class="col-sm-3">WhatsApp</dt><dd class="col-sm-9">{{ unidade.whatsapp }}</dd>{% endif %}
+          {% if unidade.email %}<dt class="col-sm-3">E-mail</dt><dd class="col-sm-9 text-break"><a href="mailto:{{ unidade.email }}">{{ unidade.email }}</a></dd>{% endif %}
+        </dl>
+        <h2 class="h6">Contatos desta unidade</h2>
+        {% for contato in unidade.contatos.all %}
+          {% if forloop.first %}<ul class="list-inline mb-3">{% endif %}
+          <li class="list-inline-item">{{ contato }}</li>
+          {% if forloop.last %}</ul>{% endif %}
+        {% empty %}
+          <p class="text-body-secondary mb-3">Nenhum contato atende esta unidade.</p>
+        {% endfor %}
+        <div class="d-flex flex-wrap gap-2">
+          <a href="{% url 'pendencias:nova' %}?unidade={{ unidade.pk }}" class="btn btn-sm btn-outline-primary">Nova pendência</a>
+          <a href="{% url 'clientes:novo_contato' cliente.pk %}?unidade={{ unidade.pk }}" class="btn btn-sm btn-outline-primary">Novo contato</a>
+          <a href="{% url 'clientes:editar_unidade' unidade.pk %}" class="btn btn-sm btn-outline-secondary">Editar unidade</a>
+        </div>
+      </div>
+    </details>
+  {% empty %}
+    <div class="list-group-item text-body-secondary">Esta empresa ainda não tem unidades cadastradas.</div>
+  {% endfor %}
+  </div>
+  <p class="text-body-secondary small m-3 nenhuma-linha" hidden>Nenhuma unidade com esse texto.</p>
+</div>

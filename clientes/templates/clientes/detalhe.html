@@ -79,7 +79,7 @@
         <tr>
           <td>{{ contato.nome }} {% if contato.principal %}<span class="badge text-bg-success">Principal</span>{% endif %}</td>
           <td>{{ contato.cargo|default:"—" }}</td>
-          <td>{{ contato.unidades.all|join:", " }}</td>
+          <td class="small">{% include "clientes/_unidades_resumidas.html" with unidades=contato.unidades.all total=total_de_unidades %}</td>
           <td>{{ contato.telefone|default:"—" }}</td>
           <td>{{ contato.whatsapp|default:"—" }}</td>
           <td>{% if contato.email %}<a href="mailto:{{ contato.email }}">{{ contato.email }}</a>{% else %}—{% endif %}</td>
@@ -98,45 +98,7 @@
   {% endwith %}
 </div>
 
-  <div id="unidades">
-  {% for unidade in cliente.unidades.all %}
-  <div class="card shadow-sm mb-3">
-    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
-      <div>
-        <strong>{{ unidade }}</strong>
-        {% if unidade.matriz %}<span class="badge text-bg-primary">Matriz</span>{% else %}<span class="badge text-bg-light border">Filial</span>{% endif %}
-        {% if not unidade.ativo %}<span class="badge text-bg-secondary">Inativa</span>{% endif %}
-        <span class="badge text-bg-light border">{{ unidade.vidas }} vida{{ unidade.vidas|pluralize }}</span>
-      </div>
-      <div class="d-flex gap-2">
-        <a href="{% url 'pendencias:nova' %}?unidade={{ unidade.pk }}" class="btn btn-sm btn-outline-primary">Nova pendência</a>
-        <a href="{% url 'clientes:novo_contato' cliente.pk %}?unidade={{ unidade.pk }}" class="btn btn-sm btn-outline-primary">Novo contato</a>
-        <a href="{% url 'clientes:editar_unidade' unidade.pk %}" class="btn btn-sm btn-outline-secondary">Editar unidade</a>
-      </div>
-    </div>
-    <div class="card-body">
-      <dl class="row mb-3">
-        <dt class="col-sm-3">CNPJ</dt><dd class="col-sm-9">{{ unidade.cnpj_formatado }}</dd>
-        <dt class="col-sm-3">Razão social</dt><dd class="col-sm-9">{{ unidade.razao_social }}</dd>
-        <dt class="col-sm-3">Endereço</dt><dd class="col-sm-9">{{ unidade.endereco_resumido|default:"—" }}</dd>
-        {% if unidade.telefone %}<dt class="col-sm-3">Telefone</dt><dd class="col-sm-9">{{ unidade.telefone }}</dd>{% endif %}
-        {% if unidade.whatsapp %}<dt class="col-sm-3">WhatsApp</dt><dd class="col-sm-9">{{ unidade.whatsapp }}</dd>{% endif %}
-        {% if unidade.email %}<dt class="col-sm-3">E-mail</dt><dd class="col-sm-9 text-break"><a href="mailto:{{ unidade.email }}">{{ unidade.email }}</a></dd>{% endif %}
-      </dl>
-      <h2 class="h6">Contatos desta unidade</h2>
-      {% for contato in unidade.contatos.all %}
-        {% if forloop.first %}<ul class="list-inline mb-0">{% endif %}
-        <li class="list-inline-item">{{ contato }}</li>
-        {% if forloop.last %}</ul>{% endif %}
-      {% empty %}
-        <p class="text-body-secondary mb-0">Nenhum contato atende esta unidade.</p>
-      {% endfor %}
-    </div>
-  </div>
-  {% empty %}
-    <div class="alert alert-warning">Esta empresa ainda não tem unidades cadastradas.</div>
-  {% endfor %}
-  </div>
+  <div id="unidades">{% include "clientes/_unidades.html" %}</div>
 {% endif %}
 
 <div class="card shadow-sm mb-4" id="contratos">
@@ -193,9 +155,11 @@
         {% endfor %}
       {% endif %}
       {% if perms.clientes.delete_unidade and cliente.eh_empresa %}
+        {% if muitas_unidades %}<details class="lista-recolhida small"><summary>Excluir uma unidade ({{ total_de_unidades }})</summary><div class="d-flex flex-column align-items-end gap-2">{% endif %}
         {% for unidade in cliente.unidades.all %}
           <a href="{% url 'clientes:excluir_unidade' unidade.pk %}" class="btn btn-sm btn-outline-danger">Excluir unidade {{ unidade }}</a>
         {% endfor %}
+        {% if muitas_unidades %}</div></details>{% endif %}
       {% endif %}
       {% if perms.clientes.delete_cliente %}
         <a href="{% url 'clientes:excluir' cliente.pk %}" class="btn btn-sm btn-outline-danger">Excluir {% if cliente.eh_empresa %}empresa{% else %}cliente{% endif %}</a>

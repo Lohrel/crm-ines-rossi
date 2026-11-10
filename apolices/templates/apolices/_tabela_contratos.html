@@ -31,7 +31,7 @@
         </td>
         <td class="text-nowrap">{% if contrato.valor_mensal is not None %}R$ {{ contrato.valor_mensal|floatformat:"2g" }}{% else %}—{% endif %}</td>
         {% if not mostrar_cliente %}
-        <td class="small">{% for unidade in contrato.unidades.all %}{{ unidade }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td>
+        <td class="small">{% include "clientes/_unidades_resumidas.html" with unidades=contrato.unidades.all total=total_de_unidades %}</td>
         {% endif %}
         <td>
           {% if contrato.situacao == "ATV" %}<span class="badge text-bg-success">{{ contrato.get_situacao_display }}</span>
