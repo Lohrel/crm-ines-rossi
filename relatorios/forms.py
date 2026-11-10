@@ -19,8 +19,29 @@ def por_cliente(registros, rotulo) -> list:
     return list(grupos.items())
 
 
+class SelectDoCliente(forms.Select):
+    """Lista de filiais ou de contratos em que cada opção diz de qual cliente é
+    (data-cliente), para static/js/filtro-por-cliente.js esconder as dos outros clientes."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.cliente_de: dict[str, int] = {}
+        self.attrs["data-filtra-pelo-cliente"] = ""
+
+    def create_option(self, name, value, *args, **kwargs):
+        opcao = super().create_option(name, value, *args, **kwargs)
+        if (cliente := self.cliente_de.get(str(value))) is not None:
+            opcao["attrs"]["data-cliente"] = cliente
+        return opcao
+
+
 class EscolhaPorClienteMixin:
-    """Filial e contrato de qualquer cliente, agrupados pelo nome do cliente."""
+    """Filial e contrato agrupados pelo nome do cliente. Escolhida uma empresa, a tela mostra só
+    as filiais e os contratos dela, e o servidor ignora uma filial ou um contrato de outra."""
+
+    def cliente_escolhido(self) -> int | None:
+        valor = str(self.data.get("cliente", "")) if self.is_bound else ""
+        return int(valor) if valor.isdigit() else None
 
     def escolher_unidade_e_contrato(self) -> None:
         unidades = Unidade.objects.select_related("cliente").order_by(
@@ -28,9 +49,22 @@ class EscolhaPorClienteMixin:
         )
         contratos = Contrato.objects.de_pessoas().select_related("cliente", "ramo", "seguradora")
         contratos = contratos.order_by("cliente__nome", "ramo__nome", "numero")
+        campos = [("contrato", contratos, rotulo_do_plano, "Todos")]
         if "unidade" in self.fields:
-            self.fields["unidade"].choices = [("", "Todas"), *por_cliente(unidades, str)]
-        self.fields["contrato"].choices = [("", "Todos"), *por_cliente(contratos, rotulo_do_plano)]
+            campos.insert(0, ("unidade", unidades, str, "Todas"))
+        for nome, registros, rotulo, vazio in campos:
+            registros = list(registros)
+            campo = self.fields[nome]
+            campo.widget = SelectDoCliente(attrs=campo.widget.attrs)
+            campo.widget.cliente_de = {str(r.pk): r.cliente_id for r in registros}
+            campo.choices = [("", vazio), *por_cliente(registros, rotulo)]
+            # A filial ou o contrato de outra empresa (a empresa mudou e a filial ficou)
+            # é ignorado, em vez de misturar os dois filtros e não achar nada.
+            escolhido = str(self.data.get(nome, "")) if self.is_bound else ""
+            cliente = self.cliente_escolhido()
+            if escolhido and cliente and campo.widget.cliente_de.get(escolhido) != cliente:
+                self.data = self.data.copy()
+                self.data[nome] = ""
 
 
 class FiltroVidasForm(EscolhaPorClienteMixin, BootstrapFormMixin, forms.Form):

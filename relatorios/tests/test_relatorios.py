@@ -128,6 +128,29 @@ def test_vidas_por_empresa_filial_e_contrato(logado, vidas, padaria, empresa, fi
     assert "Dental · Seguradora Exemplo D-1" in do_dental.context["descricao_do_filtro"]
 
 
+def test_filiais_e_contratos_dizem_de_qual_empresa_sao(logado, vidas, padaria, filial, saude):
+    """O navegador esconde as filiais e os contratos das outras empresas (filtro-por-cliente.js)
+    a partir do data-cliente de cada opção."""
+    pagina = logado.get(VIDAS).content.decode()
+    assert "js/filtro-por-cliente.js" in pagina
+    assert pagina.count("data-filtra-pelo-cliente") == 2
+    assert f'value="{filial.pk}" data-cliente="{filial.cliente_id}"' in pagina
+    assert f'value="{saude.pk}" data-cliente="{saude.cliente_id}"' in pagina
+    assert 'class="form-select' in pagina
+    movimentacoes = logado.get(reverse("relatorios:movimentacoes")).content.decode()
+    assert "js/filtro-por-cliente.js" in movimentacoes
+    assert movimentacoes.count("data-filtra-pelo-cliente") == 1
+
+
+def test_filial_de_outra_empresa_e_ignorada(logado, vidas, padaria, empresa, filial):
+    """Trocou a empresa e a filial ficou: vale a empresa, em vez de não achar ninguém."""
+    resposta = logado.get(VIDAS, {"cliente": padaria.pk, "unidade": filial.pk})
+    assert nomes(resposta) == ["Paula Padeira"]
+    assert resposta.context["filtro"].cleaned_data["unidade"] is None
+    da_empresa = logado.get(VIDAS, {"cliente": empresa.pk, "unidade": filial.pk})
+    assert nomes(da_empresa) == ["Ana Titular", "Ana Titular", "Bruno Cônjuge"]
+
+
 def test_vidas_numa_data_passada(logado, vidas):
     resposta = logado.get(VIDAS, {"data": "15/02/2026"})
     assert sorted(nomes(resposta)) == ["Ana Titular", "Ana Titular", "Bruno Cônjuge", "Caio Filho"]

@@ -17,8 +17,10 @@ projeto estão no [CLAUDE.md](../CLAUDE.md).
   aba, em `static/img/`.
 - Os itens do menu ficam em `contas/menu.py`. O item da página aberta é marcado pelo app da URL: os
   beneficiários ficam em Clientes e as seguradoras em Contratos.
-- O JavaScript próprio é `static/js/campos-data.js`, dos campos de data e de mês, e
-  `static/js/busca-rapida.js`, que põe o cursor na busca do menu com a tecla "/". O HTMX
+- O JavaScript próprio são três arquivos: `static/js/campos-data.js`, dos campos de data e de mês;
+  `static/js/busca-rapida.js`, que põe o cursor na busca do menu com a tecla "/"; e
+  `static/js/filtro-por-cliente.js`, que nos relatórios deixa nas listas de filial e de contrato só
+  as da empresa escolhida. O HTMX
   estava previsto, mas ainda não é usado: as telas são páginas normais com formulários.
 - As mensagens do Django viram alertas do Bootstrap (`MESSAGE_TAGS` troca `error` por `danger`).
 - A validação é feita no servidor: os formulários usam `novalidate`, e os erros aparecem em
@@ -47,7 +49,7 @@ As telas novas seguem o que já existe:
 | Cor da seguradora | escolhida no cadastro da seguradora, numa paleta de 10 tons (`Seguradora.Cor`, com os tons em `crm.css` nas classes `cor-<valor>`). Nas listas, a linha ganha uma faixa à esquerda (`<tr class="faixa-seguradora cor-...">`, ou `<li class="list-group-item faixa-seguradora cor-...">` nos quadros do painel); onde o nome aparece, use `apolices/_seguradora.html`, que põe um ponto e o nome na cor. Sem cor escolhida, nada muda. A paleta não tem o vermelho, o amarelo e o verde claro dos avisos |
 | Painel | cada quadro é um `card` com o título no cabeçalho, o número em destaque (`numero-do-quadro`), que leva à lista já filtrada com os mesmos registros, e até 3 registros embaixo (`list-group-flush`), o mais urgente primeiro. Nos registros, o nome vem na primeira linha e o prazo, em selo, no começo da segunda |
 | Calendário | cada data tem a cor da categoria (`item-ferias`, `item-evento`, `item-prazo`, `item-renovacao` com a cor da seguradora e `item-pendencia`, em `crm.css`): etiqueta de até duas linhas na grade do mês (`calendario/_item.html`) e faixa à esquerda nas listas (`item-da-lista`). A grade (tabela `calendario-mes`, de domingo a sábado) aparece a partir de 992 px; abaixo, a lista dos dias, com cada evento de vários dias só no primeiro dia |
-| Relatórios | um por página em `relatorios/`: filtros num cartão, com os botões "Filtrar" e "Baixar em Excel" (os mesmos filtros com `formato=excel`), o resumo numa linha, a tabela em páginas de 200 e o Excel inteiro, gerado por `relatorios/excel.py` (título com os filtros na linha 1, colunas na linha 2) |
+| Relatórios | um por página em `relatorios/`: filtros num cartão (escolhida a empresa, as listas de filial e de contrato mostram só as dela: cada opção traz `data-cliente`, via `SelectDoCliente` em `relatorios/forms.py`), com os botões "Filtrar" e "Baixar em Excel" (os mesmos filtros com `formato=excel`), o resumo numa linha, a tabela em páginas de 200 e o Excel inteiro, gerado por `relatorios/excel.py` (título com os filtros na linha 1, colunas na linha 2) |
 | Indicadores | `relatorios/indicadores.html`: filtro por mês (`MesField`), um cartão com o número grande para cada indicador do período (`.indicador-numero`) e uma tabela por assunto com uma linha por mês e o total no rodapé (`.tabela-de-indicadores`, números à direita); a explicação das contas fica recolhida em "Como ler estes números" |
 | Veículos e imóveis | cartão "Veículos e imóveis segurados" na página do cliente (`apolices/_bens_do_cliente.html`), só quando ele tem apólice de auto ou imóvel: um grupo por apólice, com a faixa da seguradora e o botão "Adicionar veículo" ou "Adicionar imóvel"; em cada item, o nome e, embaixo, os dados mais consultados separados por ponto (classe `partes`). A placa usa a classe `placa`, que lembra a do Mercosul, e na tabela de contratos leva à página do veículo. Para excluir um veículo, digita-se a placa |
 | Datas e meses | `CampoData` e `MesField`: a barra entra sozinha, o primeiro clique seleciona a data inteira (para digitar por cima) e há um botão de calendário |
