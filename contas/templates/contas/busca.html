@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block titulo %}Busca{% endblock %}
+{% block conteudo %}
+<div class="d-flex flex-wrap align-items-baseline gap-2 mb-3">
+  <h1 class="h3 mb-0">Busca</h1>
+  {% if not busca.curta_demais %}<span class="text-body-secondary">{{ resultado.total }} resultado{{ resultado.total|pluralize }} para “{{ busca.termo }}”</span>{% endif %}
+</div>
+
+<form method="get" action="{% url 'buscar' %}" class="row g-2 mb-3" role="search">
+  <div class="col-md-9">
+    <input type="search" name="q" value="{{ busca.termo }}" class="form-control" aria-label="Buscar"
+           placeholder="Nome, CPF, matrícula, carteirinha, CNPJ, número do contrato ou placa">
+  </div>
+  <div class="col-md-3 d-grid"><button type="submit" class="btn btn-outline-primary">Buscar</button></div>
+</form>
+
+{% if busca.curta_demais %}
+  <p class="text-body-secondary">Digite pelo menos {{ tamanho_minimo }} letras ou números.</p>
+{% elif not resultado.grupos %}
+  <div class="card shadow-sm"><div class="card-body text-body-secondary">
+    Nada encontrado para “{{ busca.termo }}”. Confira a grafia ou busque só uma parte do nome, o CPF ou a matrícula.
+  </div></div>
+{% endif %}
+
+{% for grupo in resultado.grupos %}
+<div class="card shadow-sm mb-4">
+  <div class="card-header fw-semibold">{{ grupo.titulo }} <span class="text-body-secondary fw-normal">({{ grupo.total }})</span></div>
+  <ul class="list-group list-group-flush resultados-da-busca">
+  {% for item in grupo.itens %}
+    {% if grupo.titulo == "Clientes" %}
+    <li class="list-group-item">
+      <a href="{{ item.get_absolute_url }}" class="fw-semibold">{{ item.nome }}</a>{% if not item.ativo %} <span class="badge text-bg-secondary">Inativo</span>{% endif %}
+      <div class="small text-body-secondary">{% if item.eh_empresa %}{% with unidades=item.unidades.all|length %}Empresa · {{ unidades }} unidade{{ unidades|pluralize }}{% endwith %}{% else %}Pessoa física{% endif %}{% if item.documento_principal %} · {{ item.documento_principal }}{% endif %}</div>
+    </li>
+    {% elif grupo.titulo == "Contratos" %}
+    <li class="list-group-item{% if item.seguradora.cor %} faixa-seguradora cor-{{ item.seguradora.cor }}{% endif %}">
+      <a href="{{ item.cliente.get_absolute_url }}#contratos" class="fw-semibold">{{ item.ramo }} · {{ item.numero }}</a>{% if not item.vigente %} <span class="badge text-bg-secondary">{{ item.get_situacao_display }}</span>{% endif %}
+      <div class="small text-body-secondary">{{ item.cliente }} · {% include "apolices/_seguradora.html" with seguradora=item.seguradora %}{% if item.produto %} · {{ item.produto }}{% endif %}</div>
+    </li>
+    {% elif grupo.titulo == "Veículos" %}
+    <li class="list-group-item{% if item.contrato.seguradora.cor %} faixa-seguradora cor-{{ item.contrato.seguradora.cor }}{% endif %}">
+      <a href="{{ item.get_absolute_url }}" class="fw-semibold"><span class="placa">{{ item.placa_formatada }}</span></a> {{ item.descricao }}
+      <div class="small text-body-secondary">{{ item.contrato.cliente }} · {% include "apolices/_seguradora.html" with seguradora=item.contrato.seguradora %} {{ item.contrato.numero }}</div>
+    </li>
+    {% else %}
+    <li class="list-group-item">
+      <a href="{{ item.get_absolute_url }}" class="fw-semibold">{{ item.nome }}</a>{% if item.tem_plano and not item.em_algum_plano %} <span class="badge text-bg-secondary">Inativo</span>{% endif %}
+      {% for plano in item.planos %} <span class="badge selo-plano">{{ plano.contrato.ramo }}{% if plano.plano %} {{ plano.plano }}{% endif %}</span>{% endfor %}
+      <div class="small text-body-secondary">
+        {% if item.eh_titular %}Titular{% else %}{{ item.get_parentesco_display }} de {{ item.titular.nome }}{% endif %}
+        · {{ item.cliente }}{% if item.unidade_efetiva %} · {{ item.unidade_efetiva }}{% endif %}
+        {% if item.matricula_efetiva %} · Matr. {{ item.matricula_efetiva }}{% endif %}
+        {% if item.cpf %} · CPF {{ item.cpf_formatado }}{% endif %}
+      </div>
+    </li>
+    {% endif %}
+  {% endfor %}
+  </ul>
+  {% if grupo.tem_mais %}<div class="card-footer small text-body-secondary">Mostrando {{ grupo.itens|length }} de {{ grupo.total }}. Digite mais do nome, o CPF ou a matrícula para achar mais rápido.</div>{% endif %}
+</div>
+{% endfor %}
+{% endblock %}

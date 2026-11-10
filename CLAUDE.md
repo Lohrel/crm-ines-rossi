@@ -150,7 +150,7 @@ pytest -q
   acusa F811).
 - ruff: linhas de até 100 caracteres, regras `E, F, W, I, B, UP, DJ, S, SIM, N`.
 
-## Estado atual (30/09/2026)
+## Estado atual (10/11/2026)
 
 - As etapas 0 a 8 estão no `main`: a 8a (painel na página inicial), a 8b (calendário) e a 8c
   (relatórios, PR #19), com o [guia da etapa 8](docs/etapa-8-painel-e-relatorios.md).
@@ -176,6 +176,12 @@ pytest -q
   separadas; nos cadastros (empresa, unidade, pessoa física e contato), ficam num grupo próprio,
   separado do endereço. Sem migração. O número 14 está reservado para as correções da
   LGPD.
+- **16. Busca rápida no menu**: branch `etapa-16-busca-rapida`, esperando o Lohrel testar. É a
+  primeira de uma lista de melhorias de agilidade combinada com ele em 10/11/2026, na ordem:
+  busca rápida; funcionário novo com o pedido de inclusão na mesma tela (e "Nova movimentação" na
+  lista); avançar movimentações em lote pela lista; boletos enviados em lote sem recarregar a
+  página; e atalhos nos formulários (cursor no primeiro campo, último solicitante, "Salvar e
+  cadastrar outro"). Cada uma é uma etapa própria, a partir da 16.
 - Próxima etapa:
   - **10d. Celular**, depois do merge da 10c: as listas viram fichas abaixo de 576 px e os filtros
     ficam recolhidos num botão (combinado com o Lohrel). Com ela e a aprovação do painel pela

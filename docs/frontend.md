@@ -17,7 +17,8 @@ projeto estão no [CLAUDE.md](../CLAUDE.md).
   aba, em `static/img/`.
 - Os itens do menu ficam em `contas/menu.py`. O item da página aberta é marcado pelo app da URL: os
   beneficiários ficam em Clientes e as seguradoras em Contratos.
-- O único JavaScript próprio é `static/js/campos-data.js`, dos campos de data e de mês. O HTMX
+- O JavaScript próprio é `static/js/campos-data.js`, dos campos de data e de mês, e
+  `static/js/busca-rapida.js`, que põe o cursor na busca do menu com a tecla "/". O HTMX
   estava previsto, mas ainda não é usado: as telas são páginas normais com formulários.
 - As mensagens do Django viram alertas do Bootstrap (`MESSAGE_TAGS` troca `error` por `danger`).
 - A validação é feita no servidor: os formulários usam `novalidate`, e os erros aparecem em
@@ -61,6 +62,13 @@ bem-vindos, como "Nova pendência" dentro do cliente ou "preencher" o salário n
 O menu (`contas/menu.py`) tem Clientes, Contratos, Movimentações, Boletos, Pendências, Calendário e
 Relatórios. Ele fica numa linha a partir de 992 px (um notebook de 1366 px com zoom de 125% tem
 1093 px), com o nome de quem entrou num botão que mostra o Sair, e recolhe abaixo disso.
+Entre os itens e o nome de quem entrou fica a **busca rápida** (etapa 16, `contas/busca.py` e
+`contas/templates/contas/busca.html`): acha pessoas (titulares e dependentes de qualquer cliente),
+clientes, contratos pelo número e veículos pela placa, e abre direto a página quando só um registro
+é encontrado. No nome, cada palavra pode estar em qualquer ordem ("silva maria"). Entre 992 e
+1199 px só a lupa aparece e o campo abre por cima dos itens ao receber o cursor; a partir de 1200 px
+fica à vista; no menu recolhido, ocupa a linha. A tecla "/" põe o cursor nele.
+
 Algumas telas ficam dentro de outras:
 
 - Seguradoras: botão na página de Contratos.

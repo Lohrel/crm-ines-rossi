@@ -29,6 +29,13 @@
           <li class="nav-item"><a class="nav-link{% if item.aberto %} active{% endif %}" href="{{ item.url }}"{% if item.aberto %} aria-current="page"{% endif %}>{{ item.texto }}</a></li>
           {% endfor %}
         </ul>
+        {# Busca rápida: pessoa, cliente, CPF, matrícula, carteirinha, contrato ou placa. A tecla "/" põe o cursor aqui. #}
+        <form method="get" action="{% url 'buscar' %}" class="busca-rapida" role="search">
+          <input type="search" name="q" class="form-control form-control-sm" id="busca-rapida"
+                 placeholder="Buscar pessoa, cliente, CPF…" aria-label="Buscar pessoa, cliente, CPF, matrícula, carteirinha, contrato ou placa"
+                 title="Nome, CPF, matrícula, carteirinha, CNPJ, número do contrato ou placa (atalho: tecla /)"
+                 autocomplete="off" value="{% if request.resolver_match.url_name == 'buscar' %}{{ request.GET.q }}{% endif %}">
+        </form>
         {# No computador, o nome num botão pequeno que mostra o Sair; no menu recolhido, os dois à vista. #}
         <div class="usuario dropdown d-none d-lg-block">
           <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">{{ user.first_name|default:user.nome_exibicao }}</button>
@@ -63,5 +70,6 @@
 
   <script src="{% static 'vendor/bootstrap/bootstrap.bundle.min.js' %}"></script>
   <script src="{% static 'js/campos-data.js' %}"></script>
+  <script src="{% static 'js/busca-rapida.js' %}"></script>
 </body>
 </html>
