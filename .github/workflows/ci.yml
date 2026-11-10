@@ -11,7 +11,8 @@ permissions:
 jobs:
   testes:
     name: Qualidade e testes
-    runs-on: ubuntu-latest
+    # Fixo no 24.04, que tem o cliente do PostgreSQL 16; o ubuntu-latest (26.04) não tem.
+    runs-on: ubuntu-24.04
 
     services:
       postgres:
@@ -63,8 +64,8 @@ jobs:
         run: python manage.py check --deploy --fail-level WARNING
 
       # Os testes do backup usam o pg_dump e o pg_restore da mesma versão do banco (16), como a
-      # imagem do backup no servidor (postgres:16). O ubuntu-latest passou a trazer um cliente
-      # mais novo, cujo backup tem "SET transaction_timeout", que o PostgreSQL 16 não aceita.
+      # imagem do backup no servidor (postgres:16). Um cliente mais novo grava no backup
+      # "SET transaction_timeout", que o PostgreSQL 16 não aceita.
       - name: Usar o cliente do PostgreSQL 16
         run: |
           if [ ! -x /usr/lib/postgresql/16/bin/pg_dump ]; then
