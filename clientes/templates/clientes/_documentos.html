@@ -1,4 +1,5 @@
-{# Documentos anexados (cliente ou seguradora). Recebe: documentos, url_novo, rota_baixar, explicacao. #}
+{# Documentos anexados (cliente ou seguradora). Recebe: documentos, url_novo, rota_ver, rota_baixar, explicacao.
+   PDF e imagens abrem dentro do sistema (com o botão de baixar); Word e Excel são baixados. #}
 <div class="card shadow-sm mb-4" id="documentos">
   <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
     <span class="fw-semibold">Documentos</span>
@@ -8,13 +9,18 @@
   {% for documento in documentos %}
     <li class="list-group-item">
       <div class="d-flex flex-wrap align-items-center gap-2">
-        <a href="{% url rota_baixar documento.pk %}" class="fw-semibold">{{ documento }}</a>
+        {% if documento.pode_ver %}
+          <a href="{% url rota_ver documento.pk %}" class="fw-semibold">{{ documento }}</a>
+        {% else %}
+          <a href="{% url rota_baixar documento.pk %}" class="fw-semibold">{{ documento }}</a>
+        {% endif %}
         <span class="badge text-bg-light border">{{ documento.get_tipo_display }}</span>
         {% if documento.contrato %}<span class="small">{{ documento.contrato.ramo }} · {{ documento.contrato.nome_do_plano }}</span>{% endif %}
         {% if documento.ramo %}<span class="small">{{ documento.ramo }}</span>{% endif %}
       </div>
       <div class="small text-body-secondary">
         {% if documento.descricao %}{{ documento.nome_original }} · {% endif %}enviado em {{ documento.criado_em|date:"d/m/Y H:i" }}{% if documento.enviado_por %} por {{ documento.enviado_por }}{% endif %}
+        {% if documento.pode_ver %} · <a href="{% url rota_baixar documento.pk %}">Baixar</a>{% endif %}
       </div>
     </li>
   {% empty %}

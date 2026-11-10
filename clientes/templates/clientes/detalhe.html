@@ -150,7 +150,7 @@
 {% if contratos_com_bens %}{% include "apolices/_bens_do_cliente.html" %}{% endif %}
 
 {% url 'clientes:novo_documento' cliente.pk as url_novo %}
-{% include "clientes/_documentos.html" with rota_baixar="clientes:baixar_documento" explicacao="Guarde aqui o contrato assinado, aditivos e documentos do cliente." %}
+{% include "clientes/_documentos.html" with rota_ver="clientes:ver_documento" rota_baixar="clientes:baixar_documento" explicacao="Guarde aqui o contrato assinado, aditivos e documentos do cliente." %}
 
 {% if cliente.observacoes %}
 <div class="card shadow-sm mb-4"><div class="card-body">

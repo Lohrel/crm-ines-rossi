@@ -950,3 +950,27 @@ details.border-danger-subtle {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+
+/* Anexo visto dentro do sistema (PDF ou imagem): ocupa a altura da tela, sem rolar a página. */
+.visualizador {
+  overflow: hidden;
+}
+.visualizador-pdf {
+  display: block;
+  width: 100%;
+  height: calc(100vh - 14rem);
+  min-height: 28rem;
+  border: 0;
+}
+.visualizador-imagem {
+  padding: 1rem;
+  text-align: center;
+  background-color: var(--crm-fundo-tabela);
+}
+.visualizador-imagem img {
+  max-width: 100%;
+  max-height: calc(100vh - 16rem);
+  min-height: 0;
+  object-fit: contain;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.1);
+}

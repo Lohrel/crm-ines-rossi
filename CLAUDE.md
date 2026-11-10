@@ -181,8 +181,8 @@ pytest -q
   busca rápida; funcionário novo com o pedido de inclusão na mesma tela (e "Nova movimentação" na
   lista); avançar movimentações em lote pela lista; boletos enviados em lote sem recarregar a
   página; e atalhos nos formulários (cursor no primeiro campo, último solicitante, "Salvar e
-  cadastrar outro"). Cada uma é uma etapa própria: a próxima delas é a 19 (a 18 ficou com a página
-  "Indicadores").
+  cadastrar outro"). Cada uma é uma etapa própria: a próxima delas é a 20 (a 18 ficou com a página
+  "Indicadores" e a 19 com a visualização dos anexos).
 - **17. Filiais da empresa nos relatórios**: branch `etapa-17-filiais-no-relatorio`, esperando o
   Lohrel testar. Pedido dele: escolhida a empresa, as listas de filial e de contrato mostram só as
   dela.
@@ -192,6 +192,11 @@ pytest -q
   funcionário. Sem empresa escolhida é o relatório geral; com uma, o relatório dela (pedido dele).
   Ficou para depois, se ele pedir: registrar cada importação de planilha (quem, quando
   e quantas linhas), que precisa de uma tabela nova.
+- **19. Ver os anexos sem baixar**: branch `etapa-19-visualizar-anexos`, esperando o Lohrel
+  testar. PDF e imagens abrem em `.../ver/` (página do sistema, `VerArquivoView` e
+  `clientes/ver_arquivo.html`), e o arquivo vai ao navegador por `.../abrir/` com o tipo tirado da
+  extensão, só dentro de páginas do sistema e, se for imagem, sem rodar nada
+  (`entregar_arquivo(..., para_ver=True)`). Word e Excel continuam só com download. Sem migração.
 - Próxima etapa:
   - **10d. Celular**, depois do merge da 10c: as listas viram fichas abaixo de 576 px e os filtros
     ficam recolhidos num botão (combinado com o Lohrel). Com ela e a aprovação do painel pela

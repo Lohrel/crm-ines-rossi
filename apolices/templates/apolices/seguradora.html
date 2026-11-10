@@ -26,7 +26,7 @@
 </div></div>
 
 {% url 'apolices:novo_documento' seguradora.pk as url_novo %}
-{% include "clientes/_documentos.html" with rota_baixar="apolices:baixar_documento" explicacao="Guarde aqui as regras de produto, tabelas de preço e formulários da seguradora." %}
+{% include "clientes/_documentos.html" with rota_ver="apolices:ver_documento" rota_baixar="apolices:baixar_documento" explicacao="Guarde aqui as regras de produto, tabelas de preço e formulários da seguradora." %}
 
 <div class="card shadow-sm mb-5" id="historico">
   <div class="card-header fw-semibold">Histórico de alterações</div>

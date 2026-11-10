@@ -13,7 +13,14 @@ from simple_history.models import HistoricalRecords
 
 from apolices.models import Contrato, Plano
 from clientes.documentos import CPF
-from clientes.models import Cliente, ExclusaoProtegida, MeiosDeContato, Registro, Unidade
+from clientes.models import (
+    ArquivoParaVer,
+    Cliente,
+    ExclusaoProtegida,
+    MeiosDeContato,
+    Registro,
+    Unidade,
+)
 from clientes.validators import validar_cpf
 
 
@@ -309,7 +316,7 @@ def validar_tamanho_do_anexo(arquivo) -> None:
         raise ValidationError(f"O arquivo passa de {limite} MB.")
 
 
-class Anexo(ExclusaoProtegida, Registro):
+class Anexo(ArquivoParaVer, ExclusaoProtegida, Registro):
     """Arquivo de um beneficiário (DPS, eSocial, documentos). Pode conter dados de saúde."""
 
     EXTENSOES = ["pdf", "jpg", "jpeg", "png", "doc", "docx"]
