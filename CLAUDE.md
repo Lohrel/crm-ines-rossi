@@ -176,12 +176,15 @@ pytest -q
   separadas; nos cadastros (empresa, unidade, pessoa física e contato), ficam num grupo próprio,
   separado do endereço. Sem migração. O número 14 está reservado para as correções da
   LGPD.
-- **16. Busca rápida no menu**: branch `etapa-16-busca-rapida`, esperando o Lohrel testar. É a
+- **16. Busca rápida no menu**: no `main` (PR #32). É a
   primeira de uma lista de melhorias de agilidade combinada com ele em 10/11/2026, na ordem:
   busca rápida; funcionário novo com o pedido de inclusão na mesma tela (e "Nova movimentação" na
   lista); avançar movimentações em lote pela lista; boletos enviados em lote sem recarregar a
   página; e atalhos nos formulários (cursor no primeiro campo, último solicitante, "Salvar e
-  cadastrar outro"). Cada uma é uma etapa própria, a partir da 16.
+  cadastrar outro"). Cada uma é uma etapa própria: a próxima delas é a 18.
+- **17. Filiais da empresa nos relatórios**: branch `etapa-17-filiais-no-relatorio`, esperando o
+  Lohrel testar. Pedido dele: escolhida a empresa, as listas de filial e de contrato mostram só as
+  dela.
 - Próxima etapa:
   - **10d. Celular**, depois do merge da 10c: as listas viram fichas abaixo de 576 px e os filtros
     ficam recolhidos num botão (combinado com o Lohrel). Com ela e a aprovação do painel pela
