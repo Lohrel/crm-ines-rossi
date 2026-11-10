@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block conteudo %}
+{% include "relatorios/_cabecalho.html" %}
+
+<form method="get" class="card card-body shadow-sm mb-3" novalidate>
+  <div class="row g-2 align-items-end">
+    <div class="col-6 col-md-2">{{ filtro.de.label_tag }}{{ filtro.de }}</div>
+    <div class="col-6 col-md-2">{{ filtro.ate.label_tag }}{{ filtro.ate }}</div>
+    <div class="col-md-4">{{ filtro.cliente.label_tag }}{{ filtro.cliente }}</div>
+    <div class="col-md-4">{% include "relatorios/_botoes.html" %}</div>
+  </div>
+  {% include "relatorios/_erros.html" %}
+</form>
+
+<details class="como-funciona mb-3">
+  <summary>Como ler estes números</summary>
+  <p>
+    Os números são da equipe inteira e saem do que já é registrado no dia a dia. Sem escolher uma empresa, é o relatório geral do escritório; com uma empresa (ou cliente) escolhida, só o que é dela. Cada mês mostra as movimentações <strong>recebidas</strong> nele, as pendências com <strong>prazo</strong> nele e os boletos com <strong>vencimento</strong> nele.
+    O prazo de envio de uma movimentação é o próximo dia de fechamento do contrato, contado do dia em que o pedido chegou; contratos sem dia de fechamento ficam fora dessa conta.
+    Por isso vale conferir o campo "Recebida em" ao registrar: ele vem com a data do dia.
+    Movimentações e boletos cancelados não entram, e o que ainda está dentro do prazo só entra na porcentagem quando for resolvido ou o prazo passar.
+  </p>
+</details>
+
+{% if indicadores %}
+{% if indicadores.vazio %}
+<div class="card card-body shadow-sm text-center text-body-secondary py-4">Nada registrado de {{ descricao_do_filtro }}.</div>
+{% else %}
+{% with total=indicadores.total %}
+<p class="mb-3"><strong>{% if cliente %}{{ cliente }}{% else %}Relatório geral{% endif %}</strong> <span class="text-body-secondary">· {{ periodo }}</span></p>
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg">
+    <div class="card card-body shadow-sm h-100 indicador">
+      <div class="indicador-numero">{% if total.pct_ate_o_fechamento is None %}—{% else %}{{ total.pct_ate_o_fechamento }}%{% endif %}</div>
+      <div class="fw-semibold">Movimentações enviadas até o fechamento</div>
+      <div class="small text-body-secondary">{{ total.ate_o_fechamento }} de {{ total.com_fechamento }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg">
+    <div class="card card-body shadow-sm h-100 indicador">
+      <div class="indicador-numero">{% if total.media_ate_o_envio is None %}—{% else %}{{ total.media_ate_o_envio }}{% endif %}</div>
+      <div class="fw-semibold">Dias do pedido até o envio à operadora</div>
+      <div class="small text-body-secondary">Média de {{ total.enviadas }} enviada{{ total.enviadas|pluralize }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg">
+    <div class="card card-body shadow-sm h-100 indicador">
+      <div class="indicador-numero">{% if total.pct_rejeitadas is None %}—{% else %}{{ total.pct_rejeitadas }}%{% endif %}</div>
+      <div class="fw-semibold">Movimentações rejeitadas</div>
+      <div class="small text-body-secondary">{{ total.rejeitadas }} de {{ total.decididas }} já decidida{{ total.decididas|pluralize }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg">
+    <div class="card card-body shadow-sm h-100 indicador">
+      <div class="indicador-numero">{% if total.pct_pendencias_no_prazo is None %}—{% else %}{{ total.pct_pendencias_no_prazo }}%{% endif %}</div>
+      <div class="fw-semibold">Pendências concluídas no prazo</div>
+      <div class="small text-body-secondary">{{ total.pendencias_no_prazo }} no prazo, {{ total.pendencias_com_atraso|add:total.pendencias_vencidas }} com atraso</div>
+    </div>
+  </div>
+  <div class="col-12 col-lg">
+    <div class="card card-body shadow-sm h-100 indicador">
+      <div class="indicador-numero">{% if total.pct_boletos_ate_o_vencimento is None %}—{% else %}{{ total.pct_boletos_ate_o_vencimento }}%{% endif %}</div>
+      <div class="fw-semibold">Boletos enviados até o vencimento</div>
+      <div class="small text-body-secondary">{{ total.boletos_ate_o_vencimento }} em dia, {{ total.boletos_depois|add:total.boletos_vencidos }} depois ou sem envio</div>
+    </div>
+  </div>
+</div>
+
+<h2 class="h5">Movimentações recebidas em cada mês</h2>
+<div class="card shadow-sm mb-4">
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0 tabela-de-indicadores">
+      <thead class="table-light">
+        <tr><th>Mês</th><th>Recebidas</th><th>Dias até o envio</th><th>Enviadas até o fechamento</th><th>Rejeitadas</th><th>Dias do envio até a carteirinha</th></tr>
+      </thead>
+      <tbody>
+      {% for mes in indicadores.meses %}{% with n=mes.numeros %}
+        <tr>
+          <th scope="row">{{ mes.mes|date:"m/Y" }}</th>
+          <td>{{ n.movimentacoes }}</td>
+          <td>{{ n.media_ate_o_envio|default_if_none:"—" }}</td>
+          <td>{% if n.pct_ate_o_fechamento is None %}—{% else %}{{ n.pct_ate_o_fechamento }}% <span class="small text-body-secondary">({{ n.ate_o_fechamento }} de {{ n.com_fechamento }})</span>{% endif %}</td>
+          <td>{% if n.pct_rejeitadas is None %}—{% else %}{{ n.pct_rejeitadas }}% <span class="small text-body-secondary">({{ n.rejeitadas }} de {{ n.decididas }})</span>{% endif %}</td>
+          <td>{{ n.media_ate_a_carteirinha|default_if_none:"—" }}</td>
+        </tr>
+      {% endwith %}{% endfor %}
+      </tbody>
+      <tfoot class="table-light">
+        <tr>
+          <th scope="row">Total</th>
+          <td>{{ total.movimentacoes }}</td>
+          <td>{{ total.media_ate_o_envio|default_if_none:"—" }}</td>
+          <td>{% if total.pct_ate_o_fechamento is None %}—{% else %}{{ total.pct_ate_o_fechamento }}%{% endif %}</td>
+          <td>{% if total.pct_rejeitadas is None %}—{% else %}{{ total.pct_rejeitadas }}%{% endif %}</td>
+          <td>{{ total.media_ate_a_carteirinha|default_if_none:"—" }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+{% if indicadores.motivos %}
+<p class="mb-4"><span class="fw-semibold">Motivos das rejeições:</span>
+  {% for motivo, quantas in indicadores.motivos %}<span class="badge text-bg-light border fw-normal me-1">{{ motivo }}: {{ quantas }}</span>{% endfor %}
+</p>
+{% endif %}
+
+<div class="row g-4 mb-4">
+  <div class="col-lg-6">
+    <h2 class="h5">Pendências com prazo em cada mês</h2>
+    <div class="card shadow-sm">
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0 tabela-de-indicadores">
+          <thead class="table-light">
+            <tr><th>Mês</th><th>Total</th><th>No prazo</th><th>Com atraso</th><th>Vencidas em aberto</th></tr>
+          </thead>
+          <tbody>
+          {% for mes in indicadores.meses %}{% with n=mes.numeros %}
+            <tr>
+              <th scope="row">{{ mes.mes|date:"m/Y" }}</th>
+              <td>{{ n.pendencias }}</td>
+              <td>{{ n.pendencias_no_prazo }}{% if n.pct_pendencias_no_prazo is not None %} <span class="small text-body-secondary">({{ n.pct_pendencias_no_prazo }}%)</span>{% endif %}</td>
+              <td>{{ n.pendencias_com_atraso }}</td>
+              <td>{{ n.pendencias_vencidas }}</td>
+            </tr>
+          {% endwith %}{% endfor %}
+          </tbody>
+          <tfoot class="table-light">
+            <tr><th scope="row">Total</th><td>{{ total.pendencias }}</td><td>{{ total.pendencias_no_prazo }}</td><td>{{ total.pendencias_com_atraso }}</td><td>{{ total.pendencias_vencidas }}</td></tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <h2 class="h5">Boletos com vencimento em cada mês</h2>
+    <div class="card shadow-sm">
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0 tabela-de-indicadores">
+          <thead class="table-light">
+            <tr><th>Mês</th><th>Total</th><th>Até o vencimento</th><th>Depois</th><th>Vencidos sem envio</th></tr>
+          </thead>
+          <tbody>
+          {% for mes in indicadores.meses %}{% with n=mes.numeros %}
+            <tr>
+              <th scope="row">{{ mes.mes|date:"m/Y" }}</th>
+              <td>{{ n.boletos }}</td>
+              <td>{{ n.boletos_ate_o_vencimento }}{% if n.pct_boletos_ate_o_vencimento is not None %} <span class="small text-body-secondary">({{ n.pct_boletos_ate_o_vencimento }}%)</span>{% endif %}</td>
+              <td>{{ n.boletos_depois }}</td>
+              <td>{{ n.boletos_vencidos }}</td>
+            </tr>
+          {% endwith %}{% endfor %}
+          </tbody>
+          <tfoot class="table-light">
+            <tr><th scope="row">Total</th><td>{{ total.boletos }}</td><td>{{ total.boletos_ate_o_vencimento }}</td><td>{{ total.boletos_depois }}</td><td>{{ total.boletos_vencidos }}</td></tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2 class="h5">Quanto passa pelo sistema</h2>
+<div class="card shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0 tabela-de-indicadores">
+      <thead class="table-light">
+        <tr><th>Mês</th>{% if not cliente %}<th>Clientes cadastrados</th>{% endif %}<th>Pessoas cadastradas</th><th>Contratos cadastrados</th><th>Vidas ativas no fim do mês</th></tr>
+      </thead>
+      <tbody>
+      {% for mes in indicadores.meses %}{% with n=mes.numeros %}
+        <tr>
+          <th scope="row">{{ mes.mes|date:"m/Y" }}</th>
+          {% if not cliente %}<td>{{ n.clientes_novos }}</td>{% endif %}
+          <td>{{ n.pessoas_novas }}</td>
+          <td>{{ n.contratos_novos }}</td>
+          <td>{{ mes.vidas }}</td>
+        </tr>
+      {% endwith %}{% endfor %}
+      </tbody>
+      <tfoot class="table-light">
+        <tr><th scope="row">Total</th>{% if not cliente %}<td>{{ total.clientes_novos }}</td>{% endif %}<td>{{ total.pessoas_novas }}</td><td>{{ total.contratos_novos }}</td><td>—</td></tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+{% endwith %}
+{% endif %}
+{% endif %}
+{% endblock %}

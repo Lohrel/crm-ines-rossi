@@ -186,6 +186,12 @@ pytest -q
 - **17. Filiais da empresa nos relatórios**: branch `etapa-17-filiais-no-relatorio`, esperando o
   Lohrel testar. Pedido dele: escolhida a empresa, as listas de filial e de contrato mostram só as
   dela.
+- **18. Indicadores** (em Relatórios): branch `etapa-18-indicadores`, esperando o Lohrel testar. É a
+  primeira parte das métricas de impacto do CRM pedidas por ele em 10/11/2026: só o que já estava
+  registrado (`relatorios/indicadores.py`), sem migração e com números da equipe inteira, nunca por
+  funcionário. Sem empresa escolhida é o relatório geral; com uma, o relatório dela (pedido dele).
+  Ficou para depois, se ele pedir: registrar cada importação de planilha (quem, quando
+  e quantas linhas), que precisa de uma tabela nova.
 - Próxima etapa:
   - **10d. Celular**, depois do merge da 10c: as listas viram fichas abaixo de 576 px e os filtros
     ficam recolhidos num botão (combinado com o Lohrel). Com ela e a aprovação do painel pela

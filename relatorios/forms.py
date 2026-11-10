@@ -1,10 +1,12 @@
 from django import forms
 
 from apolices.models import Contrato, Ramo, Seguradora
-from clientes.forms import BootstrapFormMixin
+from boletos.models import meses_entre
+from clientes.forms import BootstrapFormMixin, MesField
 from clientes.models import Cliente, Unidade
 from clientes.widgets import CampoData
 from movimentacoes.forms import rotulo_do_plano
+from relatorios.indicadores import MAXIMO_DE_MESES
 
 DATA = CampoData()
 
@@ -162,4 +164,24 @@ class FiltroApolicesForm(BootstrapFormMixin, forms.Form):
         de, ate = dados.get("renovacao_de"), dados.get("renovacao_ate")
         if de and ate and ate < de:
             self.add_error("renovacao_ate", "Escolha uma data igual ou depois da primeira.")
+        return dados
+
+
+class FiltroIndicadoresForm(BootstrapFormMixin, forms.Form):
+    de = MesField(label="Do mês")
+    ate = MesField(label="Até o mês")
+    cliente = forms.ModelChoiceField(
+        label="Empresa ou cliente",
+        queryset=Cliente.objects.all(),
+        required=False,
+        empty_label="Todos (geral)",
+    )
+
+    def clean(self):
+        dados = super().clean()
+        de, ate = dados.get("de"), dados.get("ate")
+        if de and ate and ate < de:
+            self.add_error("ate", "Escolha um mês igual ou depois do primeiro.")
+        elif de and ate and len(meses_entre(de, ate)) > MAXIMO_DE_MESES:
+            self.add_error("ate", f"Escolha até {MAXIMO_DE_MESES} meses de uma vez.")
         return dados

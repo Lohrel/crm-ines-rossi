@@ -932,3 +932,21 @@ details.border-danger-subtle {
 .table-responsive {
   position: relative;
 }
+
+/* Indicadores: o número grande de cada cartão e as tabelas mês a mês, com os números à direita. */
+.indicador-numero {
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--crm-marinho);
+}
+.tabela-de-indicadores th,
+.tabela-de-indicadores td {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+.tabela-de-indicadores td,
+.tabela-de-indicadores thead th:not(:first-child) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

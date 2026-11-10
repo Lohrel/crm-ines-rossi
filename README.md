@@ -56,6 +56,7 @@ Cada etapa só começa quando a anterior está testada e em uso.
 - [x] **15.** Telefone e e-mail das unidades: na página da empresa, telefone, WhatsApp e e-mail de cada unidade em linhas separadas (antes ficavam juntos numa linha só), com o e-mail clicável; e nos cadastros de empresa, unidade (filial), pessoa física e contato, telefone e e-mail num grupo próprio, separado do endereço
 - [x] **16.** Busca rápida no menu: um campo em todas as telas acha pessoa (titular ou dependente, de qualquer empresa), cliente, CPF, CNPJ, matrícula, carteirinha, número do contrato ou placa, e abre direto a página quando só um registro é encontrado
 - [ ] **17.** Filtros dos relatórios: escolhida a empresa, as listas de filial e de contrato mostram só as dela (antes, apareciam as filiais e os contratos de todas as empresas)
+- [ ] **18.** Indicadores (em Relatórios): mês a mês, as movimentações enviadas até o fechamento, os dias até o envio e até a carteirinha, as rejeições e seus motivos, as pendências e os boletos em dia e quanto foi cadastrado, na tela e em Excel, só com números da equipe, no geral ou de uma empresa
 
 As telas usam o Bootstrap com as cores, a fonte e o logo da corretora (etapa 10a). Problemas de uso encontrados nos testes são corrigidos na própria etapa.
 
@@ -99,7 +100,7 @@ boletos/         Boletos que a corretora envia: a enviar, enviados e fora do ven
 pendencias/      Pendências com responsável e prazo, ligadas ao cliente, filial, contrato ou movimentação
 calendario/      Calendário do escritório: férias, reuniões e aniversários, com as datas que o sistema
                  já conhece
-relatorios/      Relatórios de vidas ativas, inclusões por período e apólices, na tela e em Excel
+relatorios/      Relatórios de vidas ativas, inclusões por período e apólices, e os indicadores, na tela e em Excel
 templates/       Layout base e tela de login
 static/          Bootstrap servido localmente (funciona sem internet), tema da corretora (cores, fonte
                  e logo) e campos de data
