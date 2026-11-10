@@ -196,6 +196,112 @@ class MovimentacaoForm(BootstrapFormMixin, forms.ModelForm):
         return movimentacao
 
 
+class PedidoDeInclusaoForm(BootstrapFormMixin, forms.Form):
+    """Pedido de inclusão feito junto com o cadastro da pessoa (titular ou dependente).
+
+    Cada plano marcado vira um pedido "Em análise", com as mesmas datas e o mesmo solicitante,
+    gravado pelo MovimentacaoForm (com as mesmas conferências da tela "Solicitar inclusão").
+    Sem plano marcado, só a pessoa é cadastrada, como antes.
+    """
+
+    prefix = "pedido"
+    colunas = {"planos": "col-12", "observacao": "col-12"}
+
+    planos = forms.MultipleChoiceField(
+        label="Pedir inclusão em",
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        help_text="Deixe em branco para só cadastrar a pessoa. Cada plano marcado vira um "
+        "pedido Em análise.",
+    )
+    solicitante = forms.ModelChoiceField(queryset=None, required=False)
+    recebida_em = forms.DateField(label="Recebida em", widget=DATA, required=False)
+    enviada_em = forms.DateField(label="Enviada à operadora em", widget=DATA, required=False)
+    vigencia = forms.DateField(
+        label="Início de vigência",
+        widget=DATA,
+        required=False,
+        help_text="Se ficar em branco, usa o dia 1º do mês seguinte, conforme o fechamento.",
+    )
+    observacao = forms.CharField(
+        label="Observação", required=False, widget=forms.Textarea(attrs={"rows": 2})
+    )
+
+    def __init__(self, *args, cliente: Cliente, titular: Beneficiario | None = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        contratos = (
+            Contrato.objects.de_pessoas()
+            .vigentes()
+            .filter(cliente=cliente)
+            .select_related("ramo", "seguradora")
+            .prefetch_related("planos")
+            .order_by("ramo__nome", "seguradora__nome", "numero")
+        )
+        if titular is not None:
+            # O dependente entra nos planos em que o titular está ou está entrando.
+            do_titular = titular.vinculos.filter(data_exclusao__isnull=True).values("contrato")
+            pedidos = titular.movimentacoes.em_aberto().filter(tipo__in=ENTRADAS)
+            contratos = contratos.filter(
+                Q(pk__in=do_titular) | Q(pk__in=pedidos.values("contrato"))
+            )
+        lista = PlanoDoContratoField()
+        lista.definir(contratos)
+        self.opcoes = lista.opcoes
+        self.fields["planos"].choices = [
+            (valor, rotulo_do_contrato(c) + (f" · plano {plano}" if plano else ""))
+            for valor, (c, plano) in self.opcoes.items()
+        ]
+        self.fields["solicitante"].queryset = cliente.contatos.all()
+        self.fields["solicitante"].empty_label = self.OPCAO_VAZIA
+        for nome in ("recebida_em", "enviada_em"):
+            self.initial.setdefault(nome, date.today())
+
+    @property
+    def tem_planos(self) -> bool:
+        return bool(self.opcoes)
+
+    def clean(self):
+        dados = super().clean()
+        planos = dados.get("planos") or []
+        if not planos:
+            return dados
+        if not dados.get("enviada_em"):
+            # Só se registra o pedido depois de enviado à operadora.
+            self.add_error("enviada_em", "Informe quando o pedido foi enviado à operadora.")
+        dados["recebida_em"] = dados.get("recebida_em") or date.today()
+        contratos = [self.opcoes[valor][0].pk for valor in planos]
+        if len(contratos) != len(set(contratos)):
+            self.add_error("planos", "Marque um só plano de cada contrato.")
+        return dados
+
+    def registrar(self, pessoa: Beneficiario, usuario) -> list[str]:
+        """Grava um pedido para cada plano marcado. Devolve os erros (vazio se gravou tudo)."""
+        dados = self.cleaned_data
+        erros = []
+        for valor in dados.get("planos") or []:
+            formulario = MovimentacaoForm(
+                {
+                    "contrato": valor,
+                    "solicitante": dados["solicitante"].pk if dados["solicitante"] else "",
+                    "recebida_em": f"{dados['recebida_em']:%d/%m/%Y}",
+                    "enviada_em": f"{dados['enviada_em']:%d/%m/%Y}",
+                    "vigencia": f"{dados['vigencia']:%d/%m/%Y}" if dados["vigencia"] else "",
+                    "observacao": dados["observacao"],
+                },
+                tipo=Movimentacao.Tipo.INCLUSAO,
+                beneficiario=pessoa,
+                usuario=usuario,
+            )
+            if formulario.is_valid():
+                formulario.save()
+            else:
+                contrato, plano = self.opcoes[valor]
+                nome = rotulo_do_contrato(contrato) + (f" · plano {plano}" if plano else "")
+                for mensagens in formulario.errors.values():
+                    erros.extend(f"{nome}: {mensagem}" for mensagem in mensagens)
+        return erros
+
+
 class EdicaoMovimentacaoForm(BootstrapFormMixin, forms.ModelForm):
     """Corrige dados do pedido sem mudar a etapa."""
 

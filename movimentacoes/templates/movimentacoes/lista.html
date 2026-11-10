@@ -6,6 +6,7 @@
   <div class="d-flex align-items-center gap-3">
     <span class="text-body-secondary">{{ total_em_aberto }} em aberto no total</span>
     <a href="{% url 'movimentacoes:planilha' %}" class="btn btn-outline-primary">Planilha mensal</a>
+    <a href="{% url 'movimentacoes:nova_inclusao' %}" class="btn btn-primary">Nova inclusão</a>
   </div>
 </div>
 
@@ -26,7 +27,7 @@
   <p>
     Sem filtro, a lista mostra tudo que ainda não terminou, de qualquer mês: não é preciso passar pendências para o mês seguinte.
     Para ver um mês inteiro (inclusive o que já foi concluído), escolha o mês da vigência e a situação "Todas".
-    Para incluir alguém, abra a pessoa em Clientes › Beneficiários.
+    Para incluir uma pessoa nova, use "Nova inclusão": o cadastro já traz o pedido. Para incluir quem já está cadastrado, ou pedir uma exclusão ou alteração de plano, busque a pessoa no menu e use os botões da página dela.
   </p>
 </details>
 

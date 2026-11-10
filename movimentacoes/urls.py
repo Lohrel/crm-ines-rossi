@@ -6,6 +6,7 @@ app_name = "movimentacoes"
 
 urlpatterns = [
     path("", views.MovimentacaoListView.as_view(), name="lista"),
+    path("nova-inclusao/", views.EscolherClienteDaInclusaoView.as_view(), name="nova_inclusao"),
     path("planilha/", views.PlanilhaView.as_view(), name="planilha"),
     path("planilha/importar/", views.ImportarPlanilhaView.as_view(), name="importar_planilha"),
     path(

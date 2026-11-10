@@ -49,6 +49,7 @@ from clientes.views import (
     VerArquivoView,
     entregar_arquivo,
 )
+from movimentacoes.forms import PedidoDeInclusaoForm
 
 
 class BeneficiarioListView(ListView):
@@ -163,13 +164,82 @@ class BeneficiarioDetailView(DetailView):
         return contexto
 
 
-class TitularCreateView(FormularioMixin, CreateView):
+class ComPedidoDeInclusaoMixin:
+    """Cadastro da pessoa com o pedido de inclusão na mesma tela (etapa 20).
+
+    A pessoa e os pedidos são gravados juntos: se um pedido não puder ser registrado, nada é
+    gravado e a tela volta com o aviso.
+    """
+
+    titulo_do_pedido = "Pedido de inclusão (opcional)"
+
+    def get_cliente(self) -> Cliente:
+        raise NotImplementedError
+
+    def get_titular(self) -> Beneficiario | None:
+        return None
+
+    def get_pedido(self) -> PedidoDeInclusaoForm:
+        if not hasattr(self, "pedido"):
+            dados = self.request.POST if self.request.method == "POST" else None
+            self.pedido = PedidoDeInclusaoForm(
+                dados, cliente=self.get_cliente(), titular=self.get_titular()
+            )
+        return self.pedido
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        if self.get_pedido().tem_planos:
+            contexto["formularios"].append((self.titulo_do_pedido, self.get_pedido()))
+        return contexto
+
+    def post(self, request, *args, **kwargs):
+        self.object = None
+        form = self.get_form()
+        pedido = self.get_pedido()
+        # Os dois são conferidos, para a tela mostrar todos os erros de uma vez.
+        if form.is_valid() & pedido.is_valid():
+            return self.form_valid(form)
+        return self.form_invalid(form)
+
+    def form_valid(self, form):
+        pedido = self.get_pedido()
+        with transaction.atomic():
+            self.object = pessoa = form.save()
+            erros = pedido.registrar(pessoa, self.request.user)
+            if erros:
+                transaction.set_rollback(True)
+        if erros:
+            # Nada foi gravado: a pessoa volta a ser nova, para salvar de novo depois de corrigir.
+            form.instance.pk = None
+            form.instance._state.adding = True
+            self.object = None
+            for erro in erros:
+                pedido.add_error(None, erro)
+            return self.form_invalid(form)
+        planos = len(pedido.cleaned_data.get("planos") or [])
+        if planos:
+            texto = (
+                "pedido de inclusão registrado"
+                if planos == 1
+                else (f"{planos} pedidos de inclusão registrados")
+            )
+            messages.success(self.request, f"{self.cadastrada} e {texto} (Em análise).")
+        else:
+            messages.success(self.request, self.mensagem_sucesso)
+        return redirect(pessoa.get_absolute_url())
+
+
+class TitularCreateView(ComPedidoDeInclusaoMixin, FormularioMixin, CreateView):
     model = Beneficiario
     form_class = TitularForm
     mensagem_sucesso = "Titular cadastrado. Agora inclua os planos."
+    cadastrada = "Titular cadastrado"
 
     def get_cliente(self) -> Cliente:
-        return get_object_or_404(Cliente, pk=self.kwargs["cliente_pk"])
+        if not hasattr(self, "cliente"):
+            self.cliente = get_object_or_404(Cliente, pk=self.kwargs["cliente_pk"])
+        return self.cliente
 
     def get_form_kwargs(self):
         return {**super().get_form_kwargs(), "cliente": self.get_cliente()}
@@ -185,13 +255,22 @@ class TitularCreateView(FormularioMixin, CreateView):
         return self.get_cliente().get_absolute_url()
 
 
-class DependenteCreateView(FormularioMixin, CreateView):
+class DependenteCreateView(ComPedidoDeInclusaoMixin, FormularioMixin, CreateView):
     model = Beneficiario
     form_class = DependenteForm
     mensagem_sucesso = "Dependente cadastrado. Agora escolha os planos dele."
+    cadastrada = "Dependente cadastrado"
 
     def get_titular(self) -> Beneficiario:
-        return get_object_or_404(Beneficiario.objects.titulares(), pk=self.kwargs["titular_pk"])
+        if not hasattr(self, "titular"):
+            self.titular = get_object_or_404(
+                Beneficiario.objects.titulares().select_related("cliente"),
+                pk=self.kwargs["titular_pk"],
+            )
+        return self.titular
+
+    def get_cliente(self) -> Cliente:
+        return self.get_titular().cliente
 
     def get_form_kwargs(self):
         return {**super().get_form_kwargs(), "titular": self.get_titular()}
