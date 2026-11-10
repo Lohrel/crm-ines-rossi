@@ -181,7 +181,8 @@ pytest -q
   busca rápida; funcionário novo com o pedido de inclusão na mesma tela (e "Nova movimentação" na
   lista); avançar movimentações em lote pela lista; boletos enviados em lote sem recarregar a
   página; e atalhos nos formulários (cursor no primeiro campo, último solicitante, "Salvar e
-  cadastrar outro"). Cada uma é uma etapa própria: a próxima delas é a 18.
+  cadastrar outro"). Cada uma é uma etapa própria: a próxima delas é a 19 (a 18 ficou com a página
+  "Indicadores").
 - **17. Filiais da empresa nos relatórios**: branch `etapa-17-filiais-no-relatorio`, esperando o
   Lohrel testar. Pedido dele: escolhida a empresa, as listas de filial e de contrato mostram só as
   dela.
