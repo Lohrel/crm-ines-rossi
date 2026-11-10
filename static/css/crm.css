@@ -994,14 +994,22 @@ details.border-danger-subtle {
 .opcoes-em-colunas .form-check {
   break-inside: avoid;
 }
-/* A tabela de unidades rola por dentro, com o cabeçalho fixo, para a página não ficar enorme. */
-.tabela-rolavel {
-  max-height: 34rem;
-  overflow-y: auto;
+/* Cada unidade numa linha com o nome; os dados abrem ao clicar (pedido do Lohrel). */
+.unidade-recolhida > summary {
+  list-style: none;
+  cursor: pointer;
 }
-.tabela-rolavel thead th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background-color: var(--bs-card-cap-bg, var(--bs-body-bg));
+.unidade-recolhida > summary::-webkit-details-marker {
+  display: none;
+}
+.unidade-recolhida > summary::before {
+  content: "▸";
+  color: var(--bs-link-color);
+  transition: transform 0.15s;
+}
+.unidade-recolhida[open] > summary::before {
+  transform: rotate(90deg);
+}
+.unidade-recolhida[open] {
+  background-color: var(--bs-tertiary-bg);
 }

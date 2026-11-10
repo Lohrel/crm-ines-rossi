@@ -5,7 +5,7 @@ from django.urls import reverse
 
 from beneficiarios.tests.fixtures import contrato
 from clientes.models import Unidade
-from clientes.views import LIMITE_DE_QUADROS_DE_UNIDADE
+from clientes.views import LIMITE_SEM_FILTRO_DE_UNIDADES
 
 pytestmark = pytest.mark.django_db
 
@@ -41,18 +41,25 @@ def rede(empresa, matriz, filial):
     return [matriz, filial, *criar_filiais(empresa, 40)]
 
 
-def test_poucas_unidades_continuam_em_quadros(logado, empresa, matriz, filial):
+def test_cada_unidade_abre_ao_clicar(logado, empresa, matriz, filial):
     pagina = logado.get(empresa.get_absolute_url()).content.decode()
-    assert 'id="tabela-de-unidades"' not in pagina
+    assert pagina.count('<details class="list-group-item unidade-recolhida"') == 2
+    assert "data-item-filtro open" not in pagina  # fechadas: abre só o que precisar
     assert "Contatos desta unidade" in pagina
+    # Poucas unidades: sem o campo de filtro.
+    assert "Filtrar por nome, CNPJ, cidade ou contato" not in pagina
 
 
-def test_muitas_unidades_viram_tabela_com_filtro(logado, empresa, rede):
-    assert len(rede) > LIMITE_DE_QUADROS_DE_UNIDADE
+def test_empresa_com_uma_unidade_ja_vem_aberta(logado, empresa, matriz):
     pagina = logado.get(empresa.get_absolute_url()).content.decode()
-    assert 'id="tabela-de-unidades"' in pagina
+    assert "data-item-filtro open" in pagina
+
+
+def test_muitas_unidades_tem_filtro(logado, empresa, rede):
+    assert len(rede) > LIMITE_SEM_FILTRO_DE_UNIDADES
+    pagina = logado.get(empresa.get_absolute_url()).content.decode()
     assert "Filtrar por nome, CNPJ, cidade ou contato" in pagina
-    assert "Contatos desta unidade" not in pagina
+    assert pagina.count('<details class="list-group-item unidade-recolhida"') == 42
     assert "Loja Exemplo 40" in pagina
     assert "js/listas-longas.js" in pagina
 

@@ -54,8 +54,8 @@ class ClienteListView(ListView):
         return contexto
 
 
-# Até este número de unidades, cada uma tem o seu quadro na página da empresa.
-LIMITE_DE_QUADROS_DE_UNIDADE = 5
+# Acima deste número de unidades, a página da empresa ganha um campo para filtrá-las.
+LIMITE_SEM_FILTRO_DE_UNIDADES = 5
 
 
 class ClienteDetailView(DetailView):
@@ -87,9 +87,9 @@ class ClienteDetailView(DetailView):
         contexto["vidas"] = vidas
         for unidade in self.object.unidades.all():
             unidade.vidas = vidas.da_unidade(unidade.pk)
-        # Com muitas filiais, as unidades viram uma tabela com filtro e as listas são resumidas.
+        # Com muitas filiais, as unidades ganham um filtro e a exclusão delas fica recolhida.
         contexto["total_de_unidades"] = len(self.object.unidades.all())
-        contexto["muitas_unidades"] = contexto["total_de_unidades"] > LIMITE_DE_QUADROS_DE_UNIDADE
+        contexto["muitas_unidades"] = contexto["total_de_unidades"] > LIMITE_SEM_FILTRO_DE_UNIDADES
         return contexto
 
 

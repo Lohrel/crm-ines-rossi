@@ -1,15 +1,18 @@
-// Listas longas (etapa 21): filtro de linhas de uma tabela e "Marcar todas" nas caixas de marcar.
+// Listas longas (etapa 21): filtro de uma lista ou tabela e "Marcar todas" nas caixas de marcar.
 (function () {
   function sem_acento(texto) {
     return texto.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
   }
 
   document.querySelectorAll("input.filtro-de-linhas[data-filtra]").forEach(function (campo) {
-    var tabela = document.querySelector(campo.dataset.filtra);
-    if (!tabela) return;
-    var linhas = Array.prototype.slice.call(tabela.tBodies[0].rows);
+    var lista = document.querySelector(campo.dataset.filtra);
+    if (!lista) return;
+    // Linhas de uma tabela ou itens marcados com data-item-filtro.
+    var linhas = Array.prototype.slice.call(
+      lista.tBodies ? lista.tBodies[0].rows : lista.querySelectorAll("[data-item-filtro]")
+    );
     var textos = linhas.map(function (linha) { return sem_acento(linha.textContent); });
-    var aviso = tabela.parentElement.querySelector(".nenhuma-linha");
+    var aviso = lista.parentElement.querySelector(".nenhuma-linha");
     campo.addEventListener("input", function () {
       var palavras = sem_acento(campo.value).replace(/[.\/-]/g, "").split(/\s+/).filter(Boolean);
       var visiveis = 0;

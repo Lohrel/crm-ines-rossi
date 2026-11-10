@@ -83,9 +83,9 @@ Algumas telas ficam dentro de outras:
 - Nova inclusão: botão em Movimentações. Escolhe-se o cliente e abre o cadastro do titular, que
   (como o do dependente) tem embaixo o cartão "Pedido de inclusão (opcional)": cada plano marcado
   vira um pedido Em análise (etapa 20).
-- Empresa com muitas filiais (etapa 21): acima de 5 unidades, a página da empresa mostra uma
-  tabela de unidades com filtro, que rola por dentro, em vez de um quadro por unidade; contatos e
-  contratos resumem as unidades ("Todas as 45 unidades", "18 de 45 unidades").
+- Unidades da empresa (etapa 21): cada unidade é uma linha com o nome, o CNPJ e a cidade, que
+  abre os dados ao clicar; acima de 5 unidades, um campo filtra a lista. Contatos e contratos
+  resumem as unidades ("Todas as 45 unidades", "18 de 45 unidades").
 - Planilha mensal (baixar e importar): botão em Movimentações.
 - Planilha do seguro de vida: "Planilha de vidas" na tabela de contratos e na Planilha mensal.
 - Início (`contas/templates/contas/inicio.html`): o painel das etapas 8a e 8b, com um arquivo por
