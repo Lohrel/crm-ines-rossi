@@ -11,7 +11,7 @@ from django.utils import timezone
 from openpyxl import load_workbook
 
 from beneficiarios.models import Beneficiario, Vinculo
-from beneficiarios.tests.fixtures import incluir
+from beneficiarios.tests.fixtures import contrato, incluir
 from boletos.models import Boleto
 from clientes.models import Cliente
 from movimentacoes.models import Movimentacao
@@ -201,7 +201,8 @@ def test_pagina_mostra_os_numeros_sem_dados_pessoais(logado, saude, titular):
     pagina = resposta.content.decode()
     assert resposta.context["indicadores"].total.pct_ate_o_fechamento == 100
     assert "100%" in pagina and "1 de 1" in pagina
-    assert titular.nome not in pagina and str(saude.cliente) not in pagina
+    # O nome da empresa só aparece na lista do filtro; o das pessoas, em lugar nenhum.
+    assert titular.nome not in pagina and pagina.count(str(saude.cliente)) == 1
 
 
 @pytest.mark.parametrize(
@@ -256,3 +257,80 @@ def test_numero_de_consultas_nao_cresce_com_os_dados(logado, saude, dental, titu
     Boleto.objects.create(contrato=saude, referencia=OUTUBRO)
     Boleto.objects.create(contrato=dental, referencia=SETEMBRO)
     assert consultas() == antes
+
+
+# ------------------------------------------------------------------
+# Relatório por empresa
+# ------------------------------------------------------------------
+
+
+@pytest.fixture
+def duas_empresas(empresa, pessoa, seguradora, saude, titular, usuario):
+    """A empresa tem uma movimentação, uma pendência, um boleto e uma vida; a pessoa física,
+    uma pendência e um boleto."""
+    individual = contrato(pessoa, seguradora, "Saúde", "I-1", [])
+    saude.dia_fechamento = 25
+    saude.save()
+    movimentacao(titular, saude, date(2026, 10, 5), date(2026, 10, 7))
+    incluir(titular, saude, date(2026, 10, 1))
+    for cliente in (empresa, pessoa):
+        Pendencia.objects.create(
+            cliente=cliente,
+            descricao="Cobrar a ficha",
+            responsavel=usuario,
+            prazo=date(2026, 10, 10),
+            concluida_em=date(2026, 10, 9),
+        )
+    Boleto.objects.create(contrato=saude, referencia=OUTUBRO, enviado_em=date(2026, 10, 8))
+    Boleto.objects.create(contrato=individual, referencia=OUTUBRO)
+    return empresa, pessoa
+
+
+def test_relatorio_por_empresa_conta_so_o_que_e_dela(duas_empresas):
+    empresa, pessoa = duas_empresas
+
+    geral = calcular(OUTUBRO, OUTUBRO, hoje=HOJE)
+    da_empresa = calcular(OUTUBRO, OUTUBRO, empresa, hoje=HOJE)
+    da_pessoa = calcular(OUTUBRO, OUTUBRO, pessoa, hoje=HOJE)
+
+    def numeros(resultado):
+        total = resultado.total
+        return (total.movimentacoes, total.pendencias, total.boletos, resultado.meses[0].vidas)
+
+    assert numeros(geral) == (1, 2, 2, 1)
+    assert numeros(da_empresa) == (1, 1, 1, 1)
+    assert numeros(da_pessoa) == (0, 1, 1, 0)
+    assert da_empresa.total.pct_boletos_ate_o_vencimento == 100
+    assert da_pessoa.total.boletos_vencidos == 1
+
+
+def test_cadastros_do_relatorio_por_empresa(duas_empresas):
+    empresa, pessoa = duas_empresas
+    mes = date.today().replace(day=1)
+
+    geral = calcular(mes, mes).total
+    da_empresa = calcular(mes, mes, empresa).total
+
+    assert (geral.clientes_novos, geral.pessoas_novas, geral.contratos_novos) == (2, 1, 2)
+    assert (da_empresa.clientes_novos, da_empresa.pessoas_novas) == (1, 1)
+    assert da_empresa.contratos_novos == 1
+
+
+def test_pagina_e_excel_do_relatorio_por_empresa(logado, duas_empresas):
+    empresa, pessoa = duas_empresas
+    filtro = {"de": "10/2026", "ate": "10/2026", "cliente": empresa.pk}
+
+    resposta = logado.get(INDICADORES, filtro)
+
+    pagina = resposta.content.decode()
+    assert resposta.context["indicadores"].total.pendencias == 1
+    assert f"<strong>{empresa}</strong>" in pagina
+    assert "Clientes cadastrados" not in pagina
+    geral = logado.get(INDICADORES, {"de": "10/2026", "ate": "10/2026"}).content.decode()
+    assert "<strong>Relatório geral</strong>" in geral and "Clientes cadastrados" in geral
+
+    excel = logado.get(INDICADORES, {**filtro, "formato": "excel"})
+    assert "indicadores-" in excel["Content-Disposition"]
+    aba = load_workbook(BytesIO(b"".join(excel.streaming_content))).active
+    assert aba["A1"].value == f"Indicadores · 10/2026 a 10/2026 · {empresa}"
+    assert aba["I3"].value == 1  # Pendências com prazo no mês.

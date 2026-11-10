@@ -346,7 +346,7 @@ class IndicadoresView(TemplateView):
         self.resultado = None
         if self.filtro.is_valid():
             dados = self.filtro.cleaned_data
-            self.resultado = indicadores.calcular(dados["de"], dados["ate"])
+            self.resultado = indicadores.calcular(dados["de"], dados["ate"], dados.get("cliente"))
             if request.GET.get("formato") == "excel":
                 conteudo = excel.gerar(
                     f"{self.titulo} · {self.descricao_do_filtro()}",
@@ -360,10 +360,16 @@ class IndicadoresView(TemplateView):
                         self.linha("Total", self.resultado.total, None),
                     ],
                 )
-                return excel.baixar(conteudo, f"indicadores-{date.today():%Y-%m-%d}.xlsx")
+                nome = slugify(f"indicadores {dados.get('cliente') or 'geral'}")
+                return excel.baixar(conteudo, f"{nome}-{date.today():%Y-%m-%d}.xlsx")
         return super().get(request, *args, **kwargs)
 
     def descricao_do_filtro(self) -> str:
+        dados = self.filtro.cleaned_data
+        cliente = dados.get("cliente")
+        return f"{self.periodo()} · {cliente}" if cliente else self.periodo()
+
+    def periodo(self) -> str:
         dados = self.filtro.cleaned_data
         return f"{dados['de']:%m/%Y} a {dados['ate']:%m/%Y}"
 
@@ -396,5 +402,9 @@ class IndicadoresView(TemplateView):
         contexto = super().get_context_data(**kwargs)
         contexto.update(filtro=self.filtro, titulo=self.titulo, indicadores=self.resultado)
         if self.resultado is not None:
-            contexto["descricao_do_filtro"] = self.descricao_do_filtro()
+            contexto.update(
+                descricao_do_filtro=self.descricao_do_filtro(),
+                periodo=self.periodo(),
+                cliente=self.filtro.cleaned_data.get("cliente"),
+            )
         return contexto

@@ -7,7 +7,8 @@
   <div class="row g-2 align-items-end">
     <div class="col-6 col-md-2">{{ filtro.de.label_tag }}{{ filtro.de }}</div>
     <div class="col-6 col-md-2">{{ filtro.ate.label_tag }}{{ filtro.ate }}</div>
-    <div class="col-md-5 col-lg-4">{% include "relatorios/_botoes.html" %}</div>
+    <div class="col-md-4">{{ filtro.cliente.label_tag }}{{ filtro.cliente }}</div>
+    <div class="col-md-4">{% include "relatorios/_botoes.html" %}</div>
   </div>
   {% include "relatorios/_erros.html" %}
 </form>
@@ -15,7 +16,7 @@
 <details class="como-funciona mb-3">
   <summary>Como ler estes números</summary>
   <p>
-    Os números são da equipe inteira e saem do que já é registrado no dia a dia. Cada mês mostra as movimentações <strong>recebidas</strong> nele, as pendências com <strong>prazo</strong> nele e os boletos com <strong>vencimento</strong> nele.
+    Os números são da equipe inteira e saem do que já é registrado no dia a dia. Sem escolher uma empresa, é o relatório geral do escritório; com uma empresa (ou cliente) escolhida, só o que é dela. Cada mês mostra as movimentações <strong>recebidas</strong> nele, as pendências com <strong>prazo</strong> nele e os boletos com <strong>vencimento</strong> nele.
     O prazo de envio de uma movimentação é o próximo dia de fechamento do contrato, contado do dia em que o pedido chegou; contratos sem dia de fechamento ficam fora dessa conta.
     Por isso vale conferir o campo "Recebida em" ao registrar: ele vem com a data do dia.
     Movimentações e boletos cancelados não entram, e o que ainda está dentro do prazo só entra na porcentagem quando for resolvido ou o prazo passar.
@@ -27,6 +28,7 @@
 <div class="card card-body shadow-sm text-center text-body-secondary py-4">Nada registrado de {{ descricao_do_filtro }}.</div>
 {% else %}
 {% with total=indicadores.total %}
+<p class="mb-3"><strong>{% if cliente %}{{ cliente }}{% else %}Relatório geral{% endif %}</strong> <span class="text-body-secondary">· {{ periodo }}</span></p>
 <div class="row g-3 mb-4">
   <div class="col-6 col-lg">
     <div class="card card-body shadow-sm h-100 indicador">
@@ -163,13 +165,13 @@
   <div class="table-responsive">
     <table class="table table-sm align-middle mb-0 tabela-de-indicadores">
       <thead class="table-light">
-        <tr><th>Mês</th><th>Clientes cadastrados</th><th>Pessoas cadastradas</th><th>Contratos cadastrados</th><th>Vidas ativas no fim do mês</th></tr>
+        <tr><th>Mês</th>{% if not cliente %}<th>Clientes cadastrados</th>{% endif %}<th>Pessoas cadastradas</th><th>Contratos cadastrados</th><th>Vidas ativas no fim do mês</th></tr>
       </thead>
       <tbody>
       {% for mes in indicadores.meses %}{% with n=mes.numeros %}
         <tr>
           <th scope="row">{{ mes.mes|date:"m/Y" }}</th>
-          <td>{{ n.clientes_novos }}</td>
+          {% if not cliente %}<td>{{ n.clientes_novos }}</td>{% endif %}
           <td>{{ n.pessoas_novas }}</td>
           <td>{{ n.contratos_novos }}</td>
           <td>{{ mes.vidas }}</td>
@@ -177,7 +179,7 @@
       {% endwith %}{% endfor %}
       </tbody>
       <tfoot class="table-light">
-        <tr><th scope="row">Total</th><td>{{ total.clientes_novos }}</td><td>{{ total.pessoas_novas }}</td><td>{{ total.contratos_novos }}</td><td>—</td></tr>
+        <tr><th scope="row">Total</th>{% if not cliente %}<td>{{ total.clientes_novos }}</td>{% endif %}<td>{{ total.pessoas_novas }}</td><td>{{ total.contratos_novos }}</td><td>—</td></tr>
       </tfoot>
     </table>
   </div>

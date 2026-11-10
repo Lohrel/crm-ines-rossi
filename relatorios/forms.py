@@ -136,6 +136,12 @@ class FiltroApolicesForm(BootstrapFormMixin, forms.Form):
 class FiltroIndicadoresForm(BootstrapFormMixin, forms.Form):
     de = MesField(label="Do mês")
     ate = MesField(label="Até o mês")
+    cliente = forms.ModelChoiceField(
+        label="Empresa ou cliente",
+        queryset=Cliente.objects.all(),
+        required=False,
+        empty_label="Todos (geral)",
+    )
 
     def clean(self):
         dados = super().clean()

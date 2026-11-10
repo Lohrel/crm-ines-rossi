@@ -144,15 +144,21 @@ class Indicadores:
         )
 
 
-def calcular(de: date, ate: date, hoje: date | None = None) -> Indicadores:
-    """Os indicadores de cada mês, de `de` até `ate` (o dia 1º de cada um)."""
+def calcular(de: date, ate: date, cliente=None, hoje: date | None = None) -> Indicadores:
+    """Os indicadores de cada mês, de `de` até `ate` (o dia 1º de cada um).
+
+    Com `cliente`, só o que é dele (o relatório por empresa); sem ele, o escritório inteiro.
+    """
     hoje = hoje or date.today()
     inicio, fim = de, somar_meses(ate, 1)
     por_mes = {mes: Numeros() for mes in meses_entre(de, ate)}
     motivos: dict[str, int] = {}
 
+    def do_cliente(registros, campo: str = "cliente"):
+        return registros.filter(**{campo: cliente}) if cliente else registros
+
     movimentacoes = (
-        Movimentacao.objects.filter(recebida_em__gte=inicio, recebida_em__lt=fim)
+        do_cliente(Movimentacao.objects.filter(recebida_em__gte=inicio, recebida_em__lt=fim))
         .exclude(etapa=Etapa.CANCELADA)
         .values_list(
             "recebida_em",
@@ -186,7 +192,7 @@ def calcular(de: date, ate: date, hoje: date | None = None) -> Indicadores:
             numeros.com_carteirinha += 1
             numeros.dias_ate_a_carteirinha += max((carteirinha - enviada).days, 0)
 
-    pendencias = Pendencia.objects.filter(prazo__gte=inicio, prazo__lt=fim)
+    pendencias = do_cliente(Pendencia.objects.filter(prazo__gte=inicio, prazo__lt=fim))
     for prazo, concluida in pendencias.values_list("prazo", "concluida_em"):
         numeros = por_mes[prazo.replace(day=1)]
         numeros.pendencias += 1
@@ -198,7 +204,10 @@ def calcular(de: date, ate: date, hoje: date | None = None) -> Indicadores:
         elif prazo < hoje:
             numeros.pendencias_vencidas += 1
 
-    boletos = Boleto.objects.filter(cancelado=False, vencimento__gte=inicio, vencimento__lt=fim)
+    boletos = do_cliente(
+        Boleto.objects.filter(cancelado=False, vencimento__gte=inicio, vencimento__lt=fim),
+        "contrato__cliente",
+    )
     for vencimento, enviado in boletos.values_list("vencimento", "enviado_em"):
         numeros = por_mes[vencimento.replace(day=1)]
         numeros.boletos += 1
@@ -213,12 +222,14 @@ def calcular(de: date, ate: date, hoje: date | None = None) -> Indicadores:
     # `criado_em` tem hora: o mês é o do horário do escritório.
     inicio_com_hora = timezone.make_aware(datetime(inicio.year, inicio.month, 1))
     fim_com_hora = timezone.make_aware(datetime(fim.year, fim.month, 1))
-    for modelo, campo in (
-        (Cliente, "clientes_novos"),
-        (Beneficiario, "pessoas_novas"),
-        (Contrato, "contratos_novos"),
+    for modelo, campo, do in (
+        (Cliente, "clientes_novos", "pk"),
+        (Beneficiario, "pessoas_novas", "cliente"),
+        (Contrato, "contratos_novos", "cliente"),
     ):
         criados = modelo.objects.filter(criado_em__gte=inicio_com_hora, criado_em__lt=fim_com_hora)
+        if cliente:
+            criados = criados.filter(**{do: cliente.pk if do == "pk" else cliente})
         for (criado_em,) in criados.values_list("criado_em"):
             mes = timezone.localtime(criado_em).date().replace(day=1)
             numeros = por_mes[mes]
@@ -230,7 +241,9 @@ def calcular(de: date, ate: date, hoje: date | None = None) -> Indicadores:
 
     meses = [Mes(mes, numeros) for mes, numeros in por_mes.items()]
     vinculos = list(
-        Vinculo.objects.filter(data_inclusao__lt=fim).values_list("data_inclusao", "data_exclusao")
+        do_cliente(
+            Vinculo.objects.filter(data_inclusao__lt=fim), "beneficiario__cliente"
+        ).values_list("data_inclusao", "data_exclusao")
     )
     for mes in meses:
         if mes.mes > hoje:

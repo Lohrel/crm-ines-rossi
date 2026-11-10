@@ -185,7 +185,8 @@ pytest -q
 - **18. Indicadores** (em Relatórios): branch `etapa-18-indicadores`, esperando o Lohrel testar. É a
   primeira parte das métricas de impacto do CRM pedidas por ele em 10/11/2026: só o que já estava
   registrado (`relatorios/indicadores.py`), sem migração e com números da equipe inteira, nunca por
-  funcionário. Ficou para depois, se ele pedir: registrar cada importação de planilha (quem, quando
+  funcionário. Sem empresa escolhida é o relatório geral; com uma, o relatório dela (pedido dele).
+  Ficou para depois, se ele pedir: registrar cada importação de planilha (quem, quando
   e quantas linhas), que precisa de uma tabela nova. O número 17 é dos filtros de filial nos
   relatórios (PR #33).
 - Próxima etapa:

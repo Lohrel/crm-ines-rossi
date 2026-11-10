@@ -55,7 +55,7 @@ Cada etapa só começa quando a anterior está testada e em uso.
   - [x] 13b. Vários planos no mesmo contrato (ex.: TNPQ e TNP4): cada pessoa fica num deles, a troca entre eles é uma alteração de plano, a planilha do mês e os relatórios mostram o plano de cada pessoa, e uma tela escolhe o plano de quem já estava no contrato
 - [x] **15.** Telefone e e-mail das unidades: na página da empresa, telefone, WhatsApp e e-mail de cada unidade em linhas separadas (antes ficavam juntos numa linha só), com o e-mail clicável; e nos cadastros de empresa, unidade (filial), pessoa física e contato, telefone e e-mail num grupo próprio, separado do endereço
 - [ ] **16.** Busca rápida no menu: um campo em todas as telas acha pessoa (titular ou dependente, de qualquer empresa), cliente, CPF, CNPJ, matrícula, carteirinha, número do contrato ou placa, e abre direto a página quando só um registro é encontrado
-- [ ] **18.** Indicadores (em Relatórios): mês a mês, as movimentações enviadas até o fechamento, os dias até o envio e até a carteirinha, as rejeições e seus motivos, as pendências e os boletos em dia e quanto foi cadastrado, na tela e em Excel, só com números da equipe
+- [ ] **18.** Indicadores (em Relatórios): mês a mês, as movimentações enviadas até o fechamento, os dias até o envio e até a carteirinha, as rejeições e seus motivos, as pendências e os boletos em dia e quanto foi cadastrado, na tela e em Excel, só com números da equipe, no geral ou de uma empresa
 
 As telas usam o Bootstrap com as cores, a fonte e o logo da corretora (etapa 10a). Problemas de uso encontrados nos testes são corrigidos na própria etapa.
 
