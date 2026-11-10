@@ -181,8 +181,8 @@ pytest -q
   busca rápida; funcionário novo com o pedido de inclusão na mesma tela (e "Nova movimentação" na
   lista); avançar movimentações em lote pela lista; boletos enviados em lote sem recarregar a
   página; e atalhos nos formulários (cursor no primeiro campo, último solicitante, "Salvar e
-  cadastrar outro"). Cada uma é uma etapa própria: a próxima delas é a 20 (a 18 ficou com a página
-  "Indicadores" e a 19 com a visualização dos anexos).
+  cadastrar outro"). Cada uma é uma etapa própria, com o próximo número livre do README (o Lohrel
+  numera na ordem de implementação, sem reservar números).
 - **17. Filiais da empresa nos relatórios**: branch `etapa-17-filiais-no-relatorio`, esperando o
   Lohrel testar. Pedido dele: escolhida a empresa, as listas de filial e de contrato mostram só as
   dela.
@@ -197,6 +197,16 @@ pytest -q
   `clientes/ver_arquivo.html`), e o arquivo vai ao navegador por `.../abrir/` com o tipo tirado da
   extensão, só dentro de páginas do sistema e, se for imagem, sem rodar nada
   (`entregar_arquivo(..., para_ver=True)`). Word e Excel continuam só com download. Sem migração.
+- **20. Funcionário novo numa tela só**: branch `etapa-20-inclusao-numa-tela`, esperando o Lohrel
+  testar. O cadastro do titular e o do dependente têm o cartão "Pedido de inclusão (opcional)"
+  (`PedidoDeInclusaoForm` em `movimentacoes/forms.py`, `ComPedidoDeInclusaoMixin` em
+  `beneficiarios/views.py`): cada plano marcado vira um pedido Em análise, gravado pelo
+  `MovimentacaoForm`, e a pessoa e os pedidos são gravados juntos ou nada é gravado. "Nova
+  inclusão" na lista de Movimentações escolhe o cliente e abre esse cadastro. Sem migração.
+  Na revisão, o `MovimentacaoForm` passou a recusar o pedido de entrada num contrato que não
+  cobre a unidade da pessoa (antes, o erro só aparecia na aprovação; a importação da planilha não
+  mudou), e os formulários de cadastro (`clientes/formulario.html`) não enviam duas vezes num
+  clique duplo (`static/js/envio-unico.js`).
 - Próxima etapa:
   - **10d. Celular**, depois do merge da 10c: as listas viram fichas abaixo de 576 px e os filtros
     ficam recolhidos num botão (combinado com o Lohrel). Com ela e a aprovação do painel pela

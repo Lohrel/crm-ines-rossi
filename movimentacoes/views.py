@@ -15,6 +15,7 @@ from django.views.generic.detail import SingleObjectMixin
 
 from apolices.models import Contrato
 from beneficiarios.models import Beneficiario, Vinculo
+from clientes.forms import BuscaClienteForm
 from clientes.models import Cliente
 from clientes.views import FormularioMixin
 from movimentacoes.forms import (
@@ -102,6 +103,34 @@ class MovimentacaoListView(ListView):
         contexto = super().get_context_data(**kwargs)
         contexto["filtro"] = self.filtro
         contexto["total_em_aberto"] = Movimentacao.objects.em_aberto().count()
+        parametros = self.request.GET.copy()
+        parametros.pop("page", None)
+        contexto["parametros_busca"] = parametros.urlencode()
+        return contexto
+
+
+class EscolherClienteDaInclusaoView(ListView):
+    """Nova inclusão pela lista: de qual cliente é a pessoa nova (o cadastro vem em seguida,
+    já com o pedido de inclusão). Quem já está cadastrado é incluído pela página da pessoa."""
+
+    template_name = "movimentacoes/escolher_cliente.html"
+    paginate_by = 25
+
+    def get_queryset(self):
+        self.busca = BuscaClienteForm(self.request.GET or None)
+        # Só quem tem contrato de saúde, dental ou vida vigente pode pedir inclusão.
+        clientes = Cliente.objects.filter(
+            contratos__in=Contrato.objects.de_pessoas().vigentes()
+        ).distinct()
+        if self.busca.is_valid():
+            clientes = clientes.buscar(self.busca.cleaned_data["q"])
+            if tipo := self.busca.cleaned_data["tipo"]:
+                clientes = clientes.filter(tipo=tipo)
+        return clientes.prefetch_related("unidades").order_by("nome")
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        contexto["busca"] = self.busca
         parametros = self.request.GET.copy()
         parametros.pop("page", None)
         contexto["parametros_busca"] = parametros.urlencode()

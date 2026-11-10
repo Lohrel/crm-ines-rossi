@@ -80,6 +80,9 @@ Algumas telas ficam dentro de outras:
   (Pendências, Contatos, Unidades, Contratos, Veículos e imóveis e Histórico, com as quantidades),
   que ficam no alto da tela ao rolar, e o histórico mostra as 5 alterações mais recentes, com as
   outras num "Ver as outras".
+- Nova inclusão: botão em Movimentações. Escolhe-se o cliente e abre o cadastro do titular, que
+  (como o do dependente) tem embaixo o cartão "Pedido de inclusão (opcional)": cada plano marcado
+  vira um pedido Em análise (etapa 20).
 - Planilha mensal (baixar e importar): botão em Movimentações.
 - Planilha do seguro de vida: "Planilha de vidas" na tabela de contratos e na Planilha mensal.
 - Início (`contas/templates/contas/inicio.html`): o painel das etapas 8a e 8b, com um arquivo por

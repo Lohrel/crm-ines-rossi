@@ -3,7 +3,7 @@
 {% block conteudo %}
 <h1 class="h3 mb-4">{{ titulo }}</h1>
 {% if aviso %}<div class="alert alert-warning">{{ aviso }}</div>{% endif %}
-<form method="post" enctype="multipart/form-data" novalidate>
+<form method="post" enctype="multipart/form-data" novalidate data-envio-unico>
   {% csrf_token %}
   {% for subtitulo, form in formularios %}
     <div class="card shadow-sm mb-4">
