@@ -124,8 +124,13 @@
     <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2">
       <span>
         <span class="badge text-bg-light border">{{ anexo.get_tipo_display }}</span>
-        <a href="{% url 'beneficiarios:baixar_anexo' anexo.pk %}">{{ anexo.descricao|default:anexo.nome_original }}</a>
+        {% if anexo.pode_ver %}
+          <a href="{% url 'beneficiarios:ver_anexo' anexo.pk %}">{{ anexo.descricao|default:anexo.nome_original }}</a>
+        {% else %}
+          <a href="{% url 'beneficiarios:baixar_anexo' anexo.pk %}">{{ anexo.descricao|default:anexo.nome_original }}</a>
+        {% endif %}
         <span class="small text-body-secondary">· {{ anexo.criado_em|date:"d/m/Y H:i" }}{% if anexo.enviado_por %} por {{ anexo.enviado_por }}{% endif %}</span>
+        {% if anexo.pode_ver %}<span class="small">· <a href="{% url 'beneficiarios:baixar_anexo' anexo.pk %}">Baixar</a></span>{% endif %}
       </span>
     </li>
   {% empty %}

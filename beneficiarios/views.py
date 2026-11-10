@@ -43,7 +43,12 @@ from beneficiarios.models import Anexo, Beneficiario, Vinculo
 from beneficiarios.seguro_de_vida import TIPO_XLSX, PlanilhaDoSeguroDeVida, mes_sugerido
 from beneficiarios.vidas import VidasDoCliente
 from clientes.models import Cliente
-from clientes.views import ExclusaoConfirmadaView, FormularioMixin, entregar_arquivo
+from clientes.views import (
+    ExclusaoConfirmadaView,
+    FormularioMixin,
+    VerArquivoView,
+    entregar_arquivo,
+)
 
 
 class BeneficiarioListView(ListView):
@@ -317,6 +322,17 @@ class AnexoCreateView(FormularioMixin, CreateView):
 def baixar_anexo(request, pk: int):
     """Entrega o arquivo só para quem está logado (o login é exigido pelo middleware)."""
     return entregar_arquivo(request, get_object_or_404(Anexo, pk=pk))
+
+
+def abrir_anexo(request, pk: int):
+    return entregar_arquivo(request, get_object_or_404(Anexo, pk=pk), para_ver=True)
+
+
+class VerAnexoView(VerArquivoView):
+    queryset = Anexo.objects.select_related("beneficiario__cliente", "enviado_por")
+    campo_do_dono = "beneficiario"
+    rota_abrir = "beneficiarios:abrir_anexo"
+    rota_baixar = "beneficiarios:baixar_anexo"
 
 
 class AnexoDeleteView(ExclusaoConfirmadaView):

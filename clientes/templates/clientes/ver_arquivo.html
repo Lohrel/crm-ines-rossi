@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{# PDF ou imagem anexada, vista dentro do sistema. Recebe: arquivo, dono, url_abrir, url_baixar. #}
+{% block titulo %}{{ arquivo }}{% endblock %}
+{% block conteudo %}
+<nav aria-label="Caminho"><ol class="breadcrumb">
+  {% if dono.cliente %}<li class="breadcrumb-item"><a href="{{ dono.cliente.get_absolute_url }}">{{ dono.cliente }}</a></li>{% endif %}
+  <li class="breadcrumb-item"><a href="{{ arquivo.get_absolute_url }}">{{ dono }}</a></li>
+  <li class="breadcrumb-item active">{{ arquivo }}</li>
+</ol></nav>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div class="text-break">
+    <h1 class="h3 mb-1">{{ arquivo }}</h1>
+    <div class="small text-body-secondary">
+      {% if arquivo.get_tipo_display %}{{ arquivo.get_tipo_display }} · {% endif %}{% if arquivo.descricao %}{{ arquivo.nome_original }} · {% endif %}enviado em {{ arquivo.criado_em|date:"d/m/Y H:i" }}{% if arquivo.enviado_por %} por {{ arquivo.enviado_por }}{% endif %}
+    </div>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{{ url_baixar }}" class="btn btn-primary">Baixar</a>
+    <a href="{{ url_abrir }}" class="btn btn-outline-primary" target="_blank" rel="noopener">Abrir em outra aba</a>
+    <a href="{{ arquivo.get_absolute_url }}" class="btn btn-outline-secondary">Voltar</a>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-4 visualizador">
+  {% if arquivo.eh_imagem %}
+    <div class="visualizador-imagem">
+      <a href="{{ url_abrir }}" target="_blank" rel="noopener" title="Abrir em outra aba, no tamanho original"><img src="{{ url_abrir }}" alt="{{ arquivo }}"></a>
+    </div>
+  {% else %}
+    {# O <object> mostra o PDF com o leitor do próprio navegador; se ele não souber (alguns celulares), aparece o texto de dentro. #}
+    <object data="{{ url_abrir }}" type="application/pdf" class="visualizador-pdf" aria-label="{{ arquivo }}">
+      <div class="p-4 text-center">
+        <p class="mb-3">Este navegador não mostra PDF dentro da página.</p>
+        <a href="{{ url_abrir }}" class="btn btn-outline-primary" target="_blank" rel="noopener">Abrir em outra aba</a>
+        <a href="{{ url_baixar }}" class="btn btn-primary">Baixar</a>
+      </div>
+    </object>
+  {% endif %}
+</div>
+{% endblock %}

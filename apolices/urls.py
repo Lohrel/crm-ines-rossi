@@ -31,6 +31,16 @@ urlpatterns = [
         name="baixar_documento",
     ),
     path(
+        "seguradoras/documentos/<int:pk>/ver/",
+        views.VerDocumentoDaSeguradoraView.as_view(),
+        name="ver_documento",
+    ),
+    path(
+        "seguradoras/documentos/<int:pk>/abrir/",
+        views.abrir_documento_da_seguradora,
+        name="abrir_documento",
+    ),
+    path(
         "seguradoras/documentos/<int:pk>/excluir/",
         views.DocumentoDaSeguradoraDeleteView.as_view(),
         name="excluir_documento",

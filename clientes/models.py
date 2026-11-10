@@ -160,7 +160,35 @@ def validar_tamanho_do_arquivo(arquivo) -> None:
         raise ValidationError(f"O arquivo passa de {limite} MB.")
 
 
-class ArquivoAnexado(ExclusaoProtegida, Registro):
+class ArquivoParaVer:
+    """PDF e imagens podem ser vistos dentro do sistema; Word e Excel só são baixados.
+
+    O tipo entregue ao navegador vem desta lista (pela extensão, que o envio já confere), nunca do
+    que o navegador de quem enviou disse.
+    """
+
+    TIPOS_PARA_VER = {
+        "pdf": "application/pdf",
+        "jpg": "image/jpeg",
+        "jpeg": "image/jpeg",
+        "png": "image/png",
+    }
+
+    @property
+    def tipo_para_ver(self) -> str | None:
+        extensao = Path(self.arquivo.name).suffix.lower().lstrip(".")
+        return self.TIPOS_PARA_VER.get(extensao)
+
+    @property
+    def pode_ver(self) -> bool:
+        return self.tipo_para_ver is not None
+
+    @property
+    def eh_imagem(self) -> bool:
+        return (self.tipo_para_ver or "").startswith("image/")
+
+
+class ArquivoAnexado(ArquivoParaVer, ExclusaoProtegida, Registro):
     """Arquivo guardado fora da pasta pública e entregue só por uma tela com login.
 
     Fica em MEDIA_ROOT, a pasta que o backup diário copia junto com o banco.

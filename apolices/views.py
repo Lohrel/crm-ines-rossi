@@ -39,6 +39,7 @@ from clientes.views import (
     ArquivoAnexadoDeleteView,
     ExclusaoConfirmadaView,
     FormularioMixin,
+    VerArquivoView,
     entregar_arquivo,
 )
 
@@ -348,6 +349,18 @@ class DocumentoDaSeguradoraCreateView(ArquivoAnexadoCreateView):
 
 def baixar_documento_da_seguradora(request, pk: int):
     return entregar_arquivo(request, get_object_or_404(DocumentoDaSeguradora, pk=pk))
+
+
+def abrir_documento_da_seguradora(request, pk: int):
+    documento = get_object_or_404(DocumentoDaSeguradora, pk=pk)
+    return entregar_arquivo(request, documento, para_ver=True)
+
+
+class VerDocumentoDaSeguradoraView(VerArquivoView):
+    queryset = DocumentoDaSeguradora.objects.select_related("seguradora", "enviado_por")
+    campo_do_dono = "seguradora"
+    rota_abrir = "apolices:abrir_documento"
+    rota_baixar = "apolices:baixar_documento"
 
 
 class DocumentoDaSeguradoraDeleteView(ArquivoAnexadoDeleteView):

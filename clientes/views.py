@@ -401,22 +401,77 @@ class UnidadeDeleteView(ExclusaoConfirmadaView):
 # ------------------------------------------------------------------
 
 
-def entregar_arquivo(request, anexado):
-    """Entrega o arquivo só para quem está logado (o login é exigido pelo middleware)."""
+# Arquivo aberto no navegador (PDF ou imagem): só pode aparecer dentro de uma página do próprio
+# sistema, não carrega nada de fora e, se for imagem, não roda nada. Um arquivo disfarçado (ex.: uma
+# página da web com nome .png) chega como imagem e não abre.
+POLITICA_DO_PDF = "default-src 'none'; frame-ancestors 'self'"
+POLITICA_DA_IMAGEM = (
+    "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; frame-ancestors 'self'; sandbox"
+)
+
+
+def _arquivo_sumiu(request, anexado):
+    # O registro existe, mas o arquivo sumiu do disco: o backup dos anexos o tem.
+    logger.error("Arquivo anexado não encontrado no disco: %s", anexado.arquivo.name)
+    messages.error(
+        request,
+        f"O arquivo “{anexado.nome_original}” não foi encontrado no servidor. Avise quem "
+        "cuida do sistema: ele pode ser recuperado do backup dos anexos.",
+    )
+    return redirect(anexado.get_absolute_url())
+
+
+def entregar_arquivo(request, anexado, *, para_ver: bool = False):
+    """Entrega o arquivo só para quem está logado (o login é exigido pelo middleware).
+
+    Com ``para_ver``, PDF e imagens vão para o navegador mostrar em vez de baixar; os outros
+    formatos são sempre baixados.
+    """
     try:
         arquivo = anexado.arquivo.open("rb")
     except FileNotFoundError:
-        # O registro existe, mas o arquivo sumiu do disco: o backup dos anexos o tem.
-        logger.error("Arquivo anexado não encontrado no disco: %s", anexado.arquivo.name)
-        messages.error(
-            request,
-            f"O arquivo “{anexado.nome_original}” não foi encontrado no servidor. Avise quem "
-            "cuida do sistema: ele pode ser recuperado do backup dos anexos.",
+        return _arquivo_sumiu(request, anexado)
+    if para_ver and anexado.pode_ver:
+        resposta = FileResponse(
+            arquivo, filename=anexado.nome_original, content_type=anexado.tipo_para_ver
         )
-        return redirect(anexado.get_absolute_url())
-    resposta = FileResponse(arquivo, as_attachment=True, filename=anexado.nome_original)
+        resposta["X-Frame-Options"] = "SAMEORIGIN"
+        resposta["Content-Security-Policy"] = (
+            POLITICA_DA_IMAGEM if anexado.eh_imagem else POLITICA_DO_PDF
+        )
+    else:
+        resposta = FileResponse(arquivo, as_attachment=True, filename=anexado.nome_original)
     resposta["Cache-Control"] = "private, no-store"
     return resposta
+
+
+class VerArquivoView(DetailView):
+    """Página do sistema que mostra um PDF ou uma imagem anexada, com o botão de baixar.
+
+    Cada tipo de anexo diz as rotas do arquivo aberto (``rota_abrir``) e do download.
+    """
+
+    template_name = "clientes/ver_arquivo.html"
+    context_object_name = "arquivo"
+    rota_abrir: str
+    rota_baixar: str
+    campo_do_dono: str
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        if not self.object.pode_ver:
+            return redirect(self.rota_baixar, self.object.pk)
+        if not self.object.arquivo.storage.exists(self.object.arquivo.name):
+            return _arquivo_sumiu(request, self.object)
+        return self.render_to_response(self.get_context_data(object=self.object))
+
+    def get_context_data(self, **kwargs):
+        return {
+            **super().get_context_data(**kwargs),
+            "dono": getattr(self.object, self.campo_do_dono),
+            "url_abrir": reverse(self.rota_abrir, args=[self.object.pk]),
+            "url_baixar": reverse(self.rota_baixar, args=[self.object.pk]),
+        }
 
 
 class ArquivoAnexadoCreateView(FormularioMixin, CreateView):
@@ -459,6 +514,17 @@ class DocumentoDoClienteCreateView(ArquivoAnexadoCreateView):
 
 def baixar_documento(request, pk: int):
     return entregar_arquivo(request, get_object_or_404(DocumentoDoCliente, pk=pk))
+
+
+def abrir_documento(request, pk: int):
+    return entregar_arquivo(request, get_object_or_404(DocumentoDoCliente, pk=pk), para_ver=True)
+
+
+class VerDocumentoView(VerArquivoView):
+    queryset = DocumentoDoCliente.objects.select_related("cliente", "enviado_por")
+    campo_do_dono = "cliente"
+    rota_abrir = "clientes:abrir_documento"
+    rota_baixar = "clientes:baixar_documento"
 
 
 class DocumentoDoClienteDeleteView(ArquivoAnexadoDeleteView):

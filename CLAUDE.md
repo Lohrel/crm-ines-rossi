@@ -192,6 +192,11 @@ pytest -q
   funcionário. Sem empresa escolhida é o relatório geral; com uma, o relatório dela (pedido dele).
   Ficou para depois, se ele pedir: registrar cada importação de planilha (quem, quando
   e quantas linhas), que precisa de uma tabela nova.
+- **20. Ver os anexos sem baixar**: branch `etapa-20-visualizar-anexos`, esperando o Lohrel
+  testar. PDF e imagens abrem em `.../ver/` (página do sistema, `VerArquivoView` e
+  `clientes/ver_arquivo.html`), e o arquivo vai ao navegador por `.../abrir/` com o tipo tirado da
+  extensão, só dentro de páginas do sistema e, se for imagem, sem rodar nada
+  (`entregar_arquivo(..., para_ver=True)`). Word e Excel continuam só com download. Sem migração.
 - Próxima etapa:
   - **10d. Celular**, depois do merge da 10c: as listas viram fichas abaixo de 576 px e os filtros
     ficam recolhidos num botão (combinado com o Lohrel). Com ela e a aprovação do painel pela

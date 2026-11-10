@@ -31,6 +31,8 @@ urlpatterns = [
         name="novo_documento",
     ),
     path("documentos/<int:pk>/baixar/", views.baixar_documento, name="baixar_documento"),
+    path("documentos/<int:pk>/ver/", views.VerDocumentoView.as_view(), name="ver_documento"),
+    path("documentos/<int:pk>/abrir/", views.abrir_documento, name="abrir_documento"),
     path(
         "documentos/<int:pk>/excluir/",
         views.DocumentoDoClienteDeleteView.as_view(),
