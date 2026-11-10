@@ -974,3 +974,34 @@ details.border-danger-subtle {
   object-fit: contain;
   box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.1);
 }
+
+/* Empresas com muitas filiais (etapa 21): listas longas de unidades ficam recolhidas. */
+.lista-recolhida > summary {
+  color: var(--bs-link-color);
+  cursor: pointer;
+}
+.lista-recolhida[open] > summary {
+  margin-bottom: 0.25rem;
+}
+.filtro-de-linhas {
+  max-width: 22rem;
+}
+/* Muitas caixas de marcar (ex.: unidades cobertas): em colunas, em vez de uma lista comprida. */
+.opcoes-em-colunas {
+  columns: 16rem auto;
+  column-gap: 1.5rem;
+}
+.opcoes-em-colunas .form-check {
+  break-inside: avoid;
+}
+/* A tabela de unidades rola por dentro, com o cabeçalho fixo, para a página não ficar enorme. */
+.tabela-rolavel {
+  max-height: 34rem;
+  overflow-y: auto;
+}
+.tabela-rolavel thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background-color: var(--bs-card-cap-bg, var(--bs-body-bg));
+}

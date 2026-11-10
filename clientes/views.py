@@ -54,6 +54,10 @@ class ClienteListView(ListView):
         return contexto
 
 
+# Até este número de unidades, cada uma tem o seu quadro na página da empresa.
+LIMITE_DE_QUADROS_DE_UNIDADE = 5
+
+
 class ClienteDetailView(DetailView):
     model = Cliente
     template_name = "clientes/detalhe.html"
@@ -83,6 +87,9 @@ class ClienteDetailView(DetailView):
         contexto["vidas"] = vidas
         for unidade in self.object.unidades.all():
             unidade.vidas = vidas.da_unidade(unidade.pk)
+        # Com muitas filiais, as unidades viram uma tabela com filtro e as listas são resumidas.
+        contexto["total_de_unidades"] = len(self.object.unidades.all())
+        contexto["muitas_unidades"] = contexto["total_de_unidades"] > LIMITE_DE_QUADROS_DE_UNIDADE
         return contexto
 
 

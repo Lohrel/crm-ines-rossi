@@ -59,6 +59,7 @@ Cada etapa só começa quando a anterior está testada e em uso.
 - [ ] **18.** Indicadores (em Relatórios): mês a mês, as movimentações enviadas até o fechamento, os dias até o envio e até a carteirinha, as rejeições e seus motivos, as pendências e os boletos em dia e quanto foi cadastrado, na tela e em Excel, só com números da equipe, no geral ou de uma empresa
 - [ ] **19.** Ver os anexos sem baixar: PDF e imagens (documentos do cliente e da seguradora e arquivos das pessoas) abrem numa página do sistema, com os botões "Baixar" e "Abrir em outra aba"; Word e Excel continuam só com download
 - [ ] **20.** Funcionário novo numa tela só: o cadastro do titular (e do dependente) traz o pedido de inclusão, com um pedido Em análise para cada plano marcado, e a lista de Movimentações ganha o botão "Nova inclusão"
+- [ ] **21.** Empresas com muitas filiais: na página da empresa, as unidades viram uma tabela com filtro (acima de 5), e os contatos e contratos resumem as unidades ("Todas as 45 unidades", "18 de 45 unidades", que abre a lista); nos formulários, as unidades ficam em colunas, com "Marcar todas"
 
 As telas usam o Bootstrap com as cores, a fonte e o logo da corretora (etapa 10a). Problemas de uso encontrados nos testes são corrigidos na própria etapa.
 

@@ -1,0 +1,4 @@
+{% comment %}
+Unidades de um contato ou contrato, sem encher a tela nas empresas com muitas filiais.
+Recebe `unidades` (lista) e `total` (quantas unidades a empresa tem).
+{% endcomment %}{% with n=unidades|length %}{% if not n %}—{% elif n <= 3 %}{{ unidades|join:", " }}{% elif n == total %}Todas as {{ total }} unidades{% else %}<details class="lista-recolhida"><summary>{{ n }}{% if total %} de {{ total }}{% endif %} unidades</summary><div class="small">{{ unidades|join:", " }}</div></details>{% endif %}{% endwith %}

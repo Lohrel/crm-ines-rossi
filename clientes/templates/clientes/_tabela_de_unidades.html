@@ -1,0 +1,47 @@
+{# Empresa com muitas filiais: uma linha por unidade, com filtro, em vez de um quadro para cada. #}
+<div class="card shadow-sm mb-4">
+  <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span class="fw-semibold">Unidades <span class="text-body-secondary fw-normal">({{ total_de_unidades }})</span></span>
+    <input type="search" class="form-control form-control-sm filtro-de-linhas" data-filtra="#tabela-de-unidades"
+           placeholder="Filtrar por nome, CNPJ, cidade ou contato" aria-label="Filtrar unidades" autocomplete="off">
+  </div>
+  <div class="table-responsive tabela-rolavel">
+    <table class="table table-sm align-middle mb-0" id="tabela-de-unidades">
+      <thead><tr><th>Unidade</th><th>CNPJ</th><th>Endereço</th><th>Telefone e e-mail</th><th>Contatos</th><th>Vidas</th><th><span class="visually-hidden">Ações</span></th></tr></thead>
+      <tbody>
+      {% for unidade in cliente.unidades.all %}
+        <tr>
+          <td>
+            <span class="fw-semibold">{{ unidade }}</span>
+            {% if unidade.matriz %}<span class="badge text-bg-primary">Matriz</span>{% endif %}
+            {% if not unidade.ativo %}<span class="badge text-bg-secondary">Inativa</span>{% endif %}
+            <div class="small text-body-secondary">{{ unidade.razao_social }}</div>
+          </td>
+          <td class="text-nowrap small">{{ unidade.cnpj_formatado }}</td>
+          <td class="small">{{ unidade.endereco_resumido|default:"—" }}</td>
+          <td class="small">
+            {% if unidade.telefone %}<div>{{ unidade.telefone }}</div>{% endif %}
+            {% if unidade.whatsapp %}<div>WhatsApp {{ unidade.whatsapp }}</div>{% endif %}
+            {% if unidade.email %}<div class="text-break"><a href="mailto:{{ unidade.email }}">{{ unidade.email }}</a></div>{% endif %}
+            {% if not unidade.telefone and not unidade.whatsapp and not unidade.email %}—{% endif %}
+          </td>
+          <td class="small">{% with contatos=unidade.contatos.all %}{% if contatos|length > 2 %}{{ contatos.0.nome }} e mais {{ contatos|length|add:"-1" }}{% for contato in contatos %}<span class="visually-hidden">, {{ contato.nome }}</span>{% endfor %}{% else %}{% for contato in contatos %}{{ contato.nome }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-body-secondary">Nenhum</span>{% endfor %}{% endif %}{% endwith %}</td>
+          <td>{{ unidade.vidas }}</td>
+          <td class="text-end text-nowrap">
+            <a href="{% url 'clientes:editar_unidade' unidade.pk %}" class="btn btn-sm btn-link">Editar</a>
+            <div class="dropdown d-inline-block">
+              <button class="btn btn-sm btn-link dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                      data-bs-popper-config='{"strategy":"fixed"}' aria-label="Mais ações da unidade {{ unidade }}">Mais</button>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="{% url 'pendencias:nova' %}?unidade={{ unidade.pk }}">Nova pendência</a></li>
+                <li><a class="dropdown-item" href="{% url 'clientes:novo_contato' cliente.pk %}?unidade={{ unidade.pk }}">Novo contato</a></li>
+              </ul>
+            </div>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <p class="text-body-secondary small m-3 nenhuma-linha" hidden>Nenhuma unidade com esse texto.</p>
+  </div>
+</div>

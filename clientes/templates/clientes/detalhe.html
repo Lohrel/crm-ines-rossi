@@ -79,7 +79,7 @@
         <tr>
           <td>{{ contato.nome }} {% if contato.principal %}<span class="badge text-bg-success">Principal</span>{% endif %}</td>
           <td>{{ contato.cargo|default:"—" }}</td>
-          <td>{{ contato.unidades.all|join:", " }}</td>
+          <td class="small">{% include "clientes/_unidades_resumidas.html" with unidades=contato.unidades.all total=total_de_unidades %}</td>
           <td>{{ contato.telefone|default:"—" }}</td>
           <td>{{ contato.whatsapp|default:"—" }}</td>
           <td>{% if contato.email %}<a href="mailto:{{ contato.email }}">{{ contato.email }}</a>{% else %}—{% endif %}</td>
@@ -99,6 +99,7 @@
 </div>
 
   <div id="unidades">
+  {% if muitas_unidades %}{% include "clientes/_tabela_de_unidades.html" %}{% else %}
   {% for unidade in cliente.unidades.all %}
   <div class="card shadow-sm mb-3">
     <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
@@ -136,6 +137,7 @@
   {% empty %}
     <div class="alert alert-warning">Esta empresa ainda não tem unidades cadastradas.</div>
   {% endfor %}
+  {% endif %}
   </div>
 {% endif %}
 
@@ -193,9 +195,11 @@
         {% endfor %}
       {% endif %}
       {% if perms.clientes.delete_unidade and cliente.eh_empresa %}
+        {% if muitas_unidades %}<details class="lista-recolhida small"><summary>Excluir uma unidade ({{ total_de_unidades }})</summary><div class="d-flex flex-column align-items-end gap-2">{% endif %}
         {% for unidade in cliente.unidades.all %}
           <a href="{% url 'clientes:excluir_unidade' unidade.pk %}" class="btn btn-sm btn-outline-danger">Excluir unidade {{ unidade }}</a>
         {% endfor %}
+        {% if muitas_unidades %}</div></details>{% endif %}
       {% endif %}
       {% if perms.clientes.delete_cliente %}
         <a href="{% url 'clientes:excluir' cliente.pk %}" class="btn btn-sm btn-outline-danger">Excluir {% if cliente.eh_empresa %}empresa{% else %}cliente{% endif %}</a>
