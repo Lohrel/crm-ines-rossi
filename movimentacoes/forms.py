@@ -160,6 +160,7 @@ class MovimentacaoForm(BootstrapFormMixin, forms.ModelForm):
             contrato, self.instance.plano = escolha
             dados["contrato"] = contrato
         contrato = dados.get("contrato")
+        self._conferir_unidade(contrato)
         for dependente in dados.get("dependentes") or []:
             pedido = Movimentacao(
                 tipo=self.instance.tipo,
@@ -174,6 +175,22 @@ class MovimentacaoForm(BootstrapFormMixin, forms.ModelForm):
             except ValidationError as erro:
                 self.add_error("dependentes", f"{dependente}: {' '.join(erro.messages)}")
         return dados
+
+    def _conferir_unidade(self, contrato: Contrato | None) -> None:
+        """Quem entra num plano precisa ser de uma unidade que o contrato cobre.
+
+        Sem isso, o pedido era registrado e só dava erro na aprovação.
+        """
+        unidade = self.instance.beneficiario.unidade_efetiva
+        if not (contrato and unidade and self.instance.entra_no_plano):
+            return
+        cobertas = list(contrato.unidades.all())
+        if cobertas and unidade not in cobertas:
+            self.add_error(
+                "contrato",
+                f"Este contrato não cobre a unidade {unidade}. Confira a unidade da pessoa "
+                "ou as unidades cobertas pelo contrato.",
+            )
 
     def save(self, commit=True):
         movimentacao = super().save(commit)

@@ -203,6 +203,10 @@ pytest -q
   `beneficiarios/views.py`): cada plano marcado vira um pedido Em análise, gravado pelo
   `MovimentacaoForm`, e a pessoa e os pedidos são gravados juntos ou nada é gravado. "Nova
   inclusão" na lista de Movimentações escolhe o cliente e abre esse cadastro. Sem migração.
+  Na revisão, o `MovimentacaoForm` passou a recusar o pedido de entrada num contrato que não
+  cobre a unidade da pessoa (antes, o erro só aparecia na aprovação; a importação da planilha não
+  mudou), e os formulários de cadastro (`clientes/formulario.html`) não enviam duas vezes num
+  clique duplo (`static/js/envio-unico.js`).
 - Próxima etapa:
   - **10d. Celular**, depois do merge da 10c: as listas viram fichas abaixo de 576 px e os filtros
     ficam recolhidos num botão (combinado com o Lohrel). Com ela e a aprovação do painel pela

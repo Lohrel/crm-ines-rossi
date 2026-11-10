@@ -189,8 +189,11 @@ class ComPedidoDeInclusaoMixin:
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
-        if self.get_pedido().tem_planos:
-            contexto["formularios"].append((self.titulo_do_pedido, self.get_pedido()))
+        pedido = self.get_pedido()
+        # Com erro, o cartão aparece mesmo sem planos (ex.: o contrato deixou de estar em
+        # vigor enquanto a tela estava aberta), para o aviso não ficar escondido.
+        if pedido.tem_planos or pedido.errors:
+            contexto["formularios"].append((self.titulo_do_pedido, pedido))
         return contexto
 
     def post(self, request, *args, **kwargs):

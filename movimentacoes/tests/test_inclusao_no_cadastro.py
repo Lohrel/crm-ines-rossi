@@ -132,3 +132,47 @@ def test_nova_inclusao_pela_lista_de_movimentacoes(logado, empresa, saude, pesso
     assert list(resposta.context["object_list"]) == [empresa]
     pagina = resposta.content.decode()
     assert reverse("beneficiarios:novo_titular", args=[empresa.pk]) in pagina
+
+
+def test_unidade_fora_do_contrato_nao_grava_nem_a_pessoa(logado, empresa, filial, irma, saude):
+    # O contrato S-1 cobre a matriz e a filial, não a "irmã". Antes, o pedido era registrado e
+    # só dava erro na aprovação.
+    resposta = novo_titular(logado, empresa, irma, planos=[saude.pk], enviada_em="04/11/2026")
+    pagina = resposta.content.decode()
+    assert resposta.status_code == 200
+    assert "Este contrato não cobre a unidade" in pagina
+    assert "Saúde · Seguradora Exemplo S-1:" in pagina
+    assert not Beneficiario.objects.filter(nome="Nina Nova").exists()
+    assert not Movimentacao.objects.exists()
+    # Corrigida a unidade, a mesma tela grava a pessoa e o pedido.
+    resposta = novo_titular(logado, empresa, filial, planos=[saude.pk], enviada_em="04/11/2026")
+    nina = Beneficiario.objects.get(nome="Nina Nova")
+    assert resposta["Location"] == nina.get_absolute_url()
+    assert Movimentacao.objects.get(beneficiario=nina).contrato == saude
+
+
+def test_solicitar_inclusao_tambem_confere_a_unidade(logado, empresa, irma, saude):
+    pessoa = empresa.beneficiarios.create(unidade=irma, nome="Ivo Irmã")
+    resposta = logado.post(
+        reverse("movimentacoes:nova", args=[pessoa.pk, "inclusao"]),
+        {"contrato": saude.pk, "recebida_em": "03/11/2026", "enviada_em": "04/11/2026"},
+    )
+    assert "Este contrato não cobre a unidade" in resposta.content.decode()
+    assert not Movimentacao.objects.exists()
+
+
+def test_erro_do_pedido_aparece_mesmo_sem_planos_na_tela(logado, empresa, filial, saude):
+    # O contrato saiu de vigor com a tela aberta: o aviso não pode ficar escondido.
+    saude.situacao = "CAN"
+    saude.save()
+    resposta = novo_titular(logado, empresa, filial, planos=[saude.pk], enviada_em="04/11/2026")
+    pagina = resposta.content.decode()
+    assert "Pedido de inclusão (opcional)" in pagina
+    assert "Faça uma escolha válida" in pagina or "Escolha uma opção válida" in pagina
+    assert not Beneficiario.objects.filter(nome="Nina Nova").exists()
+
+
+def test_formulario_de_cadastro_nao_envia_duas_vezes(logado, empresa):
+    pagina = logado.get(reverse("beneficiarios:novo_titular", args=[empresa.pk])).content
+    assert b"data-envio-unico" in pagina
+    assert b"js/envio-unico.js" in pagina
